@@ -24,17 +24,13 @@ import { Progress } from "@/components/ui/progress"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 export default function ComposePage() {
-  const [linkedinUrl, setLinkedinUrl] = useState("linkedin.com/in/sarah-chen-vp-sales")
-  const [firstName, setFirstName] = useState("Sarah")
-  const [lastName, setLastName] = useState("Chen")
-  const [title, setTitle] = useState("VP of Sales")
-  const [company, setCompany] = useState("Acme Corp")
-  const [trigger, setTrigger] = useState(
-    "Sarah was just promoted from Director to VP of Sales after leading a 40% ARR growth initiative. Acme recently expanded their SDR team from 5 to 12 reps."
-  )
-  const [valueProp, setValueProp] = useState(
-    "AI-coached sales role plays that cut SDR ramp time by 30% for Series B-D companies."
-  )
+  const [linkedinUrl, setLinkedinUrl] = useState("")
+  const [firstName, setFirstName] = useState("")
+  const [lastName, setLastName] = useState("")
+  const [title, setTitle] = useState("")
+  const [company, setCompany] = useState("")
+  const [trigger, setTrigger] = useState("")
+  const [valueProp, setValueProp] = useState("")
   const [tone, setTone] = useState("conversational")
   const [length, setLength] = useState("medium")
   const [ctaStyle, setCtaStyle] = useState("soft")
@@ -344,20 +340,6 @@ export default function ComposePage() {
                       </Badge>
                     )}
                   </div>
-                  {generated && (
-                    <div className="mt-3 grid grid-cols-3 gap-2">
-                      {[
-                        { label: "Spam risk", value: "Low", color: "#27a644" },
-                        { label: "Reading level", value: "Grade 8", color: "#5e6ad2" },
-                        { label: "Est. read time", value: "28s", color: "#ff801f" },
-                      ].map((m) => (
-                        <div key={m.label} className="rounded-md bg-[#141516] border border-[#23252a] p-2 text-center">
-                          <div className="text-xs font-medium" style={{ color: m.color }}>{m.value}</div>
-                          <div className="text-[10px] text-[#62666d] mt-0.5">{m.label}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </CardContent>
               </Card>
             )}

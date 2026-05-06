@@ -3,17 +3,9 @@
 import { useUser } from "@clerk/nextjs"
 import { TopBar } from "@/components/layout/top-bar"
 import {
-  User,
-  Bell,
-  Key,
   Link2,
-  CreditCard,
-  Shield,
-  Mail,
   Zap,
   Check,
-  AlertCircle,
-  ChevronRight,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -24,50 +16,6 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
-const integrations = [
-  {
-    name: "Salesforce",
-    description: "Sync prospects and log email activity",
-    icon: "SF",
-    color: "#00a1e0",
-    connected: true,
-  },
-  {
-    name: "HubSpot",
-    description: "Two-way contact and deal sync",
-    icon: "HS",
-    color: "#ff7a59",
-    connected: false,
-  },
-  {
-    name: "LinkedIn Sales Navigator",
-    description: "Auto-enrich prospects from LinkedIn",
-    icon: "LI",
-    color: "#0a66c2",
-    connected: true,
-  },
-  {
-    name: "Outreach",
-    description: "Push sequences to Outreach.io",
-    icon: "OR",
-    color: "#5a67d8",
-    connected: false,
-  },
-  {
-    name: "Slack",
-    description: "Get reply notifications in Slack",
-    icon: "SL",
-    color: "#4a154b",
-    connected: true,
-  },
-  {
-    name: "Apollo.io",
-    description: "Import prospects from Apollo lists",
-    icon: "AP",
-    color: "#2563eb",
-    connected: false,
-  },
-]
 
 export default function SettingsPage() {
   const { user } = useUser()
@@ -97,7 +45,7 @@ export default function SettingsPage() {
                 <CardContent className="space-y-4">
                   <div className="flex items-center gap-4">
                     <div className="size-16 rounded-full bg-gradient-to-br from-[#5e6ad2] to-[#a78bfa] flex items-center justify-center text-xl font-bold text-white">
-                      JT
+                      {user?.firstName?.[0]}{user?.lastName?.[0]}
                     </div>
                     <div>
                       <Button variant="secondary" size="sm" className="text-xs">Change photo</Button>
@@ -108,16 +56,16 @@ export default function SettingsPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <label className="text-xs text-[#8a8f98]">First name</label>
-                      <Input defaultValue="James" />
+                      <Input defaultValue={user?.firstName ?? ""} />
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-xs text-[#8a8f98]">Last name</label>
-                      <Input defaultValue="Thomas" />
+                      <Input defaultValue={user?.lastName ?? ""} />
                     </div>
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-xs text-[#8a8f98]">Email</label>
-                    <Input defaultValue="james.ct216@gmail.com" type="email" />
+                    <Input defaultValue={user?.primaryEmailAddress?.emailAddress ?? ""} type="email" />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-xs text-[#8a8f98]">Job title</label>
@@ -247,42 +195,33 @@ export default function SettingsPage() {
           </TabsContent>
 
           <TabsContent value="integrations">
-            <div className="max-w-2xl space-y-3">
-              {integrations.map((integration) => (
-                <Card key={integration.name}>
-                  <CardContent className="pt-4 pb-4">
-                    <div className="flex items-center gap-4">
-                      <div
-                        className="size-10 rounded-lg flex items-center justify-center text-xs font-bold text-white shrink-0"
-                        style={{ background: integration.color }}
+            <div className="max-w-2xl">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Link2 className="size-4 text-[#62666d]" />
+                    Integrations coming soon
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Native integrations are in development. Here&apos;s what&apos;s planned:
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    {["Salesforce", "HubSpot", "LinkedIn Sales Navigator", "Outreach", "Slack", "Apollo.io"].map((name) => (
+                      <span
+                        key={name}
+                        className="inline-flex items-center px-2.5 py-1 rounded-md border border-[#23252a] bg-[#141516] text-xs text-[#62666d]"
                       >
-                        {integration.icon}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium text-[#f7f8f8]">{integration.name}</p>
-                          {integration.connected ? (
-                            <Badge variant="success" className="text-[9px] h-4 gap-0.5">
-                              <Check className="size-2.5" />
-                              Connected
-                            </Badge>
-                          ) : (
-                            <Badge variant="secondary" className="text-[9px] h-4">Not connected</Badge>
-                          )}
-                        </div>
-                        <p className="text-xs text-[#62666d]">{integration.description}</p>
-                      </div>
-                      <Button
-                        variant={integration.connected ? "secondary" : "outline"}
-                        size="sm"
-                        className="text-xs h-7 shrink-0"
-                      >
-                        {integration.connected ? "Disconnect" : "Connect"}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                        {name}
+                      </span>
+                    ))}
+                  </div>
+                  <p className="text-xs text-[#62666d] mt-4">
+                    Want a specific integration prioritized? Reply to your welcome email and let us know.
+                  </p>
+                </CardContent>
+              </Card>
             </div>
           </TabsContent>
 
@@ -312,39 +251,21 @@ export default function SettingsPage() {
 
           <TabsContent value="billing">
             <div className="max-w-2xl space-y-4">
-              <Card className="border-[rgba(94,106,210,0.3)]">
+              <Card className="border-[rgba(94,106,210,0.3)] bg-[rgba(94,106,210,0.04)]">
                 <CardContent className="pt-5 pb-5">
                   <div className="flex items-start justify-between">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-base font-semibold text-[#f7f8f8]">Pro Plan</span>
+                        <span className="text-base font-semibold text-[#f7f8f8]">Free Beta Plan</span>
                         <Badge variant="default" className="text-[10px] h-4">Active</Badge>
                       </div>
-                      <p className="text-sm text-[#8a8f98]">$49/month · Renews June 4, 2026</p>
+                      <p className="text-sm text-[#8a8f98]">You&apos;re on the free beta plan — all features included.</p>
                     </div>
-                    <Button variant="outline" size="sm" className="text-xs">Manage plan</Button>
                   </div>
                   <Separator className="my-4" />
-                  <div className="grid grid-cols-3 gap-4">
-                    {[
-                      { label: "Emails used", value: "324 / 500", pct: 65 },
-                      { label: "Enrichments", value: "89 / 200", pct: 45 },
-                      { label: "Seats", value: "1 / 1", pct: 100 },
-                    ].map((u) => (
-                      <div key={u.label}>
-                        <div className="flex justify-between text-xs mb-1.5">
-                          <span className="text-[#62666d]">{u.label}</span>
-                          <span className="text-[#d0d6e0]">{u.value}</span>
-                        </div>
-                        <div className="h-1 rounded-full bg-[#23252a]">
-                          <div
-                            className="h-1 rounded-full bg-[#5e6ad2] transition-all"
-                            style={{ width: `${u.pct}%` }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <p className="text-xs text-[#62666d] leading-relaxed">
+                    During beta, ColdHook is completely free. Paid plans will be introduced once we graduate from beta. You&apos;ll receive advance notice before any charges begin.
+                  </p>
                 </CardContent>
               </Card>
             </div>

@@ -128,7 +128,7 @@ export default function TemplatesPage() {
         title="Templates"
         description="Your personalized email template library"
         action={
-          <Button size="sm" className="h-7 text-xs gap-1.5">
+          <Button size="sm" className="h-7 text-xs gap-1.5" disabled>
             <Plus className="size-3" />
             New template
           </Button>
@@ -138,24 +138,33 @@ export default function TemplatesPage() {
       <div className="p-6 space-y-4">
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3">
-          {[
-            { label: "Templates", value: templates.length, icon: Mail, color: "#5e6ad2" },
-            { label: "Avg reply rate", value: "30.2%", icon: TrendingUp, color: "#27a644" },
-            { label: "Total uses", value: "1,058", icon: BarChart3, color: "#ff801f" },
-          ].map((s) => {
-            const Icon = s.icon
-            return (
-              <Card key={s.label}>
-                <CardContent className="pt-3 pb-3 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Icon className="size-4 shrink-0" style={{ color: s.color }} />
-                    <span className="text-xs text-[#8a8f98]">{s.label}</span>
-                  </div>
-                  <span className="text-sm font-semibold" style={{ color: s.color }}>{s.value}</span>
-                </CardContent>
-              </Card>
-            )
-          })}
+          <Card>
+            <CardContent className="pt-3 pb-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Mail className="size-4 shrink-0 text-[#5e6ad2]" />
+                <span className="text-xs text-[#8a8f98]">Templates</span>
+              </div>
+              <span className="text-sm font-semibold text-[#5e6ad2]">{templates.length}</span>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-3 pb-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="size-4 shrink-0 text-[#27a644]" />
+                <span className="text-xs text-[#8a8f98]">Avg reply rate</span>
+              </div>
+              <span className="text-sm font-semibold text-[#62666d]">—</span>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-3 pb-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="size-4 shrink-0 text-[#ff801f]" />
+                <span className="text-xs text-[#8a8f98]">Total uses</span>
+              </div>
+              <span className="text-sm font-semibold text-[#62666d]">—</span>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Filter row */}
@@ -224,20 +233,6 @@ export default function TemplatesPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 text-xs">
-                  <div className="flex items-center gap-1">
-                    <TrendingUp className="size-3 text-[#27a644]" />
-                    <span className="text-[#27a644] font-medium">{template.replyRate}%</span>
-                    <span className="text-[#62666d]">reply</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Mail className="size-3 text-[#62666d]" />
-                    <span className="text-[#62666d]">{template.opens}% open</span>
-                  </div>
-                  <div className="ml-auto flex items-center gap-1 text-[#62666d]">
-                    <span>{template.uses}×</span>
-                  </div>
-                </div>
 
                 <div className="flex flex-wrap gap-1">
                   {template.tags.map((tag) => (
@@ -252,15 +247,15 @@ export default function TemplatesPage() {
                 </div>
 
                 <div className="flex items-center gap-1.5 pt-1 border-t border-[#1a1b1f]">
-                  <Button variant="ghost" size="sm" className="flex-1 h-7 text-xs gap-1">
+                  <Button variant="ghost" size="sm" className="flex-1 h-7 text-xs gap-1" disabled>
                     <Copy className="size-3" />
                     Duplicate
                   </Button>
-                  <Button variant="ghost" size="sm" className="flex-1 h-7 text-xs gap-1">
+                  <Button variant="ghost" size="sm" className="flex-1 h-7 text-xs gap-1" disabled>
                     <Edit className="size-3" />
                     Edit
                   </Button>
-                  <Button variant="default" size="sm" className="flex-1 h-7 text-xs gap-1">
+                  <Button variant="default" size="sm" className="flex-1 h-7 text-xs gap-1" disabled>
                     <Sparkles className="size-3" />
                     Use
                   </Button>

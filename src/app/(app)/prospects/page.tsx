@@ -121,7 +121,7 @@ export default function ProspectsPage() {
             { label: "Total Prospects", value: stats.total.toString(), color: "#5e6ad2" },
             { label: "Hot Leads", value: stats.hot.toString(), color: "#ef4444" },
             { label: "Awaiting Email", value: stats.awaitingEmail.toString(), color: "#f59e0b" },
-            { label: "Enrichment Queue", value: "12", color: "#27a644" },
+            { label: "Enrichment Queue", value: "—", color: "#62666d" },
           ].map((s) => (
             <Card key={s.label}>
               <CardContent className="pt-3 pb-3 flex items-center justify-between">

@@ -1,90 +1,40 @@
-import { Star } from "lucide-react"
-
-const testimonials = [
-  {
-    quote: "Went from a 12% reply rate to 31% in 3 weeks. The LinkedIn trigger feature is insane — it caught a prospect's job change and the email practically wrote itself.",
-    name: "Marcus R.",
-    role: "Senior AE @ Rippling",
-    avatar: "MR",
-    color: "#5e6ad2",
-  },
-  {
-    quote: "I was skeptical about AI cold email tools. ColdHook is different — the emails don't sound robotic. My manager asked who wrote them. Said me.",
-    name: "Priya S.",
-    role: "SDR Team Lead @ Gong",
-    avatar: "PS",
-    color: "#ff801f",
-  },
-  {
-    quote: "Cut my prospecting time from 4 hours a day to 45 minutes. Booked 8 meetings this week on a list of 60. That's a record for me.",
-    name: "Tyler L.",
-    role: "BDR @ Outreach.io",
-    avatar: "TL",
-    color: "#27a644",
-  },
-  {
-    quote: "The A/B testing finally told me my CTAs were killing my replies. Switched to softer asks and my booking rate doubled.",
-    name: "Aisha K.",
-    role: "VP Sales @ Series B SaaS",
-    avatar: "AK",
-    color: "#a78bfa",
-  },
-  {
-    quote: "ColdHook pulled a quote from a podcast my prospect was on two months ago. She replied within 20 minutes saying it was the best cold email she'd ever received.",
-    name: "James D.",
-    role: "Enterprise AE @ Salesforce",
-    avatar: "JD",
-    color: "#f59e0b",
-  },
-  {
-    quote: "Entire SDR team went from 8% average to 22%. We're pacing to hit our H1 number in April. This is the unfair advantage we needed.",
-    name: "Sam O.",
-    role: "Head of Sales Development @ Notion",
-    avatar: "SO",
-    color: "#5e6ad2",
-  },
-]
+import Link from "next/link"
+import { Sparkles, ArrowRight } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 export function Testimonials() {
   return (
     <section className="py-20 px-6 border-t border-[#23252a]">
-      <div className="max-w-5xl mx-auto">
-        <div className="text-center mb-14">
-          <h2 className="text-4xl font-semibold tracking-tight text-[#f7f8f8] mb-4">
-            SDRs actually getting replies
-          </h2>
-          <p className="text-[#8a8f98] text-lg">
-            Results from real sales professionals using ColdHook.
-          </p>
+      <div className="max-w-3xl mx-auto text-center">
+        <div className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(94,106,210,0.3)] bg-[rgba(94,106,210,0.08)] px-3 py-1 text-xs text-[#828fff] mb-6">
+          <Sparkles className="size-3" />
+          Early access
         </div>
+        <h2 className="text-4xl font-semibold tracking-tight text-[#f7f8f8] mb-4">
+          Be one of our first power users
+        </h2>
+        <p className="text-[#8a8f98] text-lg mb-10 max-w-xl mx-auto">
+          ColdHook is in private beta. Join free, use every feature, and help shape what we build next.
+        </p>
 
-        <div className="columns-1 md:columns-2 lg:columns-3 gap-4 space-y-4">
-          {testimonials.map((t) => (
-            <div
-              key={t.name}
-              className="break-inside-avoid rounded-xl border border-[#23252a] bg-[#0f1011] p-5"
-              style={{ boxShadow: "0 1px 3px rgba(50,50,93,0.25), 0 1px 0 rgba(0,0,0,0.1)" }}
-            >
-              <div className="flex mb-3">
-                {[1,2,3,4,5].map(i => (
-                  <Star key={i} className="size-3 fill-[#f59e0b] text-[#f59e0b]" />
-                ))}
-              </div>
-              <p className="text-sm text-[#d0d6e0] leading-relaxed mb-4">&ldquo;{t.quote}&rdquo;</p>
-              <div className="flex items-center gap-3">
-                <div
-                  className="size-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
-                  style={{ background: `linear-gradient(135deg, ${t.color} 0%, ${t.color}99 100%)` }}
-                >
-                  {t.avatar}
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-[#f7f8f8]">{t.name}</p>
-                  <p className="text-[11px] text-[#62666d]">{t.role}</p>
-                </div>
-              </div>
+        <div className="rounded-2xl border border-[rgba(94,106,210,0.25)] bg-[rgba(94,106,210,0.05)] p-8 max-w-lg mx-auto">
+          <div className="flex flex-col items-center gap-4">
+            <div className="size-12 rounded-2xl bg-[rgba(94,106,210,0.15)] border border-[rgba(94,106,210,0.2)] flex items-center justify-center">
+              <Sparkles className="size-6 text-[#5e6ad2]" />
             </div>
-          ))}
+            <div>
+              <p className="text-sm font-semibold text-[#f7f8f8] mb-1">Free during beta</p>
+              <p className="text-xs text-[#8a8f98] leading-relaxed">
+                No credit card. No limits. Full access to AI compose, prospect tracking, and follow-up sequences — free while we&apos;re in beta.
+              </p>
+            </div>
+            <Button size="lg" className="h-11 px-8 text-base font-medium gap-2 mt-2" asChild>
+              <Link href="/sign-up">
+                Get free early access
+                <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+          </div>
         </div>
       </div>
     </section>

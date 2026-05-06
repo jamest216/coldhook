@@ -6,14 +6,12 @@ import {
   Calendar,
   ArrowUpRight,
   Sparkles,
-  BarChart3,
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
 import Link from "next/link"
-import { auth } from "@clerk/nextjs/server"
+import { auth, currentUser } from "@clerk/nextjs/server"
 import { db } from "@/lib/db"
 import { emails, prospects } from "@/lib/db/schema"
 import { eq, desc, count, gte, and } from "drizzle-orm"
@@ -40,11 +38,10 @@ const quickActions = [
   { label: "Compose with AI", href: "/compose", icon: Sparkles, color: "#5e6ad2", bg: "rgba(94,106,210,0.12)" },
   { label: "Import Prospects", href: "/prospects", icon: Users, color: "#ff801f", bg: "rgba(255,128,31,0.12)" },
   { label: "Browse Templates", href: "/templates", icon: Mail, color: "#a78bfa", bg: "rgba(167,139,250,0.12)" },
-  { label: "View Analytics", href: "/analytics", icon: BarChart3, color: "#27a644", bg: "rgba(39,166,68,0.12)" },
 ]
 
 export default async function DashboardPage() {
-  const { userId } = await auth()
+  const [{ userId }, clerkUser] = await Promise.all([auth(), currentUser()])
 
   const thisMonthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
 
@@ -74,7 +71,7 @@ export default async function DashboardPage() {
     <div>
       <TopBar
         title="Dashboard"
-        description="Welcome back, James. Here's your pipeline."
+        description={`Welcome back${clerkUser?.firstName ? `, ${clerkUser.firstName}` : ""}. Here's your pipeline.`}
       />
 
       <div className="p-6 space-y-6">
@@ -255,29 +252,18 @@ export default async function DashboardPage() {
               </CardContent>
             </Card>
 
-            {/* Monthly Goal */}
+            {/* Meeting tracking placeholder */}
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Monthly Goal</CardTitle>
-                <CardDescription className="text-xs">50 meetings booked</CardDescription>
+                <CardTitle className="text-sm">Meeting Tracking</CardTitle>
+                <CardDescription className="text-xs">Coming soon</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-[#8a8f98]">28 / 50 meetings</span>
-                  <span className="font-semibold text-[#f7f8f8]">56%</span>
-                </div>
-                <Progress value={56} />
-                <div className="grid grid-cols-3 gap-2 pt-1">
-                  {[
-                    { label: "On track", value: "12d left", color: "#27a644" },
-                    { label: "Needed/day", value: "1.5", color: "#f59e0b" },
-                    { label: "Streak", value: "7 days", color: "#5e6ad2" },
-                  ].map((item) => (
-                    <div key={item.label} className="text-center">
-                      <div className="text-sm font-semibold" style={{ color: item.color }}>{item.value}</div>
-                      <div className="text-[10px] text-[#62666d] mt-0.5">{item.label}</div>
-                    </div>
-                  ))}
+              <CardContent>
+                <div className="flex flex-col items-center justify-center py-4 text-center gap-2">
+                  <Calendar className="size-8 text-[#34343a]" />
+                  <p className="text-xs text-[#62666d] leading-relaxed">
+                    Connect your calendar to auto-log booked meetings and track your monthly goal.
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -292,7 +278,7 @@ export default async function DashboardPage() {
                   <div>
                     <p className="text-xs font-medium text-[#828fff] mb-1">AI Insight</p>
                     <p className="text-xs text-[#8a8f98] leading-relaxed">
-                      Your Tuesday morning emails have a 42% reply rate — 23% higher than your average. Try scheduling more sends at 8–9am Tues.
+                      Send more emails to unlock AI insights about your best-performing times and templates.
                     </p>
                   </div>
                 </div>
