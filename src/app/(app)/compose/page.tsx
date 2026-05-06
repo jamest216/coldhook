@@ -23,6 +23,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Progress } from "@/components/ui/progress"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { computePersonalizationScore, computeSpamScore } from "@/lib/scoring"
 
 export default function ComposePage() {
   const [linkedinUrl, setLinkedinUrl] = useState("")
@@ -121,6 +122,21 @@ export default function ComposePage() {
     await navigator.clipboard.writeText(text)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  const handleEmailEdit = (value: string) => {
+    setGeneratedEmail(value)
+    const persResult = computePersonalizationScore({
+      body: value,
+      subject: generatedSubject,
+      firstName,
+      company,
+      trigger,
+    })
+    setScore(persResult.score)
+    const spamResult = computeSpamScore({ subject: generatedSubject, body: value })
+    setSpamScore(spamResult.score)
+    setSpamFlags(spamResult.flags)
   }
 
   const handleGenerateSequence = async () => {
@@ -472,7 +488,7 @@ export default function ComposePage() {
                       value={generatedEmail}
                       rows={14}
                       className="text-sm leading-relaxed font-mono text-[#d0d6e0]"
-                      readOnly
+                      onChange={(e) => handleEmailEdit(e.target.value)}
                     />
                   </div>
                 ) : (
