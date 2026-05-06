@@ -108,13 +108,15 @@ export function Pricing() {
                 </div>
               </div>
 
-              <Button
-                variant={plan.ctaVariant}
-                className="w-full mb-6"
-                asChild
-              >
-                <Link href={plan.name === "Team" ? "mailto:james.ct216@gmail.com" : "/sign-up"}>{plan.cta}</Link>
-              </Button>
+              {plan.name === "Starter" ? (
+                <Button variant={plan.ctaVariant} className="w-full mb-6" asChild>
+                  <Link href="/sign-up">{plan.cta}</Link>
+                </Button>
+              ) : (
+                <Button variant="secondary" className="w-full mb-6" disabled>
+                  Coming soon
+                </Button>
+              )}
 
               <ul className="space-y-2.5">
                 {plan.features.map((f) => (
