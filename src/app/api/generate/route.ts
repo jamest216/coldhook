@@ -1,5 +1,8 @@
 import { anthropic } from "@ai-sdk/anthropic"
 import { generateText } from "ai"
+import { auth } from "@clerk/nextjs/server"
+import { db } from "@/lib/db"
+import { emails } from "@/lib/db/schema"
 
 function buildPrompt(fields: Record<string, string>) {
   return `You are an expert cold email copywriter. Write a hyper-personalized cold email based on the prospect intelligence below.
@@ -66,6 +69,24 @@ export async function POST(request: Request) {
     const email = text
       .replace(/^Subject:\s*.+\n*/m, "")
       .trim()
+
+    const { userId } = await auth()
+    if (userId) {
+      await db.insert(emails).values({
+        userId,
+        subject,
+        body: email,
+        recipientName: `${fields.firstName} ${fields.lastName}`.trim(),
+        recipientCompany: fields.company,
+        recipientTitle: fields.title || null,
+        linkedinUrl: fields.linkedinUrl || null,
+        triggerContext: fields.trigger || null,
+        valueProp: fields.valueProp || null,
+        tone: fields.tone || null,
+        score: 89,
+        status: "sent",
+      })
+    }
 
     return Response.json({ subject, email })
   } catch (error) {
