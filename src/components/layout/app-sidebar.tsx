@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useUser, useClerk } from "@clerk/nextjs"
@@ -34,6 +35,15 @@ export function AppSidebar() {
   const pathname = usePathname()
   const { user } = useUser()
   const { signOut } = useClerk()
+
+  const [emailStats, setEmailStats] = useState<{ emailsTotal: number; emailsThisMonth: number } | null>(null)
+
+  useEffect(() => {
+    fetch('/api/stats')
+      .then(r => r.json())
+      .then(data => setEmailStats(data))
+      .catch(() => {})
+  }, [])
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -95,7 +105,11 @@ export function AppSidebar() {
               This Month
             </p>
             <div className="mx-1 rounded-lg border border-[#23252a] bg-[#141516] p-3 space-y-2">
-              <StatRow label="Emails Sent" value="1,247" trend="+12%" />
+              <StatRow
+                label="Emails Sent"
+                value={emailStats ? emailStats.emailsTotal.toLocaleString() : '—'}
+                trend={emailStats && emailStats.emailsThisMonth > 0 ? `+${emailStats.emailsThisMonth} mo` : '—'}
+              />
               <StatRow label="Reply Rate" value="34.2%" trend="+5.1%" />
               <StatRow label="Meetings Booked" value="28" trend="+8" />
             </div>
