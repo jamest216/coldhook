@@ -5,6 +5,29 @@ import { useAuth } from "@clerk/nextjs"
 import { ArrowRight, Sparkles, Mail, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { motion } from "framer-motion"
+
+const containerVariants = {
+  hidden: {},
+  visible: {
+    transition: {
+      staggerChildren: 0.12,
+      delayChildren: 0.1,
+    },
+  },
+}
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 24 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.55,
+      ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
+    },
+  },
+}
 
 export function Hero() {
   const { isSignedIn } = useAuth()
@@ -12,38 +35,117 @@ export function Hero() {
     <section className="relative overflow-hidden pt-24 pb-20 px-6">
       {/* Background glow */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-[radial-gradient(ellipse_at_top,rgba(94,106,210,0.15)_0%,transparent_70%)]" />
-        <div className="absolute top-32 left-1/4 w-64 h-64 bg-[radial-gradient(circle,rgba(94,106,210,0.08)_0%,transparent_70%)] blur-3xl" />
-        <div className="absolute top-48 right-1/4 w-48 h-48 bg-[radial-gradient(circle,rgba(255,128,31,0.06)_0%,transparent_70%)] blur-3xl" />
+        {/* Central top orb — drifts + breathes */}
+        <motion.div
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-[radial-gradient(ellipse_at_top,rgba(94,106,210,0.15)_0%,transparent_70%)]"
+          animate={{
+            x: [0, 25, 0],
+            y: [0, 18, 0],
+            scale: [1, 1.15, 1],
+            opacity: [0.8, 1, 0.8],
+          }}
+          transition={{
+            duration: 9,
+            ease: "easeInOut",
+            repeat: Infinity,
+            repeatType: "mirror",
+          }}
+        />
+        {/* Ping ring — expands outward from central orb every 3.5s */}
+        <motion.div
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-[radial-gradient(ellipse_at_top,rgba(94,106,210,0.12)_0%,transparent_70%)]"
+          animate={{
+            scale: [0.8, 2.5],
+            opacity: [0.5, 0],
+          }}
+          transition={{
+            duration: 2,
+            ease: "easeOut",
+            repeat: Infinity,
+            repeatDelay: 1.5,
+          }}
+        />
+        {/* Left orb */}
+        <motion.div
+          className="absolute top-32 left-1/4 w-64 h-64 bg-[radial-gradient(circle,rgba(94,106,210,0.08)_0%,transparent_70%)] blur-3xl"
+          animate={{
+            x: [0, -18, 0],
+            y: [0, 22, 0],
+            scale: [1, 1.12, 1],
+            opacity: [0.7, 1, 0.7],
+          }}
+          transition={{
+            duration: 11,
+            ease: "easeInOut",
+            repeat: Infinity,
+            repeatType: "mirror",
+          }}
+        />
+        {/* Right orb */}
+        <motion.div
+          className="absolute top-48 right-1/4 w-48 h-48 bg-[radial-gradient(circle,rgba(255,128,31,0.06)_0%,transparent_70%)] blur-3xl"
+          animate={{
+            x: [0, 15, 0],
+            y: [0, -20, 0],
+            scale: [1, 1.15, 1],
+            opacity: [0.6, 0.9, 0.6],
+          }}
+          transition={{
+            duration: 7.5,
+            ease: "easeInOut",
+            repeat: Infinity,
+            repeatType: "mirror",
+          }}
+        />
       </div>
 
       {/* Grid pattern */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:48px_48px] pointer-events-none" />
 
-      <div className="relative max-w-4xl mx-auto text-center">
+      <motion.div
+        className="relative max-w-4xl mx-auto text-center"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
         {/* Announcement pill */}
-        <div className="inline-flex items-center gap-2 mb-8">
+        <motion.div className="inline-flex items-center gap-2 mb-8" variants={itemVariants}>
           <span className="flex items-center gap-1.5 rounded-full border border-[rgba(94,106,210,0.3)] bg-[rgba(94,106,210,0.08)] px-3 py-1 text-xs text-[#828fff]">
             <Sparkles className="size-3" />
             Powered by Claude AI
             <ArrowRight className="size-3" />
           </span>
-        </div>
+        </motion.div>
 
         {/* Headline */}
-        <h1 className="text-5xl sm:text-6xl md:text-7xl font-semibold leading-[1.05] tracking-[-2px] text-[#f7f8f8] mb-6">
+        <motion.h1
+          className="text-5xl sm:text-6xl md:text-7xl font-semibold leading-[1.05] tracking-[-2px] text-[#f7f8f8] mb-6"
+          variants={itemVariants}
+        >
           Cold emails that{" "}
-          <span className="gradient-text-accent">actually</span>
+          <motion.span
+            className="gradient-text-accent"
+            animate={{ filter: ["brightness(1)", "brightness(1.6)", "brightness(1)"] }}
+            transition={{ duration: 0.6, delay: 1.1, ease: "easeInOut" }}
+          >
+            actually
+          </motion.span>
           <br />
           get replies
-        </h1>
+        </motion.h1>
 
-        <p className="text-lg text-[#8a8f98] max-w-2xl mx-auto mb-10 leading-relaxed">
-          ColdHook uses AI to write hyper-personalized cold emails in seconds. Feed it a prospect's LinkedIn, website, or news — get an email that feels hand-crafted.
-        </p>
+        <motion.p
+          className="text-lg text-[#8a8f98] max-w-2xl mx-auto mb-10 leading-relaxed"
+          variants={itemVariants}
+        >
+          ColdHook uses AI to write hyper-personalized cold emails in seconds. Feed it a prospect&apos;s LinkedIn, website, or news — get an email that feels hand-crafted.
+        </motion.p>
 
         {/* CTAs */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-16">
+        <motion.div
+          className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-16"
+          variants={itemVariants}
+        >
           <Button size="lg" className="h-12 px-8 text-base font-medium" asChild>
             <Link href={isSignedIn ? "/dashboard" : "/sign-up"}>
               Start for free
@@ -55,22 +157,36 @@ export function Hero() {
               Watch demo
             </Link>
           </Button>
-        </div>
+        </motion.div>
 
         {/* Beta badge */}
-        <div className="flex items-center justify-center">
+        <motion.div className="flex items-center justify-center" variants={itemVariants}>
           <span className="flex items-center gap-1.5 rounded-full border border-[rgba(39,166,68,0.3)] bg-[rgba(39,166,68,0.08)] px-3 py-1 text-xs text-[#27a644]">
             <Zap className="size-3" />
             Now in beta — free early access
           </span>
-        </div>
+        </motion.div>
 
         {/* App Preview */}
-        <div className="mt-16 relative">
+        <motion.div className="mt-16 relative" variants={itemVariants}>
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,rgba(94,106,210,0.15)_0%,transparent_60%)] pointer-events-none" />
-          <AppPreview />
-        </div>
-      </div>
+          {/* Inner wrapper handles bob + perspective tilt independently of entrance variant */}
+          <motion.div
+            animate={{ y: [0, -8] }}
+            transition={{
+              delay: 1.5,
+              duration: 4,
+              ease: "easeInOut",
+              repeat: Infinity,
+              repeatType: "mirror",
+            }}
+            whileHover={{ rotateX: 2 }}
+            style={{ transformPerspective: 1200 }}
+          >
+            <AppPreview />
+          </motion.div>
+        </motion.div>
+      </motion.div>
     </section>
   )
 }
@@ -141,8 +257,8 @@ function AppPreview() {
             </div>
             <div className="text-[11px] leading-relaxed text-[#8a8f98] space-y-2">
               <p>Hi Sarah,</p>
-              <p>Just saw the announcement about your promotion to VP of Sales at Acme — congrats on the 40% ARR milestone that got you there. That's the kind of growth that turns heads.</p>
-              <p>I help VP-level sales leaders at Series B-D companies shorten ramp time for new AEs by 30% using AI-coached role plays. Given you're likely rebuilding the team post-promotion...</p>
+              <p>Just saw the announcement about your promotion to VP of Sales at Acme — congrats on the 40% ARR milestone that got you there. That&apos;s the kind of growth that turns heads.</p>
+              <p>I help VP-level sales leaders at Series B-D companies shorten ramp time for new AEs by 30% using AI-coached role plays. Given you&apos;re likely rebuilding the team post-promotion...</p>
               <p className="text-[#5e6ad2]">Would 15 mins be worth it?</p>
             </div>
           </div>
