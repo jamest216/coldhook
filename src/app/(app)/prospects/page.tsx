@@ -1,6 +1,7 @@
+// ── FILE: src/app/(app)/prospects/page.tsx ──
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { TopBar } from "@/components/layout/top-bar"
 import {
   Search,
@@ -13,6 +14,7 @@ import {
   TrendingUp,
   Building2,
   ChevronDown,
+  Users,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -20,86 +22,19 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import Link from "next/link"
 
-const prospects = [
-  {
-    id: 1,
-    name: "Sarah Chen",
-    title: "VP of Sales",
-    company: "Acme Corp",
-    industry: "SaaS",
-    score: 92,
-    trigger: "Just promoted",
-    status: "hot",
-    enriched: true,
-    emails: 2,
-    lastActivity: "2h ago",
-  },
-  {
-    id: 2,
-    name: "Marcus Williams",
-    title: "Head of Revenue",
-    company: "TechFlow",
-    industry: "Fintech",
-    score: 88,
-    trigger: "Series B raised",
-    status: "warm",
-    enriched: true,
-    emails: 1,
-    lastActivity: "4h ago",
-  },
-  {
-    id: 3,
-    name: "Priya Patel",
-    title: "Director of Sales",
-    company: "Scale.ai",
-    industry: "AI/ML",
-    score: 85,
-    trigger: "Hiring 5 AEs",
-    status: "warm",
-    enriched: true,
-    emails: 0,
-    lastActivity: "1d ago",
-  },
-  {
-    id: 4,
-    name: "James Rivera",
-    title: "CRO",
-    company: "Notion",
-    industry: "Productivity",
-    score: 79,
-    trigger: "New hire in RevOps",
-    status: "cool",
-    enriched: false,
-    emails: 1,
-    lastActivity: "2d ago",
-  },
-  {
-    id: 5,
-    name: "Amy Torres",
-    title: "VP Revenue Operations",
-    company: "Stripe",
-    industry: "Payments",
-    score: 76,
-    trigger: "Conference speaker",
-    status: "cool",
-    enriched: true,
-    emails: 3,
-    lastActivity: "3d ago",
-  },
-  {
-    id: 6,
-    name: "David Kim",
-    title: "SVP Sales",
-    company: "Figma",
-    industry: "Design",
-    score: 94,
-    trigger: "Product launch",
-    status: "hot",
-    enriched: true,
-    emails: 0,
-    lastActivity: "Just added",
-  },
-]
+type ProspectRow = {
+  id: string
+  name: string
+  title: string | null
+  company: string
+  industry: string | null
+  triggerSignal: string | null
+  score: number | null
+  status: string
+  emailsSent: number
+  linkedinUrl: string | null
+  createdAt: string
+}
 
 const statusConfig: Record<string, { label: string; variant: "success" | "warning" | "secondary" }> = {
   hot: { label: "Hot", variant: "success" },
@@ -107,28 +42,70 @@ const statusConfig: Record<string, { label: string; variant: "success" | "warnin
   cool: { label: "Cool", variant: "secondary" },
 }
 
+const defaultAddForm = { name: "", company: "", title: "", industry: "", triggerSignal: "", status: "warm" }
+
 export default function ProspectsPage() {
   const [search, setSearch] = useState("")
-  const [selected, setSelected] = useState<number[]>([])
+  const [selected, setSelected] = useState<string[]>([])
+  const [prospectRows, setProspectRows] = useState<ProspectRow[]>([])
+  const [stats, setStats] = useState({ total: 0, hot: 0, awaitingEmail: 0 })
+  const [loading, setLoading] = useState(true)
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [addForm, setAddForm] = useState(defaultAddForm)
+  const [adding, setAdding] = useState(false)
 
-  const filtered = prospects.filter(
+  const fetchProspects = () => {
+    setLoading(true)
+    fetch("/api/prospects")
+      .then(r => r.json())
+      .then(data => {
+        setProspectRows(data.prospects || [])
+        setStats(data.stats || { total: 0, hot: 0, awaitingEmail: 0 })
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }
+
+  useEffect(() => { fetchProspects() }, [])
+
+  const filtered = prospectRows.filter(
     (p) =>
       p.name.toLowerCase().includes(search.toLowerCase()) ||
       p.company.toLowerCase().includes(search.toLowerCase()) ||
-      p.title.toLowerCase().includes(search.toLowerCase())
+      (p.title ?? "").toLowerCase().includes(search.toLowerCase())
   )
 
-  const toggleSelect = (id: number) => {
+  const toggleSelect = (id: string) => {
     setSelected((prev) =>
       prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
     )
+  }
+
+  const handleAdd = async () => {
+    setAdding(true)
+    try {
+      const res = await fetch("/api/prospects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(addForm),
+      })
+      if (res.ok) {
+        setShowAddModal(false)
+        setAddForm(defaultAddForm)
+        fetchProspects()
+      }
+    } catch {
+      // silent
+    } finally {
+      setAdding(false)
+    }
   }
 
   return (
     <div>
       <TopBar
         title="Prospects"
-        description={`${prospects.length} prospects in your pipeline`}
+        description={`${stats.total} prospects in your pipeline`}
         action={
           <Button variant="secondary" size="sm" className="h-7 text-xs gap-1.5">
             <Upload className="size-3" />
@@ -141,9 +118,9 @@ export default function ProspectsPage() {
         {/* Summary cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            { label: "Total Prospects", value: "318", color: "#5e6ad2" },
-            { label: "Hot Leads", value: "47", color: "#ef4444" },
-            { label: "Awaiting Email", value: "83", color: "#f59e0b" },
+            { label: "Total Prospects", value: stats.total.toString(), color: "#5e6ad2" },
+            { label: "Hot Leads", value: stats.hot.toString(), color: "#ef4444" },
+            { label: "Awaiting Email", value: stats.awaitingEmail.toString(), color: "#f59e0b" },
             { label: "Enrichment Queue", value: "12", color: "#27a644" },
           ].map((s) => (
             <Card key={s.label}>
@@ -181,7 +158,7 @@ export default function ProspectsPage() {
             </div>
           )}
           <div className="ml-auto">
-            <Button variant="default" size="sm" className="h-8 text-xs gap-1.5">
+            <Button variant="default" size="sm" className="h-8 text-xs gap-1.5" onClick={() => setShowAddModal(true)}>
               <Plus className="size-3" />
               Add prospect
             </Button>
@@ -199,7 +176,7 @@ export default function ProspectsPage() {
                       type="checkbox"
                       className="rounded border-[#23252a] bg-[#141516] accent-[#5e6ad2]"
                       onChange={(e) =>
-                        setSelected(e.target.checked ? prospects.map((p) => p.id) : [])
+                        setSelected(e.target.checked ? prospectRows.map((p) => p.id) : [])
                       }
                     />
                   </th>
@@ -213,94 +190,214 @@ export default function ProspectsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#1a1b1f]">
-                {filtered.map((p) => {
-                  const statusC = statusConfig[p.status]
-                  return (
-                    <tr
-                      key={p.id}
-                      className={`hover:bg-[#141516] transition-colors ${selected.includes(p.id) ? "bg-[rgba(94,106,210,0.05)]" : ""}`}
-                    >
-                      <td className="px-4 py-3">
-                        <input
-                          type="checkbox"
-                          className="rounded border-[#23252a] bg-[#141516] accent-[#5e6ad2]"
-                          checked={selected.includes(p.id)}
-                          onChange={() => toggleSelect(p.id)}
-                        />
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="size-8 rounded-full bg-gradient-to-br from-[#5e6ad2]/30 to-[#a78bfa]/30 border border-[#23252a] flex items-center justify-center text-xs font-medium text-[#828fff] shrink-0">
-                            {p.name.split(" ").map((n) => n[0]).join("")}
+                {loading && prospectRows.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="px-4 py-3">
+                      <div className="space-y-2">
+                        <div className="h-12 rounded-lg bg-[#141516] animate-pulse" />
+                        <div className="h-12 rounded-lg bg-[#141516] animate-pulse" />
+                        <div className="h-12 rounded-lg bg-[#141516] animate-pulse" />
+                      </div>
+                    </td>
+                  </tr>
+                ) : !loading && filtered.length === 0 && search === "" ? (
+                  <tr>
+                    <td colSpan={8}>
+                      <div className="flex flex-col items-center justify-center py-16 text-center">
+                        <div className="size-10 rounded-xl bg-[rgba(94,106,210,0.08)] border border-[rgba(94,106,210,0.15)] flex items-center justify-center mb-3">
+                          <Users className="size-5 text-[#5e6ad2]" />
+                        </div>
+                        <p className="text-sm text-[#8a8f98] mb-1">No prospects yet</p>
+                        <p className="text-xs text-[#62666d] mb-4">Add your first prospect to start tracking your pipeline.</p>
+                        <Button size="sm" className="h-7 text-xs gap-1.5" onClick={() => setShowAddModal(true)}>
+                          <Plus className="size-3" />Add prospect
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  filtered.map((p) => {
+                    const statusC = statusConfig[p.status] ?? statusConfig.warm
+                    const score = p.score ?? 0
+                    return (
+                      <tr
+                        key={p.id}
+                        className={`hover:bg-[#141516] transition-colors ${selected.includes(p.id) ? "bg-[rgba(94,106,210,0.05)]" : ""}`}
+                      >
+                        <td className="px-4 py-3">
+                          <input
+                            type="checkbox"
+                            className="rounded border-[#23252a] bg-[#141516] accent-[#5e6ad2]"
+                            checked={selected.includes(p.id)}
+                            onChange={() => toggleSelect(p.id)}
+                          />
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <div className="size-8 rounded-full bg-gradient-to-br from-[#5e6ad2]/30 to-[#a78bfa]/30 border border-[#23252a] flex items-center justify-center text-xs font-medium text-[#828fff] shrink-0">
+                              {p.name.split(" ").map((n) => n[0]).join("")}
+                            </div>
+                            <div>
+                              <div className="text-sm font-medium text-[#f7f8f8]">{p.name}</div>
+                              <div className="text-xs text-[#62666d]">{p.title}</div>
+                            </div>
+                            {!!p.linkedinUrl && (
+                              <ExternalLink className="size-3 text-[#0a66c2] shrink-0" />
+                            )}
                           </div>
-                          <div>
-                            <div className="text-sm font-medium text-[#f7f8f8]">{p.name}</div>
-                            <div className="text-xs text-[#62666d]">{p.title}</div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <Building2 className="size-3 text-[#62666d]" />
+                            <span className="text-sm text-[#d0d6e0]">{p.company}</span>
+                            {p.industry && (
+                              <Badge variant="secondary" className="text-[9px] h-3.5 py-0">{p.industry}</Badge>
+                            )}
                           </div>
-                          {p.enriched && (
-                            <ExternalLink className="size-3 text-[#0a66c2] shrink-0" />
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <Building2 className="size-3 text-[#62666d]" />
-                          <span className="text-sm text-[#d0d6e0]">{p.company}</span>
-                          <Badge variant="secondary" className="text-[9px] h-3.5 py-0">{p.industry}</Badge>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1.5">
-                          <TrendingUp className="size-3 text-[#27a644]" />
-                          <span className="text-xs text-[#d0d6e0]">{p.trigger}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <div className="relative size-6">
-                            <svg className="size-6 -rotate-90" viewBox="0 0 24 24">
-                              <circle cx="12" cy="12" r="9" fill="none" stroke="#23252a" strokeWidth="2.5" />
-                              <circle
-                                cx="12" cy="12" r="9"
-                                fill="none"
-                                stroke={p.score > 85 ? "#27a644" : p.score > 75 ? "#f59e0b" : "#ef4444"}
-                                strokeWidth="2.5"
-                                strokeDasharray={`${(p.score / 100) * 56.5} 56.5`}
-                              />
-                            </svg>
-                            <span className="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-[#f7f8f8]">{p.score}</span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-1.5">
+                            <TrendingUp className="size-3 text-[#27a644]" />
+                            <span className="text-xs text-[#d0d6e0]">{p.triggerSignal ?? '—'}</span>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge variant={statusC.variant} className="text-[10px] h-4 py-0">{statusC.label}</Badge>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-sm text-[#8a8f98]">{p.emails}</span>
-                          <span className="text-xs text-[#62666d]">sent</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="icon-sm" className="size-7" asChild>
-                            <Link href="/compose">
-                              <Sparkles className="size-3.5 text-[#5e6ad2]" />
-                            </Link>
-                          </Button>
-                          <Button variant="ghost" size="icon-sm" className="size-7">
-                            <MoreHorizontal className="size-3.5" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <div className="relative size-6">
+                              <svg className="size-6 -rotate-90" viewBox="0 0 24 24">
+                                <circle cx="12" cy="12" r="9" fill="none" stroke="#23252a" strokeWidth="2.5" />
+                                <circle
+                                  cx="12" cy="12" r="9"
+                                  fill="none"
+                                  stroke={score > 85 ? "#27a644" : score > 75 ? "#f59e0b" : "#ef4444"}
+                                  strokeWidth="2.5"
+                                  strokeDasharray={`${(score / 100) * 56.5} 56.5`}
+                                />
+                              </svg>
+                              <span className="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-[#f7f8f8]">{p.score ?? '—'}</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge variant={statusC.variant} className="text-[10px] h-4 py-0">{statusC.label}</Badge>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-sm text-[#8a8f98]">{p.emailsSent}</span>
+                            <span className="text-xs text-[#62666d]">sent</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button variant="ghost" size="icon-sm" className="size-7" asChild>
+                              <Link href="/compose">
+                                <Sparkles className="size-3.5 text-[#5e6ad2]" />
+                              </Link>
+                            </Button>
+                            <Button variant="ghost" size="icon-sm" className="size-7">
+                              <MoreHorizontal className="size-3.5" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })
+                )}
               </tbody>
             </table>
           </div>
         </Card>
       </div>
+
+      {/* Add Prospect Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" onClick={() => { setShowAddModal(false); setAddForm(defaultAddForm) }}>
+          <Card className="max-w-md w-full mx-4" onClick={e => e.stopPropagation()}>
+            <CardContent className="pt-5 pb-5 space-y-4">
+              <p className="text-sm font-semibold text-[#f7f8f8]">Add Prospect</p>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs text-[#8a8f98] mb-1 block">Name <span className="text-[#ef4444]">*</span></label>
+                  <Input
+                    placeholder="Sarah Chen"
+                    value={addForm.name}
+                    onChange={e => setAddForm(f => ({ ...f, name: e.target.value }))}
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-[#8a8f98] mb-1 block">Company <span className="text-[#ef4444]">*</span></label>
+                  <Input
+                    placeholder="Acme Corp"
+                    value={addForm.company}
+                    onChange={e => setAddForm(f => ({ ...f, company: e.target.value }))}
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-[#8a8f98] mb-1 block">Title</label>
+                  <Input
+                    placeholder="VP of Sales"
+                    value={addForm.title}
+                    onChange={e => setAddForm(f => ({ ...f, title: e.target.value }))}
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-[#8a8f98] mb-1 block">Industry</label>
+                  <Input
+                    placeholder="SaaS"
+                    value={addForm.industry}
+                    onChange={e => setAddForm(f => ({ ...f, industry: e.target.value }))}
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-[#8a8f98] mb-1 block">Trigger signal</label>
+                  <Input
+                    placeholder="Just promoted"
+                    value={addForm.triggerSignal}
+                    onChange={e => setAddForm(f => ({ ...f, triggerSignal: e.target.value }))}
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-[#8a8f98] mb-1 block">Status</label>
+                  <select
+                    value={addForm.status}
+                    onChange={e => setAddForm(f => ({ ...f, status: e.target.value }))}
+                    className="w-full h-8 rounded-md border border-[#23252a] bg-[#141516] px-2.5 text-xs text-[#f7f8f8] outline-none focus:border-[#5e6ad2]"
+                  >
+                    <option value="warm">Warm</option>
+                    <option value="hot">Hot</option>
+                    <option value="cool">Cool</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-1">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => { setShowAddModal(false); setAddForm(defaultAddForm) }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  className="h-7 text-xs"
+                  disabled={adding || !addForm.name.trim() || !addForm.company.trim()}
+                  onClick={handleAdd}
+                >
+                  {adding ? "Saving..." : "Save"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   )
 }
