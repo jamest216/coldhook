@@ -15,7 +15,7 @@ import { Progress } from "@/components/ui/progress"
 import Link from "next/link"
 import { auth } from "@clerk/nextjs/server"
 import { db } from "@/lib/db"
-import { emails } from "@/lib/db/schema"
+import { emails, prospects } from "@/lib/db/schema"
 import { eq, desc, count, gte, and } from "drizzle-orm"
 
 function timeAgo(date: Date): string {
@@ -48,7 +48,7 @@ export default async function DashboardPage() {
 
   const thisMonthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
 
-  const [recentEmailRows, totalCountRows, thisMonthCountRows] = await Promise.all([
+  const [recentEmailRows, totalCountRows, thisMonthCountRows, repliedCountRows, prospectsThisMonthRows] = await Promise.all([
     db.select().from(emails)
       .where(eq(emails.userId, userId!))
       .orderBy(desc(emails.createdAt))
@@ -57,10 +57,17 @@ export default async function DashboardPage() {
       .where(eq(emails.userId, userId!)),
     db.select({ count: count() }).from(emails)
       .where(and(eq(emails.userId, userId!), gte(emails.createdAt, thisMonthStart))),
+    db.select({ count: count() }).from(emails)
+      .where(and(eq(emails.userId, userId!), eq(emails.status, "replied"))),
+    db.select({ count: count() }).from(prospects)
+      .where(and(eq(prospects.userId, userId!), gte(prospects.createdAt, thisMonthStart))),
   ])
 
   const totalEmails = totalCountRows[0]?.count ?? 0
   const thisMonthEmails = thisMonthCountRows[0]?.count ?? 0
+  const repliedCount = repliedCountRows[0]?.count ?? 0
+  const replyRate = totalEmails > 0 ? ((repliedCount / totalEmails) * 100).toFixed(1) : null
+  const prospectsThisMonth = prospectsThisMonthRows[0]?.count ?? 0
   const hasEmails = recentEmailRows.length > 0
 
   return (
@@ -98,31 +105,43 @@ export default async function DashboardPage() {
                 <div className="size-9 rounded-lg flex items-center justify-center" style={{ background: "rgba(39,166,68,0.12)" }}>
                   <TrendingUp className="size-4" style={{ color: "#27a644" }} />
                 </div>
-                <div className="flex items-center gap-0.5 text-xs font-medium text-[#27a644]">
-                  <ArrowUpRight className="size-3" />
-                  +5.1pp
-                </div>
+                {replyRate !== null ? (
+                  <div className="flex items-center gap-0.5 text-xs font-medium text-[#27a644]">
+                    <ArrowUpRight className="size-3" />
+                    vs 8% avg
+                  </div>
+                ) : (
+                  <div className="text-xs text-[#62666d]">no data yet</div>
+                )}
               </div>
-              <div className="text-2xl font-bold tracking-tight text-[#f7f8f8] mb-0.5">34.2%</div>
+              <div className="text-2xl font-bold tracking-tight text-[#f7f8f8] mb-0.5">
+                {replyRate !== null ? `${replyRate}%` : "—"}
+              </div>
               <div className="text-xs text-[#62666d]">Reply Rate</div>
-              <div className="text-[10px] text-[#62666d] mt-0.5">industry avg: 8%</div>
+              <div className="text-[10px] text-[#62666d] mt-0.5">
+                {replyRate !== null ? `${repliedCount} of ${totalEmails} replied` : "send emails to track"}
+              </div>
             </CardContent>
           </Card>
 
-          {/* Prospects Enriched */}
+          {/* Prospects Added */}
           <Card>
             <CardContent className="pt-5">
               <div className="flex items-start justify-between mb-3">
                 <div className="size-9 rounded-lg flex items-center justify-center" style={{ background: "rgba(255,128,31,0.12)" }}>
                   <Users className="size-4" style={{ color: "#ff801f" }} />
                 </div>
-                <div className="flex items-center gap-0.5 text-xs font-medium text-[#27a644]">
-                  <ArrowUpRight className="size-3" />
-                  +47
-                </div>
+                {prospectsThisMonth > 0 ? (
+                  <div className="flex items-center gap-0.5 text-xs font-medium text-[#27a644]">
+                    <ArrowUpRight className="size-3" />
+                    +{prospectsThisMonth} this month
+                  </div>
+                ) : (
+                  <div className="text-xs text-[#62666d]">no data yet</div>
+                )}
               </div>
-              <div className="text-2xl font-bold tracking-tight text-[#f7f8f8] mb-0.5">318</div>
-              <div className="text-xs text-[#62666d]">Prospects Enriched</div>
+              <div className="text-2xl font-bold tracking-tight text-[#f7f8f8] mb-0.5">{prospectsThisMonth}</div>
+              <div className="text-xs text-[#62666d]">Prospects Added</div>
               <div className="text-[10px] text-[#62666d] mt-0.5">this month</div>
             </CardContent>
           </Card>
@@ -134,14 +153,11 @@ export default async function DashboardPage() {
                 <div className="size-9 rounded-lg flex items-center justify-center" style={{ background: "rgba(167,139,250,0.12)" }}>
                   <Calendar className="size-4" style={{ color: "#a78bfa" }} />
                 </div>
-                <div className="flex items-center gap-0.5 text-xs font-medium text-[#27a644]">
-                  <ArrowUpRight className="size-3" />
-                  +8
-                </div>
+                <div className="text-xs text-[#62666d]">coming soon</div>
               </div>
-              <div className="text-2xl font-bold tracking-tight text-[#f7f8f8] mb-0.5">28</div>
+              <div className="text-2xl font-bold tracking-tight text-[#f7f8f8] mb-0.5">—</div>
               <div className="text-xs text-[#62666d]">Meetings Booked</div>
-              <div className="text-[10px] text-[#62666d] mt-0.5">this month</div>
+              <div className="text-[10px] text-[#62666d] mt-0.5">calendar sync needed</div>
             </CardContent>
           </Card>
         </div>

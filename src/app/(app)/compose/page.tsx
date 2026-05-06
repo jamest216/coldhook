@@ -46,6 +46,12 @@ export default function ComposePage() {
   const [error, setError] = useState("")
   const [copied, setCopied] = useState(false)
 
+  type SequenceEmail = { subject: string; email: string }
+  const [sequence, setSequence] = useState<{ day3: SequenceEmail; day7: SequenceEmail } | null>(null)
+  const [isGeneratingSequence, setIsGeneratingSequence] = useState(false)
+  const [sequenceError, setSequenceError] = useState("")
+  const [expandedStep, setExpandedStep] = useState<"day3" | "day7" | null>(null)
+
   const fieldsEmpty = !firstName.trim() || !company.trim() || !trigger.trim()
 
   const handleGenerate = async () => {
@@ -104,6 +110,34 @@ export default function ComposePage() {
     await navigator.clipboard.writeText(text)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  const handleGenerateSequence = async () => {
+    setIsGeneratingSequence(true)
+    setSequenceError("")
+    setSequence(null)
+    setExpandedStep(null)
+    try {
+      const res = await fetch("/api/generate-sequence", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          firstName, lastName, title, company, trigger, valueProp, tone, ctaStyle,
+          initialEmail: generatedEmail,
+          initialSubject: generatedSubject,
+        }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || "Failed to generate sequence.")
+      }
+      const data = await res.json()
+      setSequence(data)
+    } catch (e) {
+      setSequenceError(e instanceof Error ? e.message : "Something went wrong.")
+    } finally {
+      setIsGeneratingSequence(false)
+    }
   }
 
   return (
@@ -399,7 +433,7 @@ export default function ComposePage() {
               </div>
             )}
 
-            {/* Follow-up sequence teaser */}
+            {/* Follow-up sequence */}
             {generated && (
               <Card>
                 <CardContent className="pt-4 pb-4">
@@ -408,24 +442,92 @@ export default function ComposePage() {
                     <Badge variant="secondary" className="text-[10px]">3 emails</Badge>
                   </div>
                   <div className="space-y-2">
-                    {[
-                      { day: "Day 1", label: "Initial email (this one)", done: true },
-                      { day: "Day 3", label: "Value-add follow-up", done: false },
-                      { day: "Day 7", label: "Breakup email", done: false },
-                    ].map((step) => (
-                      <div key={step.day} className="flex items-center gap-2.5 text-xs">
-                        <div className={`size-5 rounded-full flex items-center justify-center text-[10px] font-medium ${step.done ? "bg-[#5e6ad2] text-white" : "bg-[#141516] border border-[#23252a] text-[#62666d]"}`}>
-                          {step.done ? "✓" : ""}
+                    {/* Day 1 — always done */}
+                    <div className="flex items-center gap-2.5 text-xs">
+                      <div className="size-5 rounded-full flex items-center justify-center text-[10px] font-medium bg-[#5e6ad2] text-white">✓</div>
+                      <span className="text-[#62666d] w-10 shrink-0">Day 1</span>
+                      <span className="text-[#d0d6e0]">Initial email (this one)</span>
+                    </div>
+
+                    {/* Day 3 */}
+                    <div className="space-y-1.5">
+                      <div
+                        className="flex items-center gap-2.5 text-xs cursor-pointer"
+                        onClick={() => sequence && setExpandedStep(expandedStep === "day3" ? null : "day3")}
+                      >
+                        <div className={`size-5 rounded-full flex items-center justify-center text-[10px] font-medium ${sequence ? "bg-[#5e6ad2] text-white" : "bg-[#141516] border border-[#23252a] text-[#62666d]"}`}>
+                          {sequence ? "✓" : ""}
                         </div>
-                        <span className="text-[#62666d] w-10 shrink-0">{step.day}</span>
-                        <span className={step.done ? "text-[#d0d6e0]" : "text-[#8a8f98]"}>{step.label}</span>
+                        <span className="text-[#62666d] w-10 shrink-0">Day 3</span>
+                        <span className={sequence ? "text-[#d0d6e0]" : "text-[#8a8f98]"}>
+                          {sequence ? sequence.day3.subject : "Value-add follow-up"}
+                        </span>
+                        {sequence && (
+                          <span className="ml-auto text-[#5e6ad2] text-[10px]">{expandedStep === "day3" ? "▲" : "▼"}</span>
+                        )}
                       </div>
-                    ))}
+                      {expandedStep === "day3" && sequence && (
+                        <div className="ml-7 rounded-md bg-[#141516] border border-[#23252a] p-2.5 space-y-2">
+                          <p className="text-[10px] text-[#62666d] uppercase tracking-wider">Subject</p>
+                          <p className="text-xs text-[#f7f8f8] font-medium">{sequence.day3.subject}</p>
+                          <p className="text-xs text-[#d0d6e0] whitespace-pre-wrap leading-relaxed">{sequence.day3.email}</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Day 7 */}
+                    <div className="space-y-1.5">
+                      <div
+                        className="flex items-center gap-2.5 text-xs cursor-pointer"
+                        onClick={() => sequence && setExpandedStep(expandedStep === "day7" ? null : "day7")}
+                      >
+                        <div className={`size-5 rounded-full flex items-center justify-center text-[10px] font-medium ${sequence ? "bg-[#5e6ad2] text-white" : "bg-[#141516] border border-[#23252a] text-[#62666d]"}`}>
+                          {sequence ? "✓" : ""}
+                        </div>
+                        <span className="text-[#62666d] w-10 shrink-0">Day 7</span>
+                        <span className={sequence ? "text-[#d0d6e0]" : "text-[#8a8f98]"}>
+                          {sequence ? sequence.day7.subject : "Breakup email"}
+                        </span>
+                        {sequence && (
+                          <span className="ml-auto text-[#5e6ad2] text-[10px]">{expandedStep === "day7" ? "▲" : "▼"}</span>
+                        )}
+                      </div>
+                      {expandedStep === "day7" && sequence && (
+                        <div className="ml-7 rounded-md bg-[#141516] border border-[#23252a] p-2.5 space-y-2">
+                          <p className="text-[10px] text-[#62666d] uppercase tracking-wider">Subject</p>
+                          <p className="text-xs text-[#f7f8f8] font-medium">{sequence.day7.subject}</p>
+                          <p className="text-xs text-[#d0d6e0] whitespace-pre-wrap leading-relaxed">{sequence.day7.email}</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <Button variant="outline" className="w-full mt-3 h-8 text-xs gap-1.5">
-                    <Plus className="size-3" />
-                    Generate full sequence
-                  </Button>
+
+                  {sequenceError && (
+                    <div className="mt-3 rounded-md bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.25)] p-2">
+                      <p className="text-xs text-[#ef4444]">{sequenceError}</p>
+                    </div>
+                  )}
+
+                  {!sequence && (
+                    <Button
+                      variant="outline"
+                      className="w-full mt-3 h-8 text-xs gap-1.5"
+                      onClick={handleGenerateSequence}
+                      disabled={isGeneratingSequence}
+                    >
+                      {isGeneratingSequence ? (
+                        <>
+                          <RefreshCw className="size-3 animate-spin" />
+                          Generating sequence...
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="size-3" />
+                          Generate full sequence
+                        </>
+                      )}
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             )}
