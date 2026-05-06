@@ -5,7 +5,6 @@ import {
   Users,
   Calendar,
   ArrowUpRight,
-  ArrowDownRight,
   Sparkles,
   BarChart3,
 } from "lucide-react"
@@ -14,92 +13,21 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import Link from "next/link"
+import { auth } from "@clerk/nextjs/server"
+import { db } from "@/lib/db"
+import { emails } from "@/lib/db/schema"
+import { eq, desc, count, gte, and } from "drizzle-orm"
 
-const stats = [
-  {
-    label: "Emails Sent",
-    value: "1,247",
-    change: "+12%",
-    positive: true,
-    icon: Mail,
-    color: "#5e6ad2",
-    bg: "rgba(94,106,210,0.12)",
-    sub: "vs last month",
-  },
-  {
-    label: "Reply Rate",
-    value: "34.2%",
-    change: "+5.1pp",
-    positive: true,
-    icon: TrendingUp,
-    color: "#27a644",
-    bg: "rgba(39,166,68,0.12)",
-    sub: "industry avg: 8%",
-  },
-  {
-    label: "Prospects Enriched",
-    value: "318",
-    change: "+47",
-    positive: true,
-    icon: Users,
-    color: "#ff801f",
-    bg: "rgba(255,128,31,0.12)",
-    sub: "this month",
-  },
-  {
-    label: "Meetings Booked",
-    value: "28",
-    change: "+8",
-    positive: true,
-    icon: Calendar,
-    color: "#a78bfa",
-    bg: "rgba(167,139,250,0.12)",
-    sub: "this month",
-  },
-]
-
-const recentEmails = [
-  {
-    to: "Sarah Chen",
-    company: "Acme Corp",
-    subject: "Congrats on the VP promotion 🎉",
-    status: "replied",
-    time: "2h ago",
-    score: 92,
-  },
-  {
-    to: "Marcus Williams",
-    company: "TechFlow",
-    subject: "Saw TechFlow's Series B — congrats",
-    status: "opened",
-    time: "4h ago",
-    score: 88,
-  },
-  {
-    to: "Priya Patel",
-    company: "Scale.ai",
-    subject: "Your post on outbound resonated",
-    status: "sent",
-    time: "6h ago",
-    score: 85,
-  },
-  {
-    to: "James Rivera",
-    company: "Notion",
-    subject: "Loved your talk at SaaStr",
-    status: "replied",
-    time: "1d ago",
-    score: 94,
-  },
-  {
-    to: "Amy Torres",
-    company: "Stripe",
-    subject: "Re: your recent hire in RevOps",
-    status: "bounced",
-    time: "1d ago",
-    score: 76,
-  },
-]
+function timeAgo(date: Date): string {
+  const seconds = Math.floor((Date.now() - date.getTime()) / 1000)
+  if (seconds < 60) return "just now"
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) return `${minutes}m ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  return `${days}d ago`
+}
 
 const statusStyles: Record<string, { label: string; variant: "success" | "warning" | "secondary" | "error" | "default" }> = {
   replied: { label: "Replied", variant: "success" },
@@ -115,7 +43,26 @@ const quickActions = [
   { label: "View Analytics", href: "/analytics", icon: BarChart3, color: "#27a644", bg: "rgba(39,166,68,0.12)" },
 ]
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const { userId } = await auth()
+
+  const thisMonthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+
+  const [recentEmailRows, totalCountRows, thisMonthCountRows] = await Promise.all([
+    db.select().from(emails)
+      .where(eq(emails.userId, userId!))
+      .orderBy(desc(emails.createdAt))
+      .limit(5),
+    db.select({ count: count() }).from(emails)
+      .where(eq(emails.userId, userId!)),
+    db.select({ count: count() }).from(emails)
+      .where(and(eq(emails.userId, userId!), gte(emails.createdAt, thisMonthStart))),
+  ])
+
+  const totalEmails = totalCountRows[0]?.count ?? 0
+  const thisMonthEmails = thisMonthCountRows[0]?.count ?? 0
+  const hasEmails = recentEmailRows.length > 0
+
   return (
     <div>
       <TopBar
@@ -126,30 +73,77 @@ export default function DashboardPage() {
       <div className="p-6 space-y-6">
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-          {stats.map((stat) => {
-            const Icon = stat.icon
-            return (
-              <Card key={stat.label}>
-                <CardContent className="pt-5">
-                  <div className="flex items-start justify-between mb-3">
-                    <div
-                      className="size-9 rounded-lg flex items-center justify-center"
-                      style={{ background: stat.bg }}
-                    >
-                      <Icon className="size-4" style={{ color: stat.color }} />
-                    </div>
-                    <div className={`flex items-center gap-0.5 text-xs font-medium ${stat.positive ? "text-[#27a644]" : "text-[#ef4444]"}`}>
-                      {stat.positive ? <ArrowUpRight className="size-3" /> : <ArrowDownRight className="size-3" />}
-                      {stat.change}
-                    </div>
-                  </div>
-                  <div className="text-2xl font-bold tracking-tight text-[#f7f8f8] mb-0.5">{stat.value}</div>
-                  <div className="text-xs text-[#62666d]">{stat.label}</div>
-                  <div className="text-[10px] text-[#62666d] mt-0.5">{stat.sub}</div>
-                </CardContent>
-              </Card>
-            )
-          })}
+          {/* Emails Sent */}
+          <Card>
+            <CardContent className="pt-5">
+              <div className="flex items-start justify-between mb-3">
+                <div className="size-9 rounded-lg flex items-center justify-center" style={{ background: "rgba(94,106,210,0.12)" }}>
+                  <Mail className="size-4" style={{ color: "#5e6ad2" }} />
+                </div>
+                <div className={`flex items-center gap-0.5 text-xs font-medium ${thisMonthEmails > 0 ? "text-[#27a644]" : "text-[#62666d]"}`}>
+                  {thisMonthEmails > 0 ? <ArrowUpRight className="size-3" /> : null}
+                  {thisMonthEmails > 0 ? `+${thisMonthEmails} this month` : "No emails yet"}
+                </div>
+              </div>
+              <div className="text-2xl font-bold tracking-tight text-[#f7f8f8] mb-0.5">{totalEmails.toLocaleString()}</div>
+              <div className="text-xs text-[#62666d]">Emails Sent</div>
+              <div className="text-[10px] text-[#62666d] mt-0.5">all time</div>
+            </CardContent>
+          </Card>
+
+          {/* Reply Rate */}
+          <Card>
+            <CardContent className="pt-5">
+              <div className="flex items-start justify-between mb-3">
+                <div className="size-9 rounded-lg flex items-center justify-center" style={{ background: "rgba(39,166,68,0.12)" }}>
+                  <TrendingUp className="size-4" style={{ color: "#27a644" }} />
+                </div>
+                <div className="flex items-center gap-0.5 text-xs font-medium text-[#27a644]">
+                  <ArrowUpRight className="size-3" />
+                  +5.1pp
+                </div>
+              </div>
+              <div className="text-2xl font-bold tracking-tight text-[#f7f8f8] mb-0.5">34.2%</div>
+              <div className="text-xs text-[#62666d]">Reply Rate</div>
+              <div className="text-[10px] text-[#62666d] mt-0.5">industry avg: 8%</div>
+            </CardContent>
+          </Card>
+
+          {/* Prospects Enriched */}
+          <Card>
+            <CardContent className="pt-5">
+              <div className="flex items-start justify-between mb-3">
+                <div className="size-9 rounded-lg flex items-center justify-center" style={{ background: "rgba(255,128,31,0.12)" }}>
+                  <Users className="size-4" style={{ color: "#ff801f" }} />
+                </div>
+                <div className="flex items-center gap-0.5 text-xs font-medium text-[#27a644]">
+                  <ArrowUpRight className="size-3" />
+                  +47
+                </div>
+              </div>
+              <div className="text-2xl font-bold tracking-tight text-[#f7f8f8] mb-0.5">318</div>
+              <div className="text-xs text-[#62666d]">Prospects Enriched</div>
+              <div className="text-[10px] text-[#62666d] mt-0.5">this month</div>
+            </CardContent>
+          </Card>
+
+          {/* Meetings Booked */}
+          <Card>
+            <CardContent className="pt-5">
+              <div className="flex items-start justify-between mb-3">
+                <div className="size-9 rounded-lg flex items-center justify-center" style={{ background: "rgba(167,139,250,0.12)" }}>
+                  <Calendar className="size-4" style={{ color: "#a78bfa" }} />
+                </div>
+                <div className="flex items-center gap-0.5 text-xs font-medium text-[#27a644]">
+                  <ArrowUpRight className="size-3" />
+                  +8
+                </div>
+              </div>
+              <div className="text-2xl font-bold tracking-tight text-[#f7f8f8] mb-0.5">28</div>
+              <div className="text-xs text-[#62666d]">Meetings Booked</div>
+              <div className="text-[10px] text-[#62666d] mt-0.5">this month</div>
+            </CardContent>
+          </Card>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -167,36 +161,50 @@ export default function DashboardPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-1">
-                {recentEmails.map((email, i) => {
-                  const status = statusStyles[email.status]
-                  return (
-                    <div
-                      key={i}
-                      className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-[#141516] transition-colors cursor-pointer group"
-                    >
-                      <div className="size-8 rounded-full bg-gradient-to-br from-[#5e6ad2]/30 to-[#a78bfa]/30 border border-[#23252a] flex items-center justify-center text-xs font-medium text-[#828fff] shrink-0">
-                        {email.to.split(" ").map(n => n[0]).join("")}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-[#d0d6e0] truncate">{email.to}</span>
-                          <span className="text-xs text-[#62666d]">· {email.company}</span>
+              {!hasEmails ? (
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <div className="size-10 rounded-xl bg-[rgba(94,106,210,0.08)] border border-[rgba(94,106,210,0.15)] flex items-center justify-center mb-3">
+                    <Sparkles className="size-5 text-[#5e6ad2]" />
+                  </div>
+                  <p className="text-sm text-[#8a8f98] mb-1">No emails yet</p>
+                  <p className="text-xs text-[#62666d] mb-4">Generate your first personalized email to see it here.</p>
+                  <Button size="sm" className="h-7 text-xs gap-1.5" asChild>
+                    <Link href="/compose"><Sparkles className="size-3" />Generate first email</Link>
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {recentEmailRows.map((email) => {
+                    const statusKey = email.status ?? "sent"
+                    const status = statusStyles[statusKey] ?? statusStyles.sent
+                    return (
+                      <div
+                        key={email.id}
+                        className="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-[#141516] transition-colors cursor-pointer group"
+                      >
+                        <div className="size-8 rounded-full bg-gradient-to-br from-[#5e6ad2]/30 to-[#a78bfa]/30 border border-[#23252a] flex items-center justify-center text-xs font-medium text-[#828fff] shrink-0">
+                          {email.recipientName.split(" ").map(n => n[0]).join("")}
                         </div>
-                        <div className="text-xs text-[#8a8f98] truncate mt-0.5">{email.subject}</div>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <div className="flex items-center gap-1">
-                          <Sparkles className="size-3 text-[#62666d]" />
-                          <span className="text-xs text-[#62666d]">{email.score}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-[#d0d6e0] truncate">{email.recipientName}</span>
+                            <span className="text-xs text-[#62666d]">· {email.recipientCompany}</span>
+                          </div>
+                          <div className="text-xs text-[#8a8f98] truncate mt-0.5">{email.subject}</div>
                         </div>
-                        <Badge variant={status.variant} className="text-[10px] h-4 py-0">{status.label}</Badge>
-                        <span className="text-[10px] text-[#62666d]">{email.time}</span>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <div className="flex items-center gap-1">
+                            <Sparkles className="size-3 text-[#62666d]" />
+                            <span className="text-xs text-[#62666d]">{email.score ?? "—"}</span>
+                          </div>
+                          <Badge variant={status.variant} className="text-[10px] h-4 py-0">{status.label}</Badge>
+                          <span className="text-[10px] text-[#62666d]">{timeAgo(email.createdAt)}</span>
+                        </div>
                       </div>
-                    </div>
-                  )
-                })}
-              </div>
+                    )
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
 
