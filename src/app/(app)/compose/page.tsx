@@ -12,6 +12,7 @@ import {
   RefreshCw,
   Plus,
   CheckCircle2,
+  AlertTriangle,
   Wand2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -42,6 +43,10 @@ export default function ComposePage() {
   const [score, setScore] = useState(0)
   const [error, setError] = useState("")
   const [copied, setCopied] = useState(false)
+  const [spamScore, setSpamScore] = useState(100)
+  const [spamFlags, setSpamFlags] = useState<
+    Array<{ rule: string; severity: string; deduction: number; detail: string }>
+  >([])
 
   type SequenceEmail = { subject: string; email: string }
   const [sequence, setSequence] = useState<{ day3: SequenceEmail; day7: SequenceEmail } | null>(null)
@@ -88,12 +93,21 @@ export default function ComposePage() {
       setIsGenerating(false)
       setGenerated(true)
 
+      const targetScore = data.score ?? 0
+      const step = Math.max(1, Math.ceil(targetScore / 30))
       let s = 0
       const interval = setInterval(() => {
-        s += 3
-        setScore(s)
-        if (s >= 89) clearInterval(interval)
+        s += step
+        if (s >= targetScore) {
+          setScore(targetScore)
+          clearInterval(interval)
+        } else {
+          setScore(s)
+        }
       }, 30)
+
+      setSpamScore(data.spamScore ?? 100)
+      setSpamFlags(data.spamFlags ?? [])
     } catch (e) {
       setIsGenerating(false)
       setError(e instanceof Error ? e.message : "Something went wrong.")
@@ -339,6 +353,59 @@ export default function ComposePage() {
                         High quality
                       </Badge>
                     )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Spam check — flags found */}
+            {generated && spamFlags.length > 0 && (
+              <Card className="border-[rgba(255,128,31,0.3)]">
+                <CardContent className="pt-4 pb-3">
+                  <div className="flex items-center gap-4 mb-3">
+                    <div className="flex-1 space-y-1.5">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-[var(--color-ink-subtle)]">Spam score</span>
+                        <span className="font-semibold text-[var(--color-email)]">{spamScore}%</span>
+                      </div>
+                      <Progress
+                        value={spamScore}
+                        className="[&>div]:bg-[var(--color-email)]"
+                      />
+                    </div>
+                  </div>
+                  {spamFlags.map((flag: { rule: string; severity: string; deduction: number; detail: string }, i: number) => (
+                    <div key={i} className="flex items-start gap-2 text-xs py-1">
+                      <AlertTriangle className="size-3 shrink-0 mt-0.5 text-[var(--color-email)]" />
+                      <div>
+                        <span className="text-[var(--color-ink)] font-medium">{flag.rule}</span>
+                        <span className="text-[var(--color-ink-subtle)] ml-1">{flag.detail}</span>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Spam check — clean */}
+            {generated && spamScore >= 80 && spamFlags.length === 0 && (
+              <Card className="border-[rgba(39,166,68,0.2)]">
+                <CardContent className="pt-4 pb-3">
+                  <div className="flex items-center gap-4">
+                    <div className="flex-1 space-y-1.5">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-[var(--color-ink-subtle)]">Spam check</span>
+                        <span className="font-semibold text-[var(--color-success)]">{spamScore}%</span>
+                      </div>
+                      <Progress
+                        value={spamScore}
+                        className="[&>div]:bg-[var(--color-success)]"
+                      />
+                    </div>
+                    <Badge variant="success" className="gap-1 shrink-0">
+                      <CheckCircle2 className="size-3" />
+                      Clean
+                    </Badge>
                   </div>
                 </CardContent>
               </Card>

@@ -3,6 +3,7 @@ import { generateText } from "ai"
 import { auth } from "@clerk/nextjs/server"
 import { db } from "@/lib/db"
 import { emails } from "@/lib/db/schema"
+import { computePersonalizationScore, computeSpamScore } from "@/lib/scoring"
 
 function buildPrompt(fields: Record<string, string>) {
   return `You are an expert cold email copywriter. Write a hyper-personalized cold email based on the prospect intelligence below.
@@ -70,6 +71,16 @@ export async function POST(request: Request) {
       .replace(/^Subject:\s*.+\n*/m, "")
       .trim()
 
+    const persResult = computePersonalizationScore({
+      body: email,
+      subject,
+      firstName: fields.firstName,
+      company: fields.company,
+      trigger: fields.trigger,
+    })
+
+    const spamResult = computeSpamScore({ subject, body: email })
+
     const { userId } = await auth()
     if (userId) {
       await db.insert(emails).values({
@@ -83,12 +94,20 @@ export async function POST(request: Request) {
         triggerContext: fields.trigger || null,
         valueProp: fields.valueProp || null,
         tone: fields.tone || null,
-        score: 89,
+        score: persResult.score,
         status: "sent",
       })
     }
 
-    return Response.json({ subject, email })
+    return Response.json({
+      subject,
+      email,
+      score: persResult.score,
+      scoreBreakdown: persResult.breakdown,
+      spamScore: spamResult.score,
+      spamFlags: spamResult.flags,
+      spamIsClean: spamResult.isClean,
+    })
   } catch (error) {
     return Response.json(
       { error: error instanceof Error ? error.message : "An unexpected error occurred." },
