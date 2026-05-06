@@ -113,7 +113,7 @@ export function Pricing() {
                 className="w-full mb-6"
                 asChild
               >
-                <Link href={plan.name === "Team" ? "/dashboard" : "/sign-up"}>{plan.cta}</Link>
+                <Link href={plan.name === "Team" ? "mailto:james.ct216@gmail.com" : "/sign-up"}>{plan.cta}</Link>
               </Button>
 
               <ul className="space-y-2.5">

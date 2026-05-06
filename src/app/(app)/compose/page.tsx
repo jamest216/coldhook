@@ -21,6 +21,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Progress } from "@/components/ui/progress"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 export default function ComposePage() {
   const [linkedinUrl, setLinkedinUrl] = useState("linkedin.com/in/sarah-chen-vp-sales")
@@ -378,10 +379,21 @@ export default function ComposePage() {
                           <Copy className="size-3.5" />
                         )}
                       </Button>
-                      <Button variant="email" size="sm" className="h-7 text-xs gap-1.5">
-                        <Send className="size-3" />
-                        Send
-                      </Button>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span>
+                              <Button variant="email" size="sm" className="h-7 text-xs gap-1.5" disabled>
+                                <Send className="size-3" />
+                                Send
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            Email sending coming soon — copy your email above for now
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
                   )}
                 </div>

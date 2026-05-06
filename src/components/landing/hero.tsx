@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useAuth } from "@clerk/nextjs"
-import { ArrowRight, Sparkles, Star, TrendingUp, Mail, Zap } from "lucide-react"
+import { ArrowRight, Sparkles, Mail, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 
@@ -25,7 +25,7 @@ export function Hero() {
         <div className="inline-flex items-center gap-2 mb-8">
           <span className="flex items-center gap-1.5 rounded-full border border-[rgba(94,106,210,0.3)] bg-[rgba(94,106,210,0.08)] px-3 py-1 text-xs text-[#828fff]">
             <Sparkles className="size-3" />
-            Powered by Claude 3.5 Sonnet
+            Powered by Claude AI
             <ArrowRight className="size-3" />
           </span>
         </div>
@@ -57,29 +57,12 @@ export function Hero() {
           </Button>
         </div>
 
-        {/* Social proof */}
-        <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-[#62666d]">
-          <div className="flex items-center gap-1.5">
-            <div className="flex -space-x-1.5">
-              {["JD", "SK", "MR", "TL", "AP"].map((init) => (
-                <div
-                  key={init}
-                  className="size-6 rounded-full border-2 border-[#010102] bg-gradient-to-br from-[#5e6ad2] to-[#a78bfa] flex items-center justify-center text-[8px] font-bold text-white"
-                >
-                  {init[0]}
-                </div>
-              ))}
-            </div>
-            <span>2,400+ SDRs & AEs</span>
-          </div>
-          <div className="flex items-center gap-1">
-            {[1,2,3,4,5].map(i => <Star key={i} className="size-3 fill-[#f59e0b] text-[#f59e0b]" />)}
-            <span className="ml-1">4.9/5 rating</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <TrendingUp className="size-3 text-[#27a644]" />
-            <span>34% avg reply rate</span>
-          </div>
+        {/* Beta badge */}
+        <div className="flex items-center justify-center">
+          <span className="flex items-center gap-1.5 rounded-full border border-[rgba(39,166,68,0.3)] bg-[rgba(39,166,68,0.08)] px-3 py-1 text-xs text-[#27a644]">
+            <Zap className="size-3" />
+            Now in beta — free early access
+          </span>
         </div>
 
         {/* App Preview */}
