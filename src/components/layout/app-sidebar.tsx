@@ -36,7 +36,12 @@ export function AppSidebar() {
   const { user } = useUser()
   const { signOut } = useClerk()
 
-  const [emailStats, setEmailStats] = useState<{ emailsTotal: number; emailsThisMonth: number } | null>(null)
+  const [emailStats, setEmailStats] = useState<{
+    emailsTotal: number
+    emailsThisMonth: number
+    replyRate: number | null
+    prospectsThisMonth: number
+  } | null>(null)
 
   useEffect(() => {
     fetch('/api/stats')
@@ -108,10 +113,18 @@ export function AppSidebar() {
               <StatRow
                 label="Emails Sent"
                 value={emailStats ? emailStats.emailsTotal.toLocaleString() : '—'}
-                trend={emailStats && emailStats.emailsThisMonth > 0 ? `+${emailStats.emailsThisMonth} mo` : '—'}
+                trend={emailStats && emailStats.emailsThisMonth > 0 ? `+${emailStats.emailsThisMonth} mo` : undefined}
               />
-              <StatRow label="Reply Rate" value="34.2%" trend="+5.1%" />
-              <StatRow label="Meetings Booked" value="28" trend="+8" />
+              <StatRow
+                label="Reply Rate"
+                value={emailStats ? (emailStats.replyRate !== null ? `${emailStats.replyRate}%` : '—') : '—'}
+                trend={emailStats?.replyRate !== null && emailStats?.replyRate !== undefined ? 'vs 8% avg' : undefined}
+              />
+              <StatRow
+                label="Meetings Booked"
+                value="—"
+                trend={undefined}
+              />
             </div>
           </div>
         </nav>
@@ -190,13 +203,13 @@ export function AppSidebar() {
   )
 }
 
-function StatRow({ label, value, trend }: { label: string; value: string; trend: string }) {
+function StatRow({ label, value, trend }: { label: string; value: string; trend?: string }) {
   return (
     <div className="flex items-center justify-between">
       <span className="text-xs text-[#62666d]">{label}</span>
       <div className="flex items-center gap-1.5">
         <span className="text-xs font-medium text-[#d0d6e0]">{value}</span>
-        <span className="text-[10px] text-[#27a644]">{trend}</span>
+        {trend && <span className="text-[10px] text-[#27a644]">{trend}</span>}
       </div>
     </div>
   )
