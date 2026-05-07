@@ -7,6 +7,10 @@ import { computePersonalizationScore, computeSpamScore } from "@/lib/scoring"
 
 type TriggerType = "promotion" | "funding" | "content" | "job_change" | "other"
 
+type SeniorityLevel = "c_suite" | "vp" | "director" | "manager_ic"
+
+type IndustryVertical = "tech_saas" | "fintech_finance" | "healthcare" | "legal" | "manufacturing" | "agency"
+
 function classifyTrigger(trigger: string): TriggerType {
   const t = trigger.toLowerCase()
   if (/\b(promot|vp |cro|cmo|cto|ceo|chief|head of|director|new role|stepped into|just became)\b/.test(t)) return "promotion"
@@ -16,12 +20,32 @@ function classifyTrigger(trigger: string): TriggerType {
   return "other"
 }
 
+function classifySeniority(title: string): SeniorityLevel {
+  const t = title.toLowerCase()
+  if (/\b(ceo|cro|cto|cmo|cfo|coo|cpo|chief|founder|co-founder|president|owner)\b/.test(t)) return "c_suite"
+  if (/\b(vp|vice president|head of|svp|evp|senior vp|group vp)\b/.test(t)) return "vp"
+  if (/\b(director|sr\. director|senior director|principal)\b/.test(t)) return "director"
+  return "manager_ic"
+}
+
+function classifyIndustry(industry: string): IndustryVertical {
+  const i = industry.toLowerCase()
+  if (i.includes("finance") || i.includes("fintech") || i.includes("banking") || i.includes("investment")) return "fintech_finance"
+  if (i.includes("health") || i.includes("medical") || i.includes("pharma") || i.includes("clinical")) return "healthcare"
+  if (i.includes("legal") || i.includes("law") || i.includes("compliance")) return "legal"
+  if (i.includes("manufactur") || i.includes("industrial") || i.includes("logistics") || i.includes("supply chain")) return "manufacturing"
+  if (i.includes("agency") || i.includes("creative") || i.includes("marketing agency") || i.includes("design studio")) return "agency"
+  return "tech_saas"
+}
+
 async function generateInsight(fields: {
   firstName: string
   title: string
   company: string
   trigger: string
   triggerType: TriggerType
+  seniority: SeniorityLevel
+  industryVertical: IndustryVertical
 }): Promise<string> {
   const triggerContext: Record<string, string> = {
     promotion: `Focus on: what specific operational and political challenges come with this exact role transition. What does this person now have to prove, build, or fix that they didn't before? What mandate do they likely have?`,
@@ -29,6 +53,22 @@ async function generateInsight(fields: {
     content: `Focus on: the specific argument or perspective they expressed — what does holding that view imply about how they see their biggest problem right now? What would a peer say in response?`,
     job_change: `Focus on: the gap between where they came from and where they've landed. What expectations does their previous company set that won't match reality at the new company? What audit are they already running?`,
     other: `Focus on: what this trigger event implies is changing or under pressure in their world right now. What problem does it surface that probably wasn't urgent 3 months ago?`,
+  }
+
+  const seniorityFocus: Record<string, string> = {
+    c_suite: `This is a ${fields.title}. Frame the implication at the STRATEGIC level: board narrative, competitive position, company valuation, next 18-month horizon. Do not mention team processes or operational workflows. Think: what does their board care about? What does this trigger mean for how they'll be judged in 12 months?`,
+    vp: `This is a VP-level leader. Frame the implication at the OPERATIONAL level: scaling their function, hiring and ramp, systems breaking under growth, quota and coverage. They own a function and have to scale it — the insight should speak to that pressure, not to C-level strategy or individual contributor tactics.`,
+    director: `This is a Director. Frame the implication at the PRACTICAL level: hitting their team's number, solving a specific process problem, surviving the next quarter. They are operational and execution-focused. Think: what does this trigger make harder or more urgent for their team to deliver?`,
+    manager_ic: `This is a Manager or individual contributor. Frame the implication at the TACTICAL level: their day-to-day workflow, a specific skill or tool problem, something that makes their job harder or easier. Be specific and concrete.`,
+  }
+
+  const industryContext: Record<string, string> = {
+    tech_saas: `Tech/SaaS context. Use product-led and GTM vocabulary (pipeline, ARR, churn, ramp, PLG, outbound). Assume familiarity with modern sales and engineering concepts.`,
+    fintech_finance: `Fintech/Finance context. Use precise financial vocabulary. Implications may relate to compliance, regulatory pressure, risk management, or capital efficiency. Be exact with figures.`,
+    healthcare: `Healthcare context. Implications may relate to patient outcomes, compliance (HIPAA/FDA), reimbursement, clinical workflows, or staffing. Be careful with claims — avoid overpromising on outcomes.`,
+    legal: `Legal context. Implications may relate to case load, compliance risk, client retention, billing efficiency, or regulatory changes. Be precise and measured in language.`,
+    manufacturing: `Manufacturing/Industrial context. Use plain, direct vocabulary. Implications relate to throughput, downtime, supply chain, labor, or operational efficiency. Avoid SaaS jargon entirely.`,
+    agency: `Agency/Creative context. Implications relate to client retention, project margin, new business pipeline, or team capacity. Personality and specificity are valued.`,
   }
 
   const { text } = await generateText({
@@ -43,13 +83,20 @@ PROSPECT:
 - Trigger: ${fields.trigger}
 - Trigger type: ${fields.triggerType}
 
+SENIORITY FOCUS:
+${seniorityFocus[fields.seniority]}
+
+INDUSTRY CONTEXT:
+${industryContext[fields.industryVertical]}
+
+TRIGGER REASONING:
 ${triggerContext[fields.triggerType]}
 
 Output format — write exactly 2–3 sentences:
 1. The non-obvious implication (what changes for them now that most people wouldn't think to mention)
-2. Why this implication is specifically relevant to their title/role (not generic — tie it to the actual job function)
+2. Why this implication is specifically relevant to their title/role at their seniority level
 
-Do NOT write a cold email. Do NOT include a subject line. Do NOT include pleasantries. Just output the 2–3 sentence insight that a smart colleague would think of.`,
+Do NOT write a cold email. Do NOT include a subject line. Do NOT include pleasantries. Output only the 2–3 sentence insight.`,
   })
 
   return text.trim()
@@ -67,17 +114,38 @@ function buildDraftPrompt(fields: {
   tone: string
   length: string
   ctaStyle: string
+  seniority: SeniorityLevel
+  industryVertical: IndustryVertical
 }): string {
   const toneInstructions: Record<string, string> = {
-    conversational: "Casual, direct peer-to-peer. Fragments are fine. Lowercase subject line. No formal closings.",
-    professional: "Clear and respectful but never stiff. Full sentences. Avoid contractions only if the industry demands it.",
-    formal: "Complete sentences. No fragments. Full name in greeting if one is used. No contractions.",
+    conversational: "Casual, direct peer-to-peer. Fragments are fine. Lowercase subject line. No formal closings. Write like a smart colleague's Slack message.",
+    professional: "Clear and confident. Full sentences preferred. Respectful but never stiff. One short paragraph max per thought.",
+    formal: "Complete sentences only. No fragments. Measured pace. No contractions. This is a regulated industry — match their register.",
+    bold: "Confident and direct. Short, punchy sentences. No hedging. The value prop is stated with conviction, not apology.",
+    curious: "Lead with genuine curiosity about their situation. Ask or imply a question in the opening. Frame as peer-to-peer intellectual interest, not a pitch.",
   }
 
   const ctaExamples: Record<string, string> = {
-    soft: `Use an interest-based CTA. Examples: "Worth a look?", "Is this on your radar right now?", "Open to a quick walk-through?", "Is [specific problem] something ${fields.company} is dealing with right now?"`,
-    value: `Use a value-offer CTA. Examples: "Want me to send the playbook we ran for [similar company]?", "Should I send over the benchmark data?", "Happy to share the 3-page breakdown — want me to send it?"`,
-    direct: `Use a soft open-meeting CTA. Example: "Worth 15 minutes next week?" — do NOT include a calendar link. No Calendly links in the first email.`,
+    soft: `Use an interest-based CTA — asks the prospect to confirm or deny relevance, costs them nothing. Examples: "Worth a look?", "Is this on your radar right now?", "Is [specific problem] something ${fields.company} is dealing with?" One CTA only. End with a low-pressure out.`,
+    value: `Use a value-offer CTA — the prospect gets something, which makes them reply to receive it. Examples: "Want me to send the playbook we ran for [similar company]?", "Should I send the 3-page breakdown?" One CTA only. End with a low-pressure out.`,
+    question: `Use a single direct question that makes the prospect think about their situation. The question should surface a tension they haven't resolved. Examples: "Is your outbound motion scaling with the team, or is research the bottleneck?" One question. No multiple asks.`,
+    calendar: `Soft open-meeting request — no calendar links in the body. Example: "Worth 15 minutes next week?" Keep it brief. No Calendly URLs. One ask only. End with a low-pressure out.`,
+  }
+
+  const seniorityAbstraction: Record<string, string> = {
+    c_suite: `SENIORITY — C-SUITE: This is a ${fields.title}. Write at the highest level of abstraction. Lead with strategic framing: board narrative, competitive position, valuation, the next 18-month horizon. Do NOT mention team workflows, individual rep productivity, or operational specifics. Use peer social proof referencing other CEOs/CROs/CTOs. Never list features. One strategic outcome only.`,
+    vp: `SENIORITY — VP: This is a VP-level leader who owns a function and has to scale it. Lead with operational framing: hiring and ramp pressure, quota and coverage, systems that break under growth. Strategic enough to feel relevant, operational enough to feel specific. Avoid C-level abstraction (board decks) and IC-level detail (individual workflows).`,
+    director: `SENIORITY — DIRECTOR: This is a Director focused on delivering the team's number. Lead with practical framing: a specific process problem, a team execution challenge, something that makes the next quarter easier. Outcome-oriented. More specific than VP-level. Less abstract than C-suite.`,
+    manager_ic: `SENIORITY — MANAGER/IC: This person cares about their day-to-day. Be specific and tactical. How does this save time, reduce friction, or solve a concrete workflow problem? Technical detail is fine. Peer-to-peer tone.`,
+  }
+
+  const industryToneRules: Record<string, string> = {
+    tech_saas: "Tech/SaaS: Maximum informality is allowed and often preferred. Fragments fine. Lowercase subject. Conversational register. GTM vocabulary expected.",
+    fintech_finance: "Fintech/Finance: Precise language. Slightly more formal than tech defaults. Full sentences preferred. Specific with numbers. No buzzwords.",
+    healthcare: "Healthcare: Formal register. Full sentences. Be careful with outcome claims — avoid overpromising. Reference compliance and workflow context. No humor.",
+    legal: "Legal: Most formal register. Complete sentences. No contractions in extreme formal cases. Full titles. Precise and measured. No jargon, no SaaS terms.",
+    manufacturing: "Manufacturing/Industrial: Plain-spoken and direct. No SaaS vocabulary. Use: system, tool, process, throughput, downtime. No 'leverage', 'synergy', 'platform'.",
+    agency: "Agency/Creative: Informal, personality rewarded. Specific is better than generic. These buyers spot templates immediately. Voice and distinctiveness matter.",
   }
 
   const triggerOpeningGuide: Record<string, string> = {
@@ -142,7 +210,15 @@ CTA RULES:
   — Personalize the CTA to their specific situation when possible.
   — End with a low-pressure out after the CTA.
 
-TONE: ${toneInstructions[fields.tone] || toneInstructions.conversational}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${seniorityAbstraction[fields.seniority]}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+INDUSTRY TONE RULES:
+${industryToneRules[fields.industryVertical]}
+
+BASE TONE SETTING: ${toneInstructions[fields.tone] || toneInstructions.conversational}
+(If industry rules conflict with base tone, industry rules win — a legal prospect always gets formal even if the user selected conversational.)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ABSOLUTE PROHIBITIONS — NEVER INCLUDE
@@ -212,8 +288,13 @@ export async function POST(request: Request) {
       ctaStyle: (body.ctaStyle || "soft").trim(),
     }
 
+    // Read optional industry from request body; default to "tech_saas"
+    const industryRaw = (body.industry || "tech_saas").toLowerCase()
+
     // Stage 1: classify the trigger type
     const triggerType = classifyTrigger(fields.trigger)
+    const seniority = classifySeniority(fields.title)
+    const industryVertical = classifyIndustry(industryRaw)
 
     // Stage 2: generate a non-obvious insight from the trigger before drafting
     const insight = await generateInsight({
@@ -222,13 +303,15 @@ export async function POST(request: Request) {
       company: fields.company,
       trigger: fields.trigger,
       triggerType,
+      seniority,
+      industryVertical,
     })
 
     // Stage 3: draft the email using the insight + hard craft rules
     const { text } = await generateText({
       model: anthropic("claude-sonnet-4-6"),
       maxOutputTokens: 400,
-      prompt: buildDraftPrompt({ ...fields, triggerType, insight }),
+      prompt: buildDraftPrompt({ ...fields, triggerType, insight, seniority, industryVertical }),
     })
 
     const subjectMatch = text.match(/^Subject:\s*(.+)/m)

@@ -36,6 +36,7 @@ export default function ComposePage() {
   const [tone, setTone] = useState("conversational")
   const [length, setLength] = useState("medium")
   const [ctaStyle, setCtaStyle] = useState("soft")
+  const [industry, setIndustry] = useState("tech_saas")
 
   const [isGenerating, setIsGenerating] = useState(false)
   const [generated, setGenerated] = useState(false)
@@ -80,6 +81,7 @@ export default function ComposePage() {
           tone,
           length,
           ctaStyle,
+          industry,
         }),
       })
 
@@ -150,6 +152,7 @@ export default function ComposePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           firstName, lastName, title, company, trigger, valueProp, tone, ctaStyle,
+          industry,
           initialEmail: generatedEmail,
           initialSubject: generatedSubject,
         }),
@@ -323,6 +326,22 @@ export default function ComposePage() {
                       <SelectItem value="calendar">Calendar link</SelectItem>
                       <SelectItem value="question">Question CTA</SelectItem>
                       <SelectItem value="bold">Bold ask (demo this week?)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs text-[#8a8f98]">Industry</label>
+                  <Select value={industry} onValueChange={setIndustry}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="tech_saas">Tech / SaaS</SelectItem>
+                      <SelectItem value="fintech_finance">Fintech / Finance</SelectItem>
+                      <SelectItem value="healthcare">Healthcare</SelectItem>
+                      <SelectItem value="legal">Legal</SelectItem>
+                      <SelectItem value="manufacturing">Manufacturing / Industrial</SelectItem>
+                      <SelectItem value="agency">Agency / Creative</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
