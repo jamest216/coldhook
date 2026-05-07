@@ -34,7 +34,7 @@ export function Hero() {
   return (
     <section
       className="relative overflow-hidden pt-24 pb-20 px-6 min-h-[90vh] flex items-center"
-      style={{ background: "radial-gradient(125% 125% at 50% 10%, #000 40%, #6633ee 100%)" }}
+      style={{ background: "radial-gradient(125% 125% at 50% 10%, #000 40%, #3b1fa8 100%)" }}
     >
       {/* Grain overlay */}
       <div
@@ -78,7 +78,7 @@ export function Hero() {
               <span className="block font-black tracking-[-2px] leading-[1.0] text-[var(--color-ink)]">
                 Research they feel.
               </span>
-              <span className="block font-light gradient-text-accent tracking-[-1px] leading-[1.15] mt-1">
+              <span className="block text-3xl sm:text-4xl lg:text-5xl font-light gradient-text-accent tracking-[-1px] leading-[1.15] mt-1">
                 Time you get back.
               </span>
             </motion.h1>
@@ -132,7 +132,7 @@ export function Hero() {
 
 function AppPreview() {
   return (
-    <div className="relative mx-auto max-w-3xl rounded-2xl border border-[#23252a] bg-[#0f1011] overflow-hidden shadow-[0_30px_60px_rgba(3,3,39,0.4),0_18px_36px_rgba(0,0,0,0.35),0_0_0_1px_rgba(94,106,210,0.1)]">
+    <div className="relative mx-auto max-w-3xl rounded-2xl border border-[#23252a] bg-[#0f1011] overflow-hidden shadow-[0_40px_80px_rgba(3,3,39,0.6),0_20px_40px_rgba(0,0,0,0.5),0_0_0_1px_rgba(94,106,210,0.15),0_0_60px_rgba(94,106,210,0.08)]">
       {/* Window chrome */}
       <div className="flex items-center gap-2 border-b border-[#23252a] px-4 py-3">
         <div className="flex gap-1.5">
