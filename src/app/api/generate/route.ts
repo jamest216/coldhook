@@ -56,10 +56,21 @@ async function generateInsight(fields: {
   }
 
   const seniorityFocus: Record<string, string> = {
-    c_suite: `This is a ${fields.title}. Frame the implication at the STRATEGIC level: board narrative, competitive position, company valuation, next 18-month horizon. Do not mention team processes or operational workflows. Think: what does their board care about? What does this trigger mean for how they'll be judged in 12 months?`,
-    vp: `This is a VP-level leader. Frame the implication at the OPERATIONAL level: scaling their function, hiring and ramp, systems breaking under growth, quota and coverage. They own a function and have to scale it — the insight should speak to that pressure, not to C-level strategy or individual contributor tactics.`,
-    director: `This is a Director. Frame the implication at the PRACTICAL level: hitting their team's number, solving a specific process problem, surviving the next quarter. They are operational and execution-focused. Think: what does this trigger make harder or more urgent for their team to deliver?`,
-    manager_ic: `This is a Manager or individual contributor. Frame the implication at the TACTICAL level: their day-to-day workflow, a specific skill or tool problem, something that makes their job harder or easier. Be specific and concrete.`,
+    c_suite: `This is a ${fields.title}. Frame the implication at the STRATEGIC level: board narrative, competitive position, company valuation, and the 18-month growth trajectory. Think about what their board will be measuring and what this trigger means for how they'll be judged.
+
+NEVER produce implications about: AE ramp time, rep productivity, SDR hiring, team-level pipeline metrics, sales onboarding, or operational GTM mechanics. Those are VP-level concerns. The CEO does not own the quarter — they own the story of the company.`,
+
+    vp: `This is a VP-level leader who owns a function and has to scale it. Frame the implication at the OPERATIONAL level: hiring and ramp pressure, quota and coverage math, systems that break under headcount growth, the gap between what leadership expects and what the current stack can deliver.
+
+NEVER produce board-level or valuation framing. The VP does not own the Series C story — they own the next two quarters. Focus entirely on what this trigger means for their function's execution, not for the company's strategic narrative.`,
+
+    director: `This is a Director focused on delivering their team's number. Frame the implication at the PRACTICAL level: a specific process problem, a team execution challenge, something that makes the next quarter easier or harder. Outcome-oriented and concrete.
+
+NEVER produce C-suite strategy or VP-level scaling framing. Directors are not worried about board decks or headcount plans — they are worried about hitting their number with the team they have.`,
+
+    manager_ic: `This is a Manager or individual contributor. Frame the implication at the TACTICAL level: their day-to-day workflow, a specific skill or tool problem, something that removes friction or saves time. Be specific and concrete.
+
+NEVER produce strategic or scaling language. This person cares about their own output, not the company's growth narrative.`,
   }
 
   const industryContext: Record<string, string> = {
@@ -133,10 +144,33 @@ function buildDraftPrompt(fields: {
   }
 
   const seniorityAbstraction: Record<string, string> = {
-    c_suite: `SENIORITY — C-SUITE: This is a ${fields.title}. Write at the highest level of abstraction. Lead with strategic framing: board narrative, competitive position, valuation, the next 18-month horizon. Do NOT mention team workflows, individual rep productivity, or operational specifics. Use peer social proof referencing other CEOs/CROs/CTOs. Never list features. One strategic outcome only.`,
-    vp: `SENIORITY — VP: This is a VP-level leader who owns a function and has to scale it. Lead with operational framing: hiring and ramp pressure, quota and coverage, systems that break under growth. Strategic enough to feel relevant, operational enough to feel specific. Avoid C-level abstraction (board decks) and IC-level detail (individual workflows).`,
-    director: `SENIORITY — DIRECTOR: This is a Director focused on delivering the team's number. Lead with practical framing: a specific process problem, a team execution challenge, something that makes the next quarter easier. Outcome-oriented. More specific than VP-level. Less abstract than C-suite.`,
-    manager_ic: `SENIORITY — MANAGER/IC: This person cares about their day-to-day. Be specific and tactical. How does this save time, reduce friction, or solve a concrete workflow problem? Technical detail is fine. Peer-to-peer tone.`,
+    c_suite: `SENIORITY — C-SUITE (${fields.title}): Write at the highest level of abstraction. The email should feel like a peer note from someone who understands the board conversation they're about to have — not a vendor pitching a tool.
+
+Lead with: board narrative, competitive moat, valuation story, 18-month horizon, what this trigger means for how investors will evaluate the company.
+Use: peer social proof referencing other CEOs, founders, or C-suite leaders. One strategic outcome only — no metrics about individual reps or team-level productivity.
+
+NEVER write about: AE ramp time, SDR hiring, rep productivity, team onboarding, pipeline coverage by rep, or any operational sales metric. If the insight stage produced something at this level, reframe it upward — what does that operational pressure mean for the board story?`,
+
+    vp: `SENIORITY — VP (${fields.title}): Write at the operational level. This person owns a function and is measured on scaling it — the email should speak to that pressure directly.
+
+Lead with: the gap between what leadership now expects and what the current system can deliver, hiring and ramp timelines, quota coverage under growth, the specific mechanics of scaling their function.
+Use: social proof from similar companies at the same stage ("a Series B sales team," "a VP in the same seat"). Operational outcomes — time saved, ramp reduced, pipeline contribution accelerated.
+
+NEVER write board-level abstraction, valuation language, or investor narrative. The VP is not thinking about Series C — they are thinking about Q3.`,
+
+    director: `SENIORITY — DIRECTOR (${fields.title}): Write at the practical execution level. This person cares about delivering results with the team they have right now.
+
+Lead with: a specific process friction, a team execution challenge, what makes the next quarter harder or easier. Ground the value prop in a concrete operational outcome.
+Use: specific numbers and timeframes. Social proof from similar teams.
+
+NEVER write about board narratives, company valuation, headcount scaling plans, or abstract strategy.`,
+
+    manager_ic: `SENIORITY — MANAGER/IC (${fields.title}): Write at the individual workflow level. Keep it specific and tactically useful.
+
+Lead with: how this affects their day-to-day, a friction point in their current process, something they'd recognize from their own experience.
+Use: direct and conversational language. Technical specificity is welcome.
+
+NEVER write about company strategy, team scaling, or board-level concerns.`,
   }
 
   const industryToneRules: Record<string, string> = {
