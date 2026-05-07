@@ -33,7 +33,7 @@ export function Hero() {
   const { isSignedIn } = useAuth()
   return (
     <section className="relative overflow-hidden pt-24 pb-20 px-6">
-      <div className="absolute inset-0 -z-10 h-full w-full items-center px-5 py-24 [background:radial-gradient(125%_125%_at_50%_10%,#000_40%,#63e_100%)]" />
+      <div className="absolute inset-0 h-full w-full [background:radial-gradient(125%_125%_at_50%_10%,#000_40%,#63e_100%)]" />
 
       <motion.div
         className="relative max-w-4xl mx-auto text-center"
