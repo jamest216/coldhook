@@ -1,5 +1,6 @@
 import { Navbar } from "@/components/landing/navbar"
 import { Hero } from "@/components/landing/hero"
+import { TickerBar } from "@/components/landing/ticker"
 import { Features } from "@/components/landing/features"
 import { ROICalculator } from "@/components/landing/calculator"
 import { Testimonials } from "@/components/landing/testimonials"
@@ -12,6 +13,7 @@ export default function LandingPage() {
       <Navbar />
       <main>
         <Hero />
+        <TickerBar />
         <Features />
         <ROICalculator />
         <Testimonials />
