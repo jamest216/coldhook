@@ -33,7 +33,7 @@ export function Hero() {
   const { isSignedIn } = useAuth()
   return (
     <section
-      className="relative overflow-hidden pt-24 pb-20 px-6 min-h-[90vh] flex items-center"
+      className="relative overflow-hidden pt-24 pb-0 px-6 min-h-[90vh] flex items-center"
       style={{ background: "radial-gradient(125% 125% at 50% 10%, #000 40%, #3b1fa8 100%)" }}
     >
       {/* Grain overlay */}
