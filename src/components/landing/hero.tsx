@@ -33,15 +33,7 @@ export function Hero() {
   const { isSignedIn } = useAuth()
   return (
     <section className="relative overflow-hidden pt-24 pb-20 px-6">
-      {/* Background glow */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-[radial-gradient(ellipse_at_top,rgba(94,106,210,0.15)_0%,transparent_70%)]" />
-        <div className="absolute top-32 left-1/4 w-64 h-64 bg-[radial-gradient(circle,rgba(94,106,210,0.08)_0%,transparent_70%)] blur-3xl" />
-        <div className="absolute top-48 right-1/4 w-48 h-48 bg-[radial-gradient(circle,rgba(255,128,31,0.06)_0%,transparent_70%)] blur-3xl" />
-      </div>
-
-      {/* Grid pattern */}
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:48px_48px] pointer-events-none" />
+      <div className="absolute inset-0 -z-10 h-full w-full items-center px-5 py-24 [background:radial-gradient(125%_125%_at_50%_10%,#000_40%,#63e_100%)]" />
 
       <motion.div
         className="relative max-w-4xl mx-auto text-center"
