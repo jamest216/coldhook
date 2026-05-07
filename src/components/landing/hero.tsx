@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useAuth } from "@clerk/nextjs"
-import { ArrowRight, Sparkles, Mail, Zap } from "lucide-react"
+import { Sparkles, Mail, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { motion } from "framer-motion"
@@ -32,85 +32,100 @@ const itemVariants = {
 export function Hero() {
   const { isSignedIn } = useAuth()
   return (
-    <section className="relative overflow-hidden pt-24 pb-20 px-6">
-      <div className="absolute inset-0 h-full w-full [background:radial-gradient(125%_125%_at_50%_10%,#000_40%,#63e_100%)]" />
+    <section
+      className="relative overflow-hidden pt-24 pb-20 px-6 min-h-[90vh] flex items-center"
+      style={{ background: "radial-gradient(125% 125% at 50% 10%, #000 40%, #6633ee 100%)" }}
+    >
+      {/* Grain overlay */}
+      <div
+        className="absolute inset-0 z-0 pointer-events-none opacity-[0.04]"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+          backgroundRepeat: "repeat",
+          backgroundSize: "200px 200px",
+        }}
+      />
 
-      <motion.div
-        className="relative max-w-4xl mx-auto text-center"
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
-        {/* Announcement pill */}
-        <motion.div className="inline-flex items-center gap-2 mb-8" variants={itemVariants}>
-          <span className="flex items-center gap-1.5 rounded-full border border-[rgba(94,106,210,0.3)] bg-[rgba(94,106,210,0.08)] px-3 py-1 text-xs text-[#828fff]">
-            <Sparkles className="size-3" />
-            Powered by Claude AI
-            <ArrowRight className="size-3" />
-          </span>
-        </motion.div>
+      {/* Grid pattern */}
+      <div className="absolute inset-0 z-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:48px_48px] pointer-events-none" />
 
-        {/* Headline */}
-        <motion.h1
-          className="text-5xl sm:text-6xl md:text-7xl font-semibold leading-[1.05] tracking-[-2px] text-[#f7f8f8] mb-6"
-          variants={itemVariants}
-        >
-          Cold emails that{" "}
-          <motion.span
-            className="gradient-text-accent"
-            animate={{ filter: ["brightness(1)", "brightness(1.6)", "brightness(1)"] }}
-            transition={{ duration: 0.6, delay: 1.1, ease: "easeInOut" }}
-          >
-            actually
-          </motion.span>
-          <br />
-          get replies
-        </motion.h1>
+      <div className="relative z-10 max-w-6xl mx-auto w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.1fr] gap-12 lg:gap-16 items-center">
 
-        <motion.p
-          className="text-lg text-[#8a8f98] max-w-2xl mx-auto mb-10 leading-relaxed"
-          variants={itemVariants}
-        >
-          ColdHook uses AI to write hyper-personalized cold emails in seconds. Feed it a prospect&apos;s LinkedIn, website, or news — get an email that feels hand-crafted.
-        </motion.p>
-
-        {/* CTAs */}
-        <motion.div
-          className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-16"
-          variants={itemVariants}
-        >
-          <Button size="lg" className="h-12 px-8 text-base font-medium" asChild>
-            <Link href={isSignedIn ? "/dashboard" : "/sign-up"}>
-              Start for free
-              <ArrowRight className="size-4" />
-            </Link>
-          </Button>
-          <Button variant="outline" size="lg" className="h-12 px-8 text-base" asChild>
-            <Link href="#demo">
-              Watch demo
-            </Link>
-          </Button>
-        </motion.div>
-
-        {/* Beta badge */}
-        <motion.div className="flex items-center justify-center" variants={itemVariants}>
-          <span className="flex items-center gap-1.5 rounded-full border border-[rgba(39,166,68,0.3)] bg-[rgba(39,166,68,0.08)] px-3 py-1 text-xs text-[#27a644]">
-            <Zap className="size-3" />
-            Now in beta — free early access
-          </span>
-        </motion.div>
-
-        {/* App Preview */}
-        <motion.div className="mt-16 relative" variants={itemVariants}>
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,rgba(94,106,210,0.15)_0%,transparent_60%)] pointer-events-none" />
+          {/* Left column — text content */}
           <motion.div
-            whileHover={{ rotateX: 2 }}
-            style={{ transformPerspective: 1200 }}
+            className="text-center lg:text-left"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
           >
-            <AppPreview />
+            {/* Beta badge */}
+            <motion.div
+              className="inline-flex items-center justify-center lg:justify-start mb-4"
+              variants={itemVariants}
+            >
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(39,166,68,0.3)] bg-[rgba(39,166,68,0.08)] px-3 py-1 text-xs text-[var(--color-success)]">
+                <span className="size-1.5 rounded-full bg-[var(--color-success)] animate-pulse" />
+                Now in beta — free early access
+              </span>
+            </motion.div>
+
+            {/* Headline */}
+            <motion.h1
+              className="text-5xl sm:text-6xl lg:text-7xl"
+              variants={itemVariants}
+            >
+              <span className="block font-black tracking-[-2px] leading-[1.0] text-[var(--color-ink)]">
+                Research they feel.
+              </span>
+              <span className="block font-light gradient-text-accent tracking-[-1px] leading-[1.15] mt-1">
+                Time you get back.
+              </span>
+            </motion.h1>
+
+            {/* Subheadline */}
+            <motion.p
+              className="text-base lg:text-lg text-[var(--color-ink-subtle)] max-w-md mx-auto lg:mx-0 leading-relaxed mt-6"
+              variants={itemVariants}
+            >
+              ColdHook researches your prospect — their promotion, funding round, latest post — and writes a cold email that reads like you actually know them. In seconds.
+            </motion.p>
+
+            {/* CTAs */}
+            <motion.div
+              className="flex flex-col sm:flex-row lg:flex-col items-center lg:items-start gap-3 mt-8"
+              variants={itemVariants}
+            >
+              <Button size="lg" className="h-12 px-8 text-base font-medium" asChild>
+                <Link href={isSignedIn ? "/dashboard" : "/sign-up"}>
+                  Start for free →
+                </Link>
+              </Button>
+              <Link
+                href="#demo"
+                className="text-sm text-[var(--color-ink-subtle)] hover:text-[var(--color-ink-muted)] transition-colors"
+              >
+                Watch a demo
+              </Link>
+            </motion.div>
           </motion.div>
-        </motion.div>
-      </motion.div>
+
+          {/* Right column — app preview */}
+          <motion.div
+            initial={{ opacity: 0, x: 40 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.7, delay: 0.3, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] }}
+          >
+            <motion.div
+              whileHover={{ rotateX: 2 }}
+              style={{ transformPerspective: 1200 }}
+            >
+              <AppPreview />
+            </motion.div>
+          </motion.div>
+
+        </div>
+      </div>
     </section>
   )
 }
