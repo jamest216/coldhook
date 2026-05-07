@@ -24,7 +24,10 @@ export default function RootLayout({
   return (
     <ClerkProvider signInForceRedirectUrl="/dashboard" signUpForceRedirectUrl="/dashboard">
       <html lang="en" className={`${inter.variable} h-full`}>
-        <body className="min-h-full antialiased">{children}</body>
+        <body className="min-h-full antialiased">
+          {children}
+          <Analytics />
+        </body>
       </html>
     </ClerkProvider>
   )
