@@ -3,6 +3,7 @@ import { Inter } from "next/font/google"
 import { ClerkProvider } from "@clerk/nextjs"
 import "./globals.css"
 import { Analytics } from "@vercel/analytics/next"
+import { SpeedInsights } from "@vercel/speed-insights/next"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -24,7 +25,7 @@ export default function RootLayout({
   return (
     <ClerkProvider signInForceRedirectUrl="/dashboard" signUpForceRedirectUrl="/dashboard">
       <html lang="en" className={`${inter.variable} h-full`}>
-        <body className="min-h-full antialiased">{children}<Analytics /></body>
+        <body className="min-h-full antialiased">{children}<Analytics /><SpeedInsights /></body>
       </html>
     </ClerkProvider>
   )
