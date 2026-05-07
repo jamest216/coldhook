@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { TopBar } from "@/components/layout/top-bar"
 import {
   Sparkles,
@@ -56,7 +56,34 @@ export default function ComposePage() {
   const [sequenceError, setSequenceError] = useState("")
   const [expandedStep, setExpandedStep] = useState<"day3" | "day7" | null>(null)
 
+  // Pipeline visibility state
+  const [insight, setInsight] = useState("")
+  const [enrichedContext, setEnrichedContext] = useState("")
+  const [critiqueResult, setCritiqueResult] = useState<{ passed: boolean; issues: string[] } | null>(null)
+  const [pipelineOpen, setPipelineOpen] = useState(false)
+
+  // Loading stage cycling
+  const [loadingStage, setLoadingStage] = useState(0)
+
   const fieldsEmpty = !firstName.trim() || !company.trim() || !trigger.trim()
+
+  const loadingStages = [
+    "Enriching signal...",
+    "Generating insight...",
+    "Drafting email...",
+    "Running quality check...",
+  ]
+
+  useEffect(() => {
+    if (!isGenerating) {
+      setLoadingStage(0)
+      return
+    }
+    const interval = setInterval(() => {
+      setLoadingStage((s) => (s + 1) % loadingStages.length)
+    }, 1800)
+    return () => clearInterval(interval)
+  }, [isGenerating])
 
   const handleGenerate = async () => {
     setIsGenerating(true)
@@ -65,6 +92,10 @@ export default function ComposePage() {
     setGeneratedEmail("")
     setScore(0)
     setError("")
+    setInsight("")
+    setEnrichedContext("")
+    setCritiqueResult(null)
+    setPipelineOpen(false)
 
     try {
       const res = await fetch("/api/generate", {
@@ -111,6 +142,12 @@ export default function ComposePage() {
 
       setSpamScore(data.spamScore ?? 100)
       setSpamFlags(data.spamFlags ?? [])
+      setInsight(data.insight ?? "")
+      setEnrichedContext(data.enrichedContext ?? "")
+      setCritiqueResult(data.critiqueResult ?? null)
+      if (data.insight || data.enrichedContext) {
+        setPipelineOpen(true)
+      }
     } catch (e) {
       setIsGenerating(false)
       setError(e instanceof Error ? e.message : "Something went wrong.")
@@ -494,7 +531,9 @@ export default function ComposePage() {
                     ))}
                     <div className="flex items-center gap-2 mt-4 text-xs text-[#5e6ad2]">
                       <Sparkles className="size-3 animate-pulse" />
-                      <span>Claude is personalizing your email...</span>
+                      <span className="transition-opacity duration-300">
+                        {loadingStages[loadingStage]}
+                      </span>
                     </div>
                   </div>
                 ) : generated ? (
@@ -521,6 +560,76 @@ export default function ComposePage() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Pipeline transparency panel */}
+            {generated && (insight || enrichedContext) && (
+              <Card>
+                <CardContent className="pt-4 pb-3">
+                  <button
+                    className="w-full flex items-center justify-between text-xs"
+                    onClick={() => setPipelineOpen((o) => !o)}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="size-5 rounded bg-[rgba(94,106,210,0.12)] border border-[rgba(94,106,210,0.2)] flex items-center justify-center">
+                        <Sparkles className="size-3 text-[#5e6ad2]" />
+                      </div>
+                      <span className="font-medium text-[#d0d6e0]">How this was written</span>
+                    </div>
+                    <span className="text-[#5e6ad2]">{pipelineOpen ? "▲ hide" : "▼ show"}</span>
+                  </button>
+
+                  {pipelineOpen && (
+                    <div className="mt-3 space-y-3">
+
+                      {/* Stage 1 — Signal */}
+                      {enrichedContext && (
+                        <div className="rounded-md border border-[#23252a] bg-[#141516] p-3">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="size-4 rounded-full bg-[rgba(94,106,210,0.2)] text-[#828fff] text-[10px] font-bold flex items-center justify-center">1</span>
+                            <span className="text-xs font-medium text-[#8a8f98]">Signal enrichment</span>
+                          </div>
+                          <p className="text-xs text-[#d0d6e0] leading-relaxed">
+                            {enrichedContext}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Stage 2 — Insight */}
+                      {insight && (
+                        <div className="rounded-md border border-[#23252a] bg-[#141516] p-3">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="size-4 rounded-full bg-[rgba(94,106,210,0.2)] text-[#828fff] text-[10px] font-bold flex items-center justify-center">2</span>
+                            <span className="text-xs font-medium text-[#8a8f98]">Key insight</span>
+                          </div>
+                          <p className="text-xs text-[#d0d6e0] leading-relaxed">
+                            {insight}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Stage 4 — Quality check */}
+                      {critiqueResult && (
+                        <div className="rounded-md border border-[#23252a] bg-[#141516] p-3">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="size-4 rounded-full bg-[rgba(94,106,210,0.2)] text-[#828fff] text-[10px] font-bold flex items-center justify-center">4</span>
+                            <span className="text-xs font-medium text-[#8a8f98]">Quality check</span>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <CheckCircle2 className={`size-3.5 shrink-0 mt-0.5 ${critiqueResult.passed ? "text-[#27a644]" : "text-[#ff801f]"}`} />
+                            <p className="text-xs text-[#d0d6e0] leading-relaxed">
+                              {critiqueResult.passed
+                                ? "Passed all craft checks — email sent as generated."
+                                : `Revised after catching: ${critiqueResult.issues.join(", ")}`
+                              }
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             {/* Error message */}
             {error && (

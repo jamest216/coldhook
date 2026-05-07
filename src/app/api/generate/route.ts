@@ -38,6 +38,44 @@ function classifyIndustry(industry: string): IndustryVertical {
   return "tech_saas"
 }
 
+async function enrichSignal(fields: {
+  firstName: string
+  title: string
+  company: string
+  trigger: string
+  triggerType: TriggerType
+}): Promise<string> {
+  const extractionGuide: Record<string, string> = {
+    funding: `Extract: round amount, round stage (Seed/A/B/C/D), lead investor name, co-investors if mentioned, approximate timing. Then infer: what growth benchmarks this investor typically sets for portfolio companies at this stage, what this round implies about the company's near-term hiring and GTM priorities.`,
+    promotion: `Extract: the new role/title, the previous role and company if mentioned, when the transition happened. Then infer: what mandate this specific role transition typically carries, what the first 90 days usually require, what the person is now accountable for that they weren't before.`,
+    content: `Extract: the platform or publication (podcast name, show, article outlet), the specific argument or thesis they expressed, any notable quotes or positions taken. Then infer: what problem they're clearly wrestling with, what their public stance reveals about their current priorities.`,
+    job_change: `Extract: the new company and role, the previous company and role, how long ago the change happened. Then infer: what cultural or operational gap they're navigating between the two environments, what the first 60–90 days in this new seat typically demand.`,
+    other: `Extract: the key facts and timeline from the trigger event. Then infer: what's now changing or under pressure, what problem this surfaces that probably wasn't urgent 3 months ago, what the person is now thinking about that they weren't before.`,
+  }
+
+  const { text } = await generateText({
+    model: anthropic("claude-haiku-4-5-20251001"),
+    maxOutputTokens: 150,
+    prompt: `You are extracting signal intelligence from a sales trigger event to help a strategist reason about a prospect. Output a single concise paragraph (3–4 sentences) that surfaces the most useful context.
+
+PROSPECT:
+- Name: ${fields.firstName}
+- Title: ${fields.title || "unknown"}
+- Company: ${fields.company}
+- Raw trigger: ${fields.trigger}
+
+EXTRACTION TASK:
+${extractionGuide[fields.triggerType]}
+
+Rules:
+- Be specific with any names, amounts, or dates explicitly mentioned in the trigger
+- Where details are missing, infer what is typical for this trigger type and company stage — flag inferences with "typically" or "likely"
+- Do NOT write a cold email. Do NOT include a subject line. Output only the intelligence paragraph.`,
+  })
+
+  return text.trim()
+}
+
 async function generateInsight(fields: {
   firstName: string
   title: string
@@ -46,6 +84,7 @@ async function generateInsight(fields: {
   triggerType: TriggerType
   seniority: SeniorityLevel
   industryVertical: IndustryVertical
+  enrichedContext: string
 }): Promise<string> {
   const triggerContext: Record<string, string> = {
     promotion: `Focus on: what specific operational and political challenges come with this exact role transition. What does this person now have to prove, build, or fix that they didn't before? What mandate do they likely have?`,
@@ -92,6 +131,7 @@ PROSPECT:
 - Title: ${fields.title || "unknown"}
 - Company: ${fields.company}
 - Trigger: ${fields.trigger}
+- Enriched signal context: ${fields.enrichedContext}
 - Trigger type: ${fields.triggerType}
 
 SENIORITY FOCUS:
@@ -294,6 +334,67 @@ Subject: [1–4 word subject line]
 [email body — no salutation prefix like "Hi Sarah," unless the tone setting requires it. No closing signature like "Best," or "Thanks," — just the body ending naturally with the low-pressure out]`
 }
 
+async function selfCritique(fields: {
+  subject: string
+  email: string
+}): Promise<{
+  passes: boolean
+  issues: string[]
+  revisedSubject?: string
+  revisedEmail?: string
+}> {
+  const wordCount = fields.email.split(/\s+/).filter(Boolean).length
+
+  const { text } = await generateText({
+    model: anthropic("claude-haiku-4-5-20251001"),
+    maxOutputTokens: 450,
+    prompt: `You are a cold email quality auditor applying strict craft rules. Evaluate the email and output your result in the EXACT format specified below.
+
+SUBJECT: ${fields.subject}
+
+EMAIL BODY (${wordCount} words):
+${fields.email}
+
+CRITERIA — evaluate each:
+1. Opening line leads with an implication or insight, NOT a generic trigger restatement ("congrats on", "saw you raised", "I noticed") or prohibited opener ("I hope this", "just wanted to")
+2. Word count is 125 or fewer
+3. Exactly ONE call-to-action — not zero, not two or more
+4. Zero prohibited phrases: "I hope this", "just wanted to", "congratulations on", "best-in-class", "AI-powered", "synergy", "leverage", "robust", "cutting-edge", "seamless", "holistic"
+5. No URLs or hyperlinks in the body
+6. Ends with a low-pressure out ("Either way" or similar phrase)
+7. Subject line is 4 words or fewer
+
+If ALL criteria pass, output EXACTLY:
+PASSES: yes
+ISSUES: none
+
+If ANY criteria fail, output EXACTLY:
+PASSES: no
+ISSUES: [comma-separated list of the criteria numbers that failed, e.g. "1, 3"]
+REVISED_SUBJECT: [corrected subject, 4 words max]
+REVISED_EMAIL: [complete corrected email body that fixes all failing criteria — must be 125 words or fewer]`,
+  })
+
+  const passesMatch = text.match(/^PASSES:\s*(yes|no)/im)
+  const passes = passesMatch?.[1]?.toLowerCase() === "yes"
+
+  const issuesMatch = text.match(/^ISSUES:\s*(.+)/im)
+  const issuesRaw = issuesMatch?.[1]?.trim() ?? "none"
+  const issues = issuesRaw === "none" ? [] : issuesRaw.split(",").map((s) => s.trim())
+
+  if (passes) return { passes: true, issues: [] }
+
+  const revisedSubjectMatch = text.match(/^REVISED_SUBJECT:\s*(.+)/im)
+  const revisedEmailMatch = text.match(/^REVISED_EMAIL:\s*([\s\S]+)/im)
+
+  return {
+    passes: false,
+    issues,
+    revisedSubject: revisedSubjectMatch?.[1]?.trim(),
+    revisedEmail: revisedEmailMatch?.[1]?.trim(),
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json()
@@ -325,12 +426,21 @@ export async function POST(request: Request) {
     // Read optional industry from request body; default to "tech_saas"
     const industryRaw = (body.industry || "tech_saas").toLowerCase()
 
-    // Stage 1: classify the trigger type
+    // Classify
     const triggerType = classifyTrigger(fields.trigger)
     const seniority = classifySeniority(fields.title)
     const industryVertical = classifyIndustry(industryRaw)
 
-    // Stage 2: generate a non-obvious insight from the trigger before drafting
+    // Stage 1: enrich the signal into structured intelligence
+    const enrichedContext = await enrichSignal({
+      firstName: fields.firstName,
+      title: fields.title,
+      company: fields.company,
+      trigger: fields.trigger,
+      triggerType,
+    })
+
+    // Stage 2: generate a non-obvious insight from the enriched signal
     const insight = await generateInsight({
       firstName: fields.firstName,
       title: fields.title,
@@ -339,9 +449,10 @@ export async function POST(request: Request) {
       triggerType,
       seniority,
       industryVertical,
+      enrichedContext,
     })
 
-    // Stage 3: draft the email using the insight + hard craft rules
+    // Stage 3: draft the email from the insight + hard craft rules
     const { text } = await generateText({
       model: anthropic("claude-sonnet-4-6"),
       maxOutputTokens: 400,
@@ -354,22 +465,27 @@ export async function POST(request: Request) {
       .replace(/^Subject:\s*.+\n*/m, "")
       .trim()
 
+    // Stage 4: self-critique — audit the draft and correct if needed
+    const critiqueResult = await selfCritique({ subject, email })
+    const finalSubject = critiqueResult.passes ? subject : (critiqueResult.revisedSubject ?? subject)
+    const finalEmail = critiqueResult.passes ? email : (critiqueResult.revisedEmail ?? email)
+
     const persResult = computePersonalizationScore({
-      body: email,
-      subject,
+      body: finalEmail,
+      subject: finalSubject,
       firstName: fields.firstName,
       company: fields.company,
       trigger: fields.trigger,
     })
 
-    const spamResult = computeSpamScore({ subject, body: email })
+    const spamResult = computeSpamScore({ subject: finalSubject, body: finalEmail })
 
     const { userId } = await auth()
     if (userId) {
       await db.insert(emails).values({
         userId,
-        subject,
-        body: email,
+        subject: finalSubject,
+        body: finalEmail,
         recipientName: `${fields.firstName} ${fields.lastName}`.trim(),
         recipientCompany: fields.company,
         recipientTitle: fields.title || null,
@@ -383,13 +499,19 @@ export async function POST(request: Request) {
     }
 
     return Response.json({
-      subject,
-      email,
+      subject: finalSubject,
+      email: finalEmail,
       score: persResult.score,
       scoreBreakdown: persResult.breakdown,
       spamScore: spamResult.score,
       spamFlags: spamResult.flags,
       spamIsClean: spamResult.isClean,
+      insight,
+      enrichedContext,
+      critiqueResult: {
+        passed: critiqueResult.passes,
+        issues: critiqueResult.issues,
+      },
     })
   } catch (error) {
     return Response.json(
