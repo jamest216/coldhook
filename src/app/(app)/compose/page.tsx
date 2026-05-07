@@ -1,6 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
+import { useSearchParams } from "next/navigation"
+import { OnboardingTour, type TourStep } from "@/components/onboarding/tour"
 import { TopBar } from "@/components/layout/top-bar"
 import {
   Sparkles,
@@ -25,7 +27,7 @@ import { Progress } from "@/components/ui/progress"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { computePersonalizationScore, computeSpamScore } from "@/lib/scoring"
 
-export default function ComposePage() {
+function ComposePageInner() {
   const [linkedinUrl, setLinkedinUrl] = useState("")
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
@@ -64,6 +66,85 @@ export default function ComposePage() {
 
   // Loading stage cycling
   const [loadingStage, setLoadingStage] = useState(0)
+
+  // Onboarding tour state
+  const searchParams = useSearchParams()
+  const [tourActive, setTourActive] = useState(false)
+  const [tourStep, setTourStep] = useState(0)
+
+  useEffect(() => {
+    if (searchParams.get("onboarding") !== "true") return
+    if (typeof window !== "undefined" && localStorage.getItem("coldhook_tour_complete")) return
+    setFirstName("Alex")
+    setLastName("Rivera")
+    setTitle("VP of Sales")
+    setCompany("Northstar")
+    setTrigger("Just promoted internally from Senior Account Executive to VP of Sales at Northstar, announced on LinkedIn two days ago")
+    setTourActive(true)
+    setTourStep(0)
+  }, [])
+
+  useEffect(() => {
+    if (!tourActive || !generated || tourStep !== 3) return
+    const t = setTimeout(() => setTourStep(4), 800)
+    return () => clearTimeout(t)
+  }, [generated, tourActive, tourStep])
+
+  const handleTourNext = () => {
+    if (tourStep < tourSteps.length - 1) {
+      setTourStep((s) => s + 1)
+    } else {
+      handleTourComplete()
+    }
+  }
+
+  const handleTourComplete = () => {
+    setTourActive(false)
+    if (typeof window !== "undefined") {
+      localStorage.setItem("coldhook_tour_complete", "true")
+    }
+  }
+
+  const tourSteps: TourStep[] = [
+    {
+      tourId: "trigger",
+      title: "Start with a buying signal",
+      description: "Paste in a recent trigger — a promotion, funding round, or LinkedIn post. ColdHook turns this into the hook that makes your email feel researched, not blasted.",
+      nextLabel: "Got it →",
+    },
+    {
+      tourId: "valueprop",
+      title: "What are you selling?",
+      description: "Describe your pitch in plain English. ColdHook uses this to connect your offer to the prospect's specific situation — not a generic value proposition.",
+      nextLabel: "Next →",
+    },
+    {
+      tourId: "settings",
+      title: "Tune tone and length",
+      description: "Pick a tone and length that match how you sell. These settings shape how the AI writes, not just what it says.",
+      nextLabel: "Next →",
+    },
+    {
+      tourId: "generate-btn",
+      title: "Generate your email",
+      description: "Hit Generate. ColdHook runs a 4-stage AI pipeline — it enriches the signal, builds a key insight, drafts the email, then self-critiques before you see it.",
+      nextLabel: "Generate →",
+    },
+    {
+      tourId: "pipeline-panel",
+      title: "See how it was written",
+      description: "Expand this panel to see every reasoning step the AI took — from raw signal to final draft. No black boxes.",
+      nextLabel: "Next →",
+      position: "top",
+    },
+    {
+      tourId: "sequence-section",
+      title: "Build out the sequence",
+      description: "Generate Day 3 and Day 7 follow-ups in one click. Each one is written to feel like a natural continuation, not a copy-paste nudge.",
+      nextLabel: "Done — let me compose",
+      position: "top",
+    },
+  ]
 
   const fieldsEmpty = !firstName.trim() || !company.trim() || !trigger.trim()
 
@@ -200,6 +281,9 @@ export default function ComposePage() {
       }
       const data = await res.json()
       setSequence(data)
+      if (tourActive && tourStep === 5) {
+        setTimeout(handleTourComplete, 1200)
+      }
     } catch (e) {
       setSequenceError(e instanceof Error ? e.message : "Something went wrong.")
     } finally {
@@ -209,6 +293,13 @@ export default function ComposePage() {
 
   return (
     <div>
+      <OnboardingTour
+        steps={tourSteps}
+        currentStep={tourStep}
+        onNext={handleTourNext}
+        onSkip={handleTourComplete}
+        isActive={tourActive}
+      />
       <TopBar
         title="AI Compose"
         description="Generate a hyper-personalized cold email in seconds"
@@ -291,7 +382,7 @@ export default function ComposePage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="space-y-1.5">
+                <div className="space-y-1.5" data-tour="trigger">
                   <label className="text-xs text-[#8a8f98]">Recent trigger / buying signal</label>
                   <Textarea
                     rows={3}
@@ -300,7 +391,7 @@ export default function ComposePage() {
                     onChange={(e) => setTrigger(e.target.value)}
                   />
                 </div>
-                <div className="space-y-1.5">
+                <div className="space-y-1.5" data-tour="valueprop">
                   <label className="text-xs text-[#8a8f98]">Your pitch / value prop</label>
                   <Textarea
                     rows={2}
@@ -313,7 +404,7 @@ export default function ComposePage() {
             </Card>
 
             {/* Email settings */}
-            <Card>
+            <Card data-tour="settings">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm flex items-center gap-2">
                   <div className="size-5 rounded bg-[rgba(39,166,68,0.12)] border border-[rgba(39,166,68,0.2)] flex items-center justify-center">
@@ -385,24 +476,26 @@ export default function ComposePage() {
               </CardContent>
             </Card>
 
-            <Button
-              onClick={handleGenerate}
-              disabled={isGenerating || fieldsEmpty}
-              className="w-full h-11 text-base font-medium gap-2"
-              style={{ opacity: isGenerating || fieldsEmpty ? 0.5 : 1 }}
-            >
-              {isGenerating ? (
-                <>
-                  <RefreshCw className="size-4 animate-spin" />
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Wand2 className="size-4" />
-                  Generate Email
-                </>
-              )}
-            </Button>
+            <div data-tour="generate-btn">
+              <Button
+                onClick={handleGenerate}
+                disabled={isGenerating || fieldsEmpty}
+                className="w-full h-11 text-base font-medium gap-2"
+                style={{ opacity: isGenerating || fieldsEmpty ? 0.5 : 1 }}
+              >
+                {isGenerating ? (
+                  <>
+                    <RefreshCw className="size-4 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Wand2 className="size-4" />
+                    Generate Email
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
 
           {/* Right: Output panel */}
@@ -563,7 +656,7 @@ export default function ComposePage() {
 
             {/* Pipeline transparency panel */}
             {generated && (insight || enrichedContext) && (
-              <Card>
+              <Card data-tour="pipeline-panel">
                 <CardContent className="pt-4 pb-3">
                   <button
                     className="w-full flex items-center justify-between text-xs"
@@ -640,7 +733,7 @@ export default function ComposePage() {
 
             {/* Follow-up sequence */}
             {generated && (
-              <Card>
+              <Card data-tour="sequence-section">
                 <CardContent className="pt-4 pb-4">
                   <div className="flex items-center justify-between mb-3">
                     <div className="text-sm font-medium text-[#d0d6e0]">Follow-up Sequence</div>
@@ -740,5 +833,13 @@ export default function ComposePage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function ComposePage() {
+  return (
+    <Suspense>
+      <ComposePageInner />
+    </Suspense>
   )
 }
