@@ -111,18 +111,25 @@ export function OnboardingTour({
     const tryFind = () => {
       const el = document.querySelector(`[data-tour="${step.tourId}"]`) as HTMLElement | null
       if (el) {
-        const rect = el.getBoundingClientRect()
-        setSpotlightRect({ top: rect.top, left: rect.left, width: rect.width, height: rect.height })
-        el.scrollIntoView({ behavior: "smooth", block: "center" })
-        // Elevate element above the backdrop so it remains visible and interactive.
-        // z-index only works on positioned elements, so also set position: relative.
+        // Elevate element above the backdrop immediately so it's visible
         _elevatedPrevZ = el.style.zIndex
         _elevatedPrevPos = el.style.position
         el.style.position = "relative"
         el.style.zIndex = "101"
         _elevatedEl = el
-        onLockScroll?.()
-        if (_mainEl) _mainEl.style.overflowY = "hidden"
+
+        // Scroll into view with center block so the full card + bubble both fit
+        el.scrollIntoView({ behavior: "smooth", block: "center" })
+
+        // Wait for the smooth scroll animation to settle before measuring rect
+        // and re-locking scroll. Measuring too early gives wrong coordinates.
+        setTimeout(() => {
+          if (attempts >= MAX_ATTEMPTS) return // step changed, abort
+          const r = el.getBoundingClientRect()
+          setSpotlightRect({ top: r.top, left: r.left, width: r.width, height: r.height })
+          onLockScroll?.()
+          if (_mainEl) _mainEl.style.overflowY = "hidden"
+        }, 450)
       } else if (attempts < MAX_ATTEMPTS) {
         attempts++
         setTimeout(tryFind, RETRY_MS)
