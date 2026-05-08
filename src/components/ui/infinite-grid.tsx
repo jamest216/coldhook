@@ -11,7 +11,6 @@ export function InfiniteGrid() {
   const gridOffsetX = useMotionValue(0)
   const gridOffsetY = useMotionValue(0)
 
-  // Listen on the nearest positioned ancestor so pointer-events:none doesn't block us
   useEffect(() => {
     const parent = containerRef.current?.parentElement
     if (!parent) return
@@ -34,9 +33,11 @@ export function InfiniteGrid() {
     }
   }, [mouseX, mouseY])
 
+  // Use a large modulo (multiple of cell size) so the wrap is visually seamless
+  // and happens very infrequently — eliminates the stutter from snapping at % 32.
   useAnimationFrame(() => {
-    gridOffsetX.set((gridOffsetX.get() + 0.25) % 32)
-    gridOffsetY.set((gridOffsetY.get() + 0.25) % 32)
+    gridOffsetX.set((gridOffsetX.get() + 0.25) % 3200)
+    gridOffsetY.set((gridOffsetY.get() + 0.25) % 3200)
   })
 
   const maskImage = useMotionTemplate`radial-gradient(160px circle at ${mouseX}px ${mouseY}px, black, transparent)`
@@ -45,23 +46,25 @@ export function InfiniteGrid() {
     <div ref={containerRef} className="absolute inset-0 z-0 pointer-events-none">
       {/* Dim scrolling base layer */}
       <div className="absolute inset-0 opacity-[0.035]">
-        <GridPattern offsetX={gridOffsetX} offsetY={gridOffsetY} />
+        <GridPattern id="infinite-grid-base" offsetX={gridOffsetX} offsetY={gridOffsetY} />
       </div>
-      {/* Bright cursor-reveal layer */}
+      {/* Bright cursor-reveal layer — unique pattern ID avoids SVG collision */}
       <motion.div
         className="absolute inset-0 opacity-50"
         style={{ maskImage, WebkitMaskImage: maskImage }}
       >
-        <GridPattern offsetX={gridOffsetX} offsetY={gridOffsetY} />
+        <GridPattern id="infinite-grid-reveal" offsetX={gridOffsetX} offsetY={gridOffsetY} />
       </motion.div>
     </div>
   )
 }
 
 function GridPattern({
+  id,
   offsetX,
   offsetY,
 }: {
+  id: string
   offsetX: ReturnType<typeof useMotionValue<number>>
   offsetY: ReturnType<typeof useMotionValue<number>>
 }) {
@@ -69,7 +72,7 @@ function GridPattern({
     <svg className="w-full h-full">
       <defs>
         <motion.pattern
-          id="infinite-grid-pattern"
+          id={id}
           width={32}
           height={32}
           patternUnits="userSpaceOnUse"
@@ -84,7 +87,7 @@ function GridPattern({
           />
         </motion.pattern>
       </defs>
-      <rect width="100%" height="100%" fill="url(#infinite-grid-pattern)" />
+      <rect width="100%" height="100%" fill={`url(#${id})`} />
     </svg>
   )
 }
