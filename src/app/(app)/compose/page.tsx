@@ -100,8 +100,8 @@ function ComposePageInner() {
 
   useEffect(() => {
     if (!tourActive) return
-    // Index 4 = pipeline-panel step
-    if (tourStep === 4 && generated) {
+    // Index 5 = pipeline-panel step (index 4 is now email-output animation step)
+    if (tourStep === 5 && generated) {
       setPipelineOpen(true)
     }
   }, [tourStep, tourActive, generated])
@@ -122,10 +122,19 @@ function ComposePageInner() {
   }
 
   const handleTourNext = () => {
-    // Step 4 (index 3) is the generate-btn step — inject mock data instead of requiring real generation
     if (tourStep === 3 && tourActive) {
-      populateTourMockData()
+      // Step 4 (email-output): start loading animation, spotlight shifts to Generated Email panel
+      setIsGenerating(true)
       setTourStep(4)
+
+      // The existing loadingStages useEffect cycles every 1800ms.
+      // 4 stages × 1800ms = 7200ms total, but add a small buffer.
+      // After animation completes: inject mock data and auto-advance to step 5.
+      setTimeout(() => {
+        setIsGenerating(false)
+        populateTourMockData()
+        setTourStep(5)
+      }, 7600)
       return
     }
     if (tourStep < tourSteps.length - 1) {
@@ -168,6 +177,13 @@ function ComposePageInner() {
       nextLabel: "See it in action →",
     },
     {
+      tourId: "email-output",
+      title: "Watch the pipeline work",
+      description: "ColdHook enriches the signal, builds a key insight, drafts the email, then runs a quality check — all before you see a word.",
+      nextLabel: "Next →",
+      disableNext: true,
+    },
+    {
       tourId: "pipeline-panel",
       title: "See how it was written",
       description: "Expand this panel to see every reasoning step the AI took — from raw signal to final draft. No black boxes.",
@@ -205,6 +221,9 @@ function ComposePageInner() {
   }, [isGenerating])
 
   const handleGenerate = async () => {
+    // Block real API calls during the onboarding tour
+    if (tourActive) return
+
     setIsGenerating(true)
     setGenerated(false)
     setGeneratedSubject("")
@@ -319,7 +338,7 @@ function ComposePageInner() {
       }
       const data = await res.json()
       setSequence(data)
-      if (tourActive && tourStep === 5) {
+      if (tourActive && tourStep === 6) {
         setTimeout(handleTourComplete, 1200)
       }
     } catch (e) {
@@ -340,8 +359,8 @@ function ComposePageInner() {
         onLockScroll={lockPanels}
         onUnlockScroll={unlockPanels}
         onStepChange={(stepIndex) => {
-          // When tour reaches pipeline-panel step (index 4), ensure panel is open
-          if (stepIndex === 4 && generated) {
+          // When tour reaches pipeline-panel step (index 5), ensure panel is open
+          if (stepIndex === 5 && generated) {
             setPipelineOpen(true)
           }
         }}
@@ -643,7 +662,7 @@ function ComposePageInner() {
             )}
 
             {/* Generated email */}
-            <Card className="flex-1">
+            <Card className="flex-1" data-tour="email-output">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-sm">Generated Email</CardTitle>
