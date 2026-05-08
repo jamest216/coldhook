@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, Suspense } from "react"
+import { useState, useEffect, useCallback, useRef, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { OnboardingTour, type TourStep } from "@/components/onboarding/tour"
 import { TopBar } from "@/components/layout/top-bar"
@@ -66,6 +66,20 @@ function ComposePageInner() {
 
   // Loading stage cycling
   const [loadingStage, setLoadingStage] = useState(0)
+
+  // Panel refs for scroll locking during tour
+  const leftPanelRef = useRef<HTMLDivElement>(null)
+  const rightPanelRef = useRef<HTMLDivElement>(null)
+
+  const lockPanels = useCallback(() => {
+    if (leftPanelRef.current)  leftPanelRef.current.style.overflowY = "hidden"
+    if (rightPanelRef.current) rightPanelRef.current.style.overflowY = "hidden"
+  }, [])
+
+  const unlockPanels = useCallback(() => {
+    if (leftPanelRef.current)  leftPanelRef.current.style.overflowY = "auto"
+    if (rightPanelRef.current) rightPanelRef.current.style.overflowY = "auto"
+  }, [])
 
   // Onboarding tour state
   const searchParams = useSearchParams()
@@ -299,6 +313,8 @@ function ComposePageInner() {
         onNext={handleTourNext}
         onSkip={handleTourComplete}
         isActive={tourActive}
+        onLockScroll={lockPanels}
+        onUnlockScroll={unlockPanels}
       />
       <TopBar
         title="AI Compose"
@@ -308,7 +324,7 @@ function ComposePageInner() {
       <div className="p-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-[calc(100vh-8rem)]">
           {/* Left: Input panel */}
-          <div className="flex flex-col gap-4 overflow-y-auto pr-1">
+          <div ref={leftPanelRef} className="flex flex-col gap-4 overflow-y-auto pr-1">
             {/* Prospect info */}
             <Card>
               <CardHeader className="pb-3">
@@ -499,7 +515,7 @@ function ComposePageInner() {
           </div>
 
           {/* Right: Output panel */}
-          <div className="flex flex-col gap-4 overflow-y-auto pr-1">
+          <div ref={rightPanelRef} className="flex flex-col gap-4 overflow-y-auto pr-1">
             {/* Score */}
             {(generated || isGenerating) && (
               <Card className={generated ? "border-[rgba(94,106,210,0.3)]" : ""}>

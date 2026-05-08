@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 
 export type TourStep = {
   tourId: string
@@ -23,14 +23,48 @@ type Props = {
   onNext: () => void
   onSkip: () => void
   isActive: boolean
+  onLockScroll?: () => void
+  onUnlockScroll?: () => void
 }
 
 const BUBBLE_WIDTH = 320
 const BUBBLE_GAP = 16
 const BUBBLE_HEIGHT_ESTIMATE = 130
 
-export function OnboardingTour({ steps, currentStep, onNext, onSkip, isActive }: Props) {
+// Module-level vars — avoid re-renders during scroll/lock sequencing
+let _elevatedEl: HTMLElement | null = null
+let _elevatedPrevZ = ""
+let _mainEl: HTMLElement | null = null
+
+function restoreElevation() {
+  if (_elevatedEl) {
+    _elevatedEl.style.zIndex = _elevatedPrevZ
+    _elevatedPrevZ = ""
+    _elevatedEl = null
+  }
+}
+
+function findScrollParent(el: Element): HTMLElement | null {
+  let node: Element | null = el.parentElement
+  while (node && node !== document.documentElement) {
+    const { overflowY } = window.getComputedStyle(node)
+    if (overflowY === "auto" || overflowY === "scroll") return node as HTMLElement
+    node = node.parentElement
+  }
+  return null
+}
+
+export function OnboardingTour({
+  steps,
+  currentStep,
+  onNext,
+  onSkip,
+  isActive,
+  onLockScroll,
+  onUnlockScroll,
+}: Props) {
   const [spotlightRect, setSpotlightRect] = useState<SpotlightRect | null>(null)
+  const scrollListenerRef = useRef<{ el: HTMLElement; handler: () => void } | null>(null)
 
   const step = steps[currentStep] as TourStep | undefined
 
@@ -45,26 +79,115 @@ export function OnboardingTour({ steps, currentStep, onNext, onSkip, isActive }:
     }
   }, [step])
 
+  // Step-change effect: scroll into view, elevate target, lock scroll
   useEffect(() => {
     if (!isActive || !step) return
-    const el = document.querySelector(`[data-tour="${step.tourId}"]`)
-    if (el) {
-      const rect = el.getBoundingClientRect()
-      setSpotlightRect({ top: rect.top, left: rect.left, width: rect.width, height: rect.height })
-      el.scrollIntoView({ behavior: "smooth", block: "center" })
-    } else {
+
+    restoreElevation()
+
+    // Remove any existing panel scroll listener before re-attaching
+    if (scrollListenerRef.current) {
+      scrollListenerRef.current.el.removeEventListener("scroll", scrollListenerRef.current.handler)
+      scrollListenerRef.current = null
+    }
+
+    const el = document.querySelector(`[data-tour="${step.tourId}"]`) as HTMLElement | null
+
+    if (!el) {
       setSpotlightRect(null)
+      // Single retry for conditionally-rendered elements (steps 4 & 5)
+      const retry = setTimeout(() => {
+        const found = document.querySelector(`[data-tour="${step.tourId}"]`) as HTMLElement | null
+        if (found) {
+          const r = found.getBoundingClientRect()
+          setSpotlightRect({ top: r.top, left: r.left, width: r.width, height: r.height })
+          _elevatedPrevZ = found.style.zIndex
+          found.style.zIndex = "101"
+          _elevatedEl = found
+        }
+      }, 600)
+      return () => clearTimeout(retry)
+    }
+
+    // Unlock scroll so the instant-scroll below works
+    onUnlockScroll?.()
+    _mainEl = document.querySelector("main") as HTMLElement | null
+    if (_mainEl) _mainEl.style.overflowY = "auto"
+
+    // Scroll element into view inside its panel (instant, not smooth)
+    const scrollParent = findScrollParent(el)
+    if (scrollParent) {
+      const elRect = el.getBoundingClientRect()
+      const parentRect = scrollParent.getBoundingClientRect()
+      const targetScrollTop =
+        scrollParent.scrollTop + elRect.top - parentRect.top - parentRect.height / 2 + elRect.height / 2
+      scrollParent.scrollTop = Math.max(0, targetScrollTop)
+    } else {
+      el.scrollIntoView({ block: "center" })
+    }
+
+    // Read position synchronously after instant scroll, then lock
+    const r = el.getBoundingClientRect()
+    setSpotlightRect({ top: r.top, left: r.left, width: r.width, height: r.height })
+
+    _elevatedPrevZ = el.style.zIndex
+    el.style.zIndex = "101"
+    _elevatedEl = el
+
+    onLockScroll?.()
+    if (_mainEl) _mainEl.style.overflowY = "hidden"
+
+    return () => {
+      restoreElevation()
     }
   }, [currentStep, isActive, step])
 
+  // Scroll + resize listeners — listen on the panel container, not just window
   useEffect(() => {
+    if (!isActive || !step) return
+    const el = document.querySelector(`[data-tour="${step.tourId}"]`)
+    const scrollParent = el ? findScrollParent(el) : null
+
     window.addEventListener("resize", updateRect, { passive: true })
-    window.addEventListener("scroll", updateRect, { passive: true })
+
+    if (scrollParent) {
+      scrollParent.addEventListener("scroll", updateRect, { passive: true })
+      scrollListenerRef.current = { el: scrollParent, handler: updateRect }
+    }
+
     return () => {
       window.removeEventListener("resize", updateRect)
-      window.removeEventListener("scroll", updateRect)
+      if (scrollListenerRef.current) {
+        scrollListenerRef.current.el.removeEventListener("scroll", scrollListenerRef.current.handler)
+        scrollListenerRef.current = null
+      }
     }
-  }, [updateRect])
+  }, [updateRect, isActive, step])
+
+  // Cleanup when tour deactivates (skip or complete)
+  useEffect(() => {
+    if (isActive) return
+    restoreElevation()
+    onUnlockScroll?.()
+    if (_mainEl) {
+      _mainEl.style.overflowY = ""
+      _mainEl = null
+    }
+    if (scrollListenerRef.current) {
+      scrollListenerRef.current.el.removeEventListener("scroll", scrollListenerRef.current.handler)
+      scrollListenerRef.current = null
+    }
+  }, [isActive])
+
+  // ESC key to skip
+  useEffect(() => {
+    if (!isActive) return
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onSkip()
+    }
+    window.addEventListener("keydown", handler)
+    return () => window.removeEventListener("keydown", handler)
+  }, [isActive, onSkip])
 
   if (!isActive) return null
   if (currentStep >= steps.length) return null
@@ -102,7 +225,18 @@ export function OnboardingTour({ steps, currentStep, onNext, onSkip, isActive }:
         }
       `}</style>
 
-      {/* Spotlight overlay */}
+      {/* Full-screen backdrop — blocks all clicks outside the spotlight */}
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 100,
+          background: "rgba(1,1,2,0.85)",
+          pointerEvents: "all",
+        }}
+      />
+
+      {/* Spotlight border frame — purely visual, no pointer events */}
       {spotlightRect && (
         <div
           style={{
@@ -112,9 +246,8 @@ export function OnboardingTour({ steps, currentStep, onNext, onSkip, isActive }:
             width: spotlightRect.width + 16,
             height: spotlightRect.height + 16,
             borderRadius: 10,
-            boxShadow: "0 0 0 9999px rgba(1,1,2,0.85)",
-            border: "1px solid rgba(94,106,210,0.3)",
-            zIndex: 50,
+            border: "1.5px solid rgba(94,106,210,0.6)",
+            zIndex: 101,
             pointerEvents: "none",
             transition: "all 0.35s cubic-bezier(0.22, 1, 0.36, 1)",
           }}
@@ -130,7 +263,7 @@ export function OnboardingTour({ steps, currentStep, onNext, onSkip, isActive }:
           top: bubbleTop,
           left: bubbleLeft,
           width: BUBBLE_WIDTH,
-          zIndex: 51,
+          zIndex: 102,
           background: "#0f1011",
           border: "1px solid #23252a",
           borderRadius: 12,
