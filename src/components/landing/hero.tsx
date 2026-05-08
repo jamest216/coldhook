@@ -6,6 +6,7 @@ import { Sparkles, Mail, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { motion } from "framer-motion"
+import { InfiniteGrid } from "@/components/ui/infinite-grid"
 
 const containerVariants = {
   hidden: {},
@@ -46,8 +47,8 @@ export function Hero() {
         }}
       />
 
-      {/* Grid pattern */}
-      <div className="absolute inset-0 z-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:48px_48px] pointer-events-none" />
+      {/* Animated infinite grid */}
+      <InfiniteGrid />
 
       <div className="relative z-10 max-w-6xl mx-auto w-full">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.1fr] gap-12 lg:gap-16 items-center">
