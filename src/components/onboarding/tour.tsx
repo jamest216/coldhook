@@ -8,6 +8,7 @@ export type TourStep = {
   description: string
   nextLabel?: string
   position?: "top" | "bottom"
+  disableNext?: boolean
 }
 
 type SpotlightRect = {
@@ -25,11 +26,12 @@ type Props = {
   isActive: boolean
   onLockScroll?: () => void
   onUnlockScroll?: () => void
+  onStepChange?: (stepIndex: number) => void
 }
 
 const BUBBLE_WIDTH = 320
 const BUBBLE_GAP = 16
-const BUBBLE_HEIGHT_ESTIMATE = 130
+const BUBBLE_HEIGHT_ESTIMATE = 160
 
 // Module-level vars — avoid re-renders during scroll/lock sequencing
 let _elevatedEl: HTMLElement | null = null
@@ -62,6 +64,7 @@ export function OnboardingTour({
   isActive,
   onLockScroll,
   onUnlockScroll,
+  onStepChange,
 }: Props) {
   const [spotlightRect, setSpotlightRect] = useState<SpotlightRect | null>(null)
   const scrollListenerRef = useRef<{ el: HTMLElement; handler: () => void } | null>(null)
@@ -91,55 +94,40 @@ export function OnboardingTour({
       scrollListenerRef.current = null
     }
 
-    const el = document.querySelector(`[data-tour="${step.tourId}"]`) as HTMLElement | null
+    onStepChange?.(currentStep)
 
-    if (!el) {
-      setSpotlightRect(null)
-      // Single retry for conditionally-rendered elements (steps 4 & 5)
-      const retry = setTimeout(() => {
-        const found = document.querySelector(`[data-tour="${step.tourId}"]`) as HTMLElement | null
-        if (found) {
-          const r = found.getBoundingClientRect()
-          setSpotlightRect({ top: r.top, left: r.left, width: r.width, height: r.height })
-          _elevatedPrevZ = found.style.zIndex
-          found.style.zIndex = "101"
-          _elevatedEl = found
-        }
-      }, 600)
-      return () => clearTimeout(retry)
-    }
-
-    // Unlock scroll so the instant-scroll below works
+    // Unlock scroll before scrollIntoView
     onUnlockScroll?.()
     _mainEl = document.querySelector("main") as HTMLElement | null
     if (_mainEl) _mainEl.style.overflowY = "auto"
 
-    // Scroll element into view inside its panel (instant, not smooth)
-    const scrollParent = findScrollParent(el)
-    if (scrollParent) {
-      const elRect = el.getBoundingClientRect()
-      const parentRect = scrollParent.getBoundingClientRect()
-      const targetScrollTop =
-        scrollParent.scrollTop + elRect.top - parentRect.top - parentRect.height / 2 + elRect.height / 2
-      scrollParent.scrollTop = Math.max(0, targetScrollTop)
-    } else {
-      el.scrollIntoView({ block: "center" })
+    let attempts = 0
+    const MAX_ATTEMPTS = 8
+    const RETRY_MS = 150
+
+    const tryFind = () => {
+      const el = document.querySelector(`[data-tour="${step.tourId}"]`) as HTMLElement | null
+      if (el) {
+        const rect = el.getBoundingClientRect()
+        setSpotlightRect({ top: rect.top, left: rect.left, width: rect.width, height: rect.height })
+        el.scrollIntoView({ behavior: "smooth", block: "center" })
+        // Elevate element above the backdrop so it remains interactive
+        _elevatedPrevZ = el.style.zIndex
+        el.style.zIndex = "101"
+        _elevatedEl = el
+        onLockScroll?.()
+        if (_mainEl) _mainEl.style.overflowY = "hidden"
+      } else if (attempts < MAX_ATTEMPTS) {
+        attempts++
+        setTimeout(tryFind, RETRY_MS)
+      } else {
+        setSpotlightRect(null)
+      }
     }
 
-    // Read position synchronously after instant scroll, then lock
-    const r = el.getBoundingClientRect()
-    setSpotlightRect({ top: r.top, left: r.left, width: r.width, height: r.height })
+    tryFind()
 
-    _elevatedPrevZ = el.style.zIndex
-    el.style.zIndex = "101"
-    _elevatedEl = el
-
-    onLockScroll?.()
-    if (_mainEl) _mainEl.style.overflowY = "hidden"
-
-    return () => {
-      restoreElevation()
-    }
+    return () => { attempts = MAX_ATTEMPTS }
   }, [currentStep, isActive, step])
 
   // Scroll + resize listeners — listen on the panel container, not just window
@@ -196,22 +184,33 @@ export function OnboardingTour({
   const viewportWidth = typeof window !== "undefined" ? window.innerWidth : 1200
   const viewportHeight = typeof window !== "undefined" ? window.innerHeight : 800
 
-  let bubbleTop = viewportHeight / 2 - BUBBLE_HEIGHT_ESTIMATE / 2
-  let bubbleLeft = viewportWidth / 2 - BUBBLE_WIDTH / 2
+  let bubbleTop: number
+  let bubbleLeft: number
   let showAbove = false
 
   if (spotlightRect) {
-    const isAbove = step.position === "top" || spotlightRect.top > viewportHeight * 0.6
-    showAbove = isAbove
+    const spotlightBottom = spotlightRect.top + spotlightRect.height + 16
+    const wouldOverflowBottom = (spotlightBottom + BUBBLE_GAP + BUBBLE_HEIGHT_ESTIMATE) > (viewportHeight - 20)
+    const forceAbove = step.position === "top" || spotlightRect.top > viewportHeight * 0.6 || wouldOverflowBottom
 
-    if (isAbove) {
+    showAbove = forceAbove
+
+    if (forceAbove) {
       bubbleTop = spotlightRect.top - 8 - BUBBLE_GAP - BUBBLE_HEIGHT_ESTIMATE
-      bubbleLeft = Math.min(Math.max(spotlightRect.left - 8, 16), viewportWidth - BUBBLE_WIDTH - 16)
     } else {
       bubbleTop = spotlightRect.top + spotlightRect.height + 16 + BUBBLE_GAP
-      bubbleLeft = Math.min(Math.max(spotlightRect.left - 8, 16), viewportWidth - BUBBLE_WIDTH - 16)
     }
+
+    const rawLeft = spotlightRect.left - 8
+    bubbleLeft = Math.max(16, Math.min(rawLeft, viewportWidth - BUBBLE_WIDTH - 16))
+  } else {
+    bubbleTop = viewportHeight / 2 - BUBBLE_HEIGHT_ESTIMATE / 2
+    bubbleLeft = viewportWidth / 2 - BUBBLE_WIDTH / 2
   }
+
+  // Final clamp — bubble must always be fully on screen
+  bubbleTop = Math.max(12, Math.min(bubbleTop, viewportHeight - BUBBLE_HEIGHT_ESTIMATE - 12))
+  bubbleLeft = Math.max(12, Math.min(bubbleLeft, viewportWidth - BUBBLE_WIDTH - 12))
 
   return (
     <>
@@ -231,7 +230,7 @@ export function OnboardingTour({
           position: "fixed",
           inset: 0,
           zIndex: 100,
-          background: "rgba(1,1,2,0.85)",
+          background: "rgba(1,1,2,0.72)",
           pointerEvents: "all",
         }}
       />
@@ -337,8 +336,12 @@ export function OnboardingTour({
             Skip tour
           </button>
           <button
-            className="text-xs bg-[#5e6ad2] hover:bg-[#828fff] text-white rounded-lg px-3 py-1.5 font-medium transition-colors"
-            onClick={onNext}
+            className="text-xs bg-[#5e6ad2] text-white rounded-lg px-3 py-1.5 font-medium transition-colors"
+            style={{
+              opacity: step.disableNext ? 0.4 : 1,
+              cursor: step.disableNext ? "not-allowed" : "pointer",
+            }}
+            onClick={step.disableNext ? undefined : onNext}
           >
             {step.nextLabel ?? "Next →"}
           </button>
