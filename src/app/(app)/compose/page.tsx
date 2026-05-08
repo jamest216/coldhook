@@ -202,7 +202,7 @@ function ComposePageInner() {
       title: "Build out the sequence",
       description: "Generate Day 3 and Day 7 follow-ups in one click. Each one is written to feel like a natural continuation, not a copy-paste nudge.",
       nextLabel: "Done — let me compose",
-      position: "top",
+      position: "left",
     },
   // eslint-disable-next-line react-hooks/exhaustive-deps
   ], [generated])
