@@ -188,7 +188,7 @@ function ComposePageInner() {
       title: "Your personalized email",
       description: "This is the output — subject line written for a VP who just got promoted, body under 100 words, single soft ask. No pitch, no filler. Read it, then see what went into it.",
       nextLabel: "See how it was written →",
-      position: "top",
+      position: "left",
     },
     {
       tourId: "pipeline-panel",

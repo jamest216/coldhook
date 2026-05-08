@@ -7,7 +7,7 @@ export type TourStep = {
   title: string
   description: string
   nextLabel?: string
-  position?: "top" | "bottom"
+  position?: "top" | "bottom" | "left" | "right"
   disableNext?: boolean
 }
 
@@ -200,56 +200,73 @@ export function OnboardingTour({
   let bubbleTop: number
   let bubbleLeft: number
   let showAbove = false
+  let showLeft = false
+  let showRight = false
 
   if (spotlightRect) {
-    // How much clear space exists above and below the spotlight (including padding)
-    const spaceBelow = viewportHeight - (spotlightRect.top + spotlightRect.height + 8)
-    const spaceAbove = spotlightRect.top - 8
+    const isHorizontal = step.position === "left" || step.position === "right"
 
-    const belowHasRoom = spaceBelow >= BUBBLE_HEIGHT_ESTIMATE + BUBBLE_GAP + 16
-    const aboveHasRoom = spaceAbove >= BUBBLE_HEIGHT_ESTIMATE + BUBBLE_GAP + 16
+    if (isHorizontal) {
+      // ── Horizontal placement ──────────────────────────────────────────────
+      const spaceLeft  = spotlightRect.left - 8
+      const spaceRight = viewportWidth - (spotlightRect.left + spotlightRect.width + 8)
+      const preferLeft = step.position === "left" || spaceLeft >= BUBBLE_WIDTH + BUBBLE_GAP + 16
 
-    // Prefer the side with more room; fall back to forced position from step config
-    showAbove =
-      step.position === "top" ||
-      (!belowHasRoom && aboveHasRoom) ||
-      (spaceAbove > spaceBelow && !belowHasRoom)
+      if (preferLeft && spaceLeft >= BUBBLE_WIDTH + BUBBLE_GAP + 16) {
+        showLeft = true
+        bubbleLeft = spotlightRect.left - 8 - BUBBLE_GAP - BUBBLE_WIDTH
+      } else {
+        showRight = true
+        bubbleLeft = spotlightRect.left + spotlightRect.width + 8 + BUBBLE_GAP
+      }
 
-    if (showAbove) {
-      bubbleTop = spotlightRect.top - 8 - BUBBLE_GAP - BUBBLE_HEIGHT_ESTIMATE
+      // Vertically centre the bubble against the spotlight
+      bubbleTop = spotlightRect.top + spotlightRect.height / 2 - BUBBLE_HEIGHT_ESTIMATE / 2
+
     } else {
-      bubbleTop = spotlightRect.top + spotlightRect.height + 8 + BUBBLE_GAP
-    }
+      // ── Vertical placement (existing logic) ───────────────────────────────
+      const spaceBelow = viewportHeight - (spotlightRect.top + spotlightRect.height + 8)
+      const spaceAbove = spotlightRect.top - 8
 
-    const rawLeft = spotlightRect.left - 8
-    bubbleLeft = Math.max(16, Math.min(rawLeft, viewportWidth - BUBBLE_WIDTH - 16))
+      const belowHasRoom = spaceBelow >= BUBBLE_HEIGHT_ESTIMATE + BUBBLE_GAP + 16
+      const aboveHasRoom = spaceAbove >= BUBBLE_HEIGHT_ESTIMATE + BUBBLE_GAP + 16
+
+      showAbove =
+        step.position === "top" ||
+        (!belowHasRoom && aboveHasRoom) ||
+        (spaceAbove > spaceBelow && !belowHasRoom)
+
+      bubbleTop = showAbove
+        ? spotlightRect.top - 8 - BUBBLE_GAP - BUBBLE_HEIGHT_ESTIMATE
+        : spotlightRect.top + spotlightRect.height + 8 + BUBBLE_GAP
+
+      const rawLeft = spotlightRect.left - 8
+      bubbleLeft = Math.max(16, Math.min(rawLeft, viewportWidth - BUBBLE_WIDTH - 16))
+    }
   } else {
-    bubbleTop = viewportHeight / 2 - BUBBLE_HEIGHT_ESTIMATE / 2
-    bubbleLeft = viewportWidth / 2 - BUBBLE_WIDTH / 2
+    bubbleTop  = viewportHeight / 2 - BUBBLE_HEIGHT_ESTIMATE / 2
+    bubbleLeft = viewportWidth  / 2 - BUBBLE_WIDTH / 2
   }
 
-  // Primary clamp — bubble must be fully on screen
-  bubbleTop = Math.max(12, Math.min(bubbleTop, viewportHeight - BUBBLE_HEIGHT_ESTIMATE - 12))
-  bubbleLeft = Math.max(12, Math.min(bubbleLeft, viewportWidth - BUBBLE_WIDTH - 12))
+  // Clamp to viewport
+  bubbleTop  = Math.max(12, Math.min(bubbleTop,  viewportHeight - BUBBLE_HEIGHT_ESTIMATE - 12))
+  bubbleLeft = Math.max(12, Math.min(bubbleLeft, viewportWidth  - BUBBLE_WIDTH - 12))
 
-  // Anti-overlap guard — if clamping pushed the bubble back into the spotlight, flip sides
-  if (spotlightRect) {
+  // Anti-overlap guard — only for vertical placement
+  if (spotlightRect && !showLeft && !showRight) {
     const bubbleBottom = bubbleTop + BUBBLE_HEIGHT_ESTIMATE
-    const spotTop = spotlightRect.top - 8
+    const spotTop    = spotlightRect.top - 8
     const spotBottom = spotlightRect.top + spotlightRect.height + 8
-    const overlaps = bubbleBottom > spotTop && bubbleTop < spotBottom
+    const overlaps   = bubbleBottom > spotTop && bubbleTop < spotBottom
 
     if (overlaps) {
       if (showAbove) {
-        // Was above but clamped into spotlight — push below instead
-        bubbleTop = spotBottom + BUBBLE_GAP
-        showAbove = false
+        bubbleTop  = spotBottom + BUBBLE_GAP
+        showAbove  = false
       } else {
-        // Was below but clamped into spotlight — push above instead
-        bubbleTop = spotTop - BUBBLE_GAP - BUBBLE_HEIGHT_ESTIMATE
-        showAbove = true
+        bubbleTop  = spotTop - BUBBLE_GAP - BUBBLE_HEIGHT_ESTIMATE
+        showAbove  = true
       }
-      // Re-clamp after nudge
       bubbleTop = Math.max(12, Math.min(bubbleTop, viewportHeight - BUBBLE_HEIGHT_ESTIMATE - 12))
     }
   }
@@ -313,7 +330,7 @@ export function OnboardingTour({
         }}
       >
         {/* Upward caret — bubble sits below the spotlight */}
-        {!showAbove && spotlightRect && (
+        {!showAbove && !showLeft && !showRight && spotlightRect && (
           <div style={{ position: "absolute", top: -6, left: 20 }}>
             <div
               style={{
@@ -343,7 +360,7 @@ export function OnboardingTour({
         )}
 
         {/* Downward caret — bubble sits above the spotlight */}
-        {showAbove && spotlightRect && (
+        {showAbove && !showLeft && !showRight && spotlightRect && (
           <div
             style={{
               position: "absolute",
@@ -356,6 +373,66 @@ export function OnboardingTour({
               borderTop: "6px solid #0f1011",
             }}
           />
+        )}
+
+        {/* Right-pointing caret — bubble sits to the LEFT of the spotlight */}
+        {showLeft && spotlightRect && (
+          <div style={{ position: "absolute", top: "50%", right: -6, transform: "translateY(-8px)" }}>
+            <div
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: 0,
+                height: 0,
+                borderTop: "8px solid transparent",
+                borderBottom: "8px solid transparent",
+                borderLeft: "6px solid #23252a",
+              }}
+            />
+            <div
+              style={{
+                position: "absolute",
+                top: 1,
+                left: -1,
+                width: 0,
+                height: 0,
+                borderTop: "7px solid transparent",
+                borderBottom: "7px solid transparent",
+                borderLeft: "6px solid #0f1011",
+              }}
+            />
+          </div>
+        )}
+
+        {/* Left-pointing caret — bubble sits to the RIGHT of the spotlight */}
+        {showRight && spotlightRect && (
+          <div style={{ position: "absolute", top: "50%", left: -6, transform: "translateY(-8px)" }}>
+            <div
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: 0,
+                height: 0,
+                borderTop: "8px solid transparent",
+                borderBottom: "8px solid transparent",
+                borderRight: "6px solid #23252a",
+              }}
+            />
+            <div
+              style={{
+                position: "absolute",
+                top: 1,
+                left: 1,
+                width: 0,
+                height: 0,
+                borderTop: "7px solid transparent",
+                borderBottom: "7px solid transparent",
+                borderRight: "6px solid #0f1011",
+              }}
+            />
+          </div>
         )}
 
         {/* Step indicator */}
