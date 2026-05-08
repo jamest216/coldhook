@@ -36,12 +36,15 @@ const BUBBLE_HEIGHT_ESTIMATE = 160
 // Module-level vars — avoid re-renders during scroll/lock sequencing
 let _elevatedEl: HTMLElement | null = null
 let _elevatedPrevZ = ""
+let _elevatedPrevPos = ""
 let _mainEl: HTMLElement | null = null
 
 function restoreElevation() {
   if (_elevatedEl) {
     _elevatedEl.style.zIndex = _elevatedPrevZ
+    _elevatedEl.style.position = _elevatedPrevPos
     _elevatedPrevZ = ""
+    _elevatedPrevPos = ""
     _elevatedEl = null
   }
 }
@@ -111,8 +114,11 @@ export function OnboardingTour({
         const rect = el.getBoundingClientRect()
         setSpotlightRect({ top: rect.top, left: rect.left, width: rect.width, height: rect.height })
         el.scrollIntoView({ behavior: "smooth", block: "center" })
-        // Elevate element above the backdrop so it remains interactive
+        // Elevate element above the backdrop so it remains visible and interactive.
+        // z-index only works on positioned elements, so also set position: relative.
         _elevatedPrevZ = el.style.zIndex
+        _elevatedPrevPos = el.style.position
+        el.style.position = "relative"
         el.style.zIndex = "101"
         _elevatedEl = el
         onLockScroll?.()
