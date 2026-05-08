@@ -100,8 +100,8 @@ function ComposePageInner() {
 
   useEffect(() => {
     if (!tourActive) return
-    // Index 5 = pipeline-panel step (index 4 is now email-output animation step)
-    if (tourStep === 5 && generated) {
+    // Index 6 = pipeline-panel step (index 5 is now "Your personalized email" step)
+    if (tourStep === 6 && generated) {
       setPipelineOpen(true)
     }
   }, [tourStep, tourActive, generated])
@@ -182,6 +182,13 @@ function ComposePageInner() {
       description: "ColdHook enriches the signal, builds a key insight, drafts the email, then runs a quality check — all before you see a word.",
       nextLabel: "Next →",
       disableNext: true,
+    },
+    {
+      tourId: "email-output",
+      title: "Your personalized email",
+      description: "This is the output — subject line written for a VP who just got promoted, body under 100 words, single soft ask. No pitch, no filler. Read it, then see what went into it.",
+      nextLabel: "See how it was written →",
+      position: "top",
     },
     {
       tourId: "pipeline-panel",
@@ -338,7 +345,7 @@ function ComposePageInner() {
       }
       const data = await res.json()
       setSequence(data)
-      if (tourActive && tourStep === 6) {
+      if (tourActive && tourStep === 7) {
         setTimeout(handleTourComplete, 1200)
       }
     } catch (e) {
@@ -359,8 +366,8 @@ function ComposePageInner() {
         onLockScroll={lockPanels}
         onUnlockScroll={unlockPanels}
         onStepChange={(stepIndex) => {
-          // When tour reaches pipeline-panel step (index 5), ensure panel is open
-          if (stepIndex === 5 && generated) {
+          // When tour reaches pipeline-panel step (index 6), ensure panel is open
+          if (stepIndex === 6 && generated) {
             setPipelineOpen(true)
           }
         }}
