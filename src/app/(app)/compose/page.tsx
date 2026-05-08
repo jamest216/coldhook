@@ -100,8 +100,8 @@ function ComposePageInner() {
 
   useEffect(() => {
     if (!tourActive) return
-    // Index 6 = pipeline-panel step (index 5 is now "Your personalized email" step)
-    if (tourStep === 6 && generated) {
+    // Index 7 = pipeline-panel step (index 6 is now "Your personalized email" step)
+    if (tourStep === 7 && generated) {
       setPipelineOpen(true)
     }
   }, [tourStep, tourActive, generated])
@@ -122,18 +122,18 @@ function ComposePageInner() {
   }
 
   const handleTourNext = () => {
-    if (tourStep === 3 && tourActive) {
-      // Step 4 (email-output): start loading animation, spotlight shifts to Generated Email panel
+    if (tourStep === 4 && tourActive) {
+      // Step 5 (email-output): start loading animation, spotlight shifts to Generated Email panel
       setIsGenerating(true)
-      setTourStep(4)
+      setTourStep(5)
 
       // The existing loadingStages useEffect cycles every 1800ms.
       // 4 stages × 1800ms = 7200ms total, but add a small buffer.
-      // After animation completes: inject mock data and auto-advance to step 5.
+      // After animation completes: inject mock data and auto-advance to step 6.
       setTimeout(() => {
         setIsGenerating(false)
         populateTourMockData()
-        setTourStep(5)
+        setTourStep(6)
       }, 7600)
       return
     }
@@ -152,6 +152,12 @@ function ComposePageInner() {
   }
 
   const tourSteps: TourStep[] = useMemo(() => [
+    {
+      tourId: "prospect-intelligence",
+      title: "Who are you emailing?",
+      description: "Start with your prospect's name, title, and company. ColdHook uses this to personalize every line — not just the greeting.",
+      nextLabel: "Got it →",
+    },
     {
       tourId: "trigger",
       title: "Start with a buying signal",
@@ -195,7 +201,7 @@ function ComposePageInner() {
       title: "See how it was written",
       description: "Expand this panel to see every reasoning step the AI took — from raw signal to final draft. No black boxes.",
       nextLabel: "Next →",
-      position: "top",
+      position: "left",
     },
     {
       tourId: "sequence-section",
@@ -345,7 +351,7 @@ function ComposePageInner() {
       }
       const data = await res.json()
       setSequence(data)
-      if (tourActive && tourStep === 7) {
+      if (tourActive && tourStep === 8) {
         setTimeout(handleTourComplete, 1200)
       }
     } catch (e) {
@@ -366,8 +372,8 @@ function ComposePageInner() {
         onLockScroll={lockPanels}
         onUnlockScroll={unlockPanels}
         onStepChange={(stepIndex) => {
-          // When tour reaches pipeline-panel step (index 6), ensure panel is open
-          if (stepIndex === 6 && generated) {
+          // When tour reaches pipeline-panel step (index 7), ensure panel is open
+          if (stepIndex === 7 && generated) {
             setPipelineOpen(true)
           }
         }}
@@ -402,7 +408,7 @@ function ComposePageInner() {
           {/* Left: Input panel */}
           <div ref={leftPanelRef} className="flex flex-col gap-4 overflow-y-auto pr-1">
             {/* Prospect info */}
-            <Card>
+            <Card data-tour="prospect-intelligence">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm flex items-center gap-2">
                   <div className="size-5 rounded bg-[rgba(255,128,31,0.12)] border border-[rgba(255,128,31,0.2)] flex items-center justify-center">
