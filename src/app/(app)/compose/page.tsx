@@ -99,12 +99,6 @@ function ComposePageInner() {
   }, [])
 
   useEffect(() => {
-    if (!tourActive || !generated || tourStep !== 3) return
-    const t = setTimeout(() => setTourStep(4), 800)
-    return () => clearTimeout(t)
-  }, [generated, tourActive, tourStep])
-
-  useEffect(() => {
     if (!tourActive) return
     // Index 4 = pipeline-panel step
     if (tourStep === 4 && generated) {
@@ -112,7 +106,28 @@ function ComposePageInner() {
     }
   }, [tourStep, tourActive, generated])
 
+  const populateTourMockData = () => {
+    setGeneratedSubject("The promotion clock — and what it means for your first 90 days")
+    setGeneratedEmail(
+      `Alex,\n\nCongratulations on the VP of Sales seat at Northstar. Internal promotions carry a different kind of pressure than outside hires — you already know where the bodies are buried, which means leadership is watching whether you'll act on it.\n\nMost new VPs spend the first 60 days rebuilding what the previous team left behind. The ones who don't are usually the ones who had infrastructure that told them exactly where time was being lost before they ever stepped into the role.\n\nWorth a 15-minute conversation to see if that's relevant to where you are right now?\n\n— [Your name]`
+    )
+    setScore(74)
+    setSpamScore(91)
+    setSpamFlags([])
+    setInsight("Alex's internal promotion signals Northstar is betting on organic talent over outside hires — meaning he owns the outcome, not just the process. The pressure isn't to learn the job; it's to prove the bet was right.")
+    setEnrichedContext("Trigger type: promotion. Alex Rivera moved from Senior AE to VP of Sales at Northstar — internal, not an outside hire. Announced on LinkedIn 2 days ago. Northstar is likely a growth-stage company building out its sales org. The promotion signals the company values continuity and domain knowledge over external pedigree.")
+    setCritiqueResult({ passed: true, issues: [] })
+    setGenerated(true)
+    setPipelineOpen(true)
+  }
+
   const handleTourNext = () => {
+    // Step 4 (index 3) is the generate-btn step — inject mock data instead of requiring real generation
+    if (tourStep === 3 && tourActive) {
+      populateTourMockData()
+      setTourStep(4)
+      return
+    }
     if (tourStep < tourSteps.length - 1) {
       setTourStep((s) => s + 1)
     } else {
@@ -150,8 +165,7 @@ function ComposePageInner() {
       tourId: "generate-btn",
       title: "Generate your email",
       description: "Hit Generate. ColdHook runs a 4-stage AI pipeline — it enriches the signal, builds a key insight, drafts the email, then self-critiques before you see it.",
-      nextLabel: generated ? "Next →" : "Generate first →",
-      disableNext: !generated,
+      nextLabel: "See it in action →",
     },
     {
       tourId: "pipeline-panel",
