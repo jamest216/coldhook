@@ -403,7 +403,7 @@ function ComposePageInner() {
             </Card>
 
             {/* Trigger / Context */}
-            <Card>
+            <Card data-tour="trigger">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm flex items-center gap-2">
                   <div className="size-5 rounded bg-[rgba(94,106,210,0.12)] border border-[rgba(94,106,210,0.2)] flex items-center justify-center">
@@ -413,7 +413,7 @@ function ComposePageInner() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="space-y-1.5" data-tour="trigger">
+                <div className="space-y-1.5">
                   <label className="text-xs text-[#8a8f98]">Recent trigger / buying signal</label>
                   <Textarea
                     rows={3}
