@@ -184,7 +184,7 @@ function ComposePageInner() {
       disableNext: true,
     },
     {
-      tourId: "email-output",
+      tourId: "email-result",
       title: "Your personalized email",
       description: "This is the output — subject line written for a VP who just got promoted, body under 100 words, single soft ask. No pitch, no filler. Read it, then see what went into it.",
       nextLabel: "See how it was written →",
@@ -592,6 +592,9 @@ function ComposePageInner() {
 
           {/* Right: Output panel */}
           <div ref={rightPanelRef} className="flex flex-col gap-4 overflow-y-auto pr-1">
+            {/* Email result group — score + spam + email, spotlit together on step 5 */}
+            <div data-tour="email-result" className="flex flex-col gap-4">
+
             {/* Score */}
             {(generated || isGenerating) && (
               <Card className={generated ? "border-[rgba(94,106,210,0.3)]" : ""}>
@@ -745,6 +748,7 @@ function ComposePageInner() {
                 )}
               </CardContent>
             </Card>
+            </div>
 
             {/* Pipeline transparency panel */}
             {generated && (insight || enrichedContext) && (
