@@ -104,6 +104,14 @@ function ComposePageInner() {
     return () => clearTimeout(t)
   }, [generated, tourActive, tourStep])
 
+  useEffect(() => {
+    if (!tourActive) return
+    // Index 4 = pipeline-panel step
+    if (tourStep === 4 && generated) {
+      setPipelineOpen(true)
+    }
+  }, [tourStep, tourActive, generated])
+
   const handleTourNext = () => {
     if (tourStep < tourSteps.length - 1) {
       setTourStep((s) => s + 1)
@@ -142,7 +150,8 @@ function ComposePageInner() {
       tourId: "generate-btn",
       title: "Generate your email",
       description: "Hit Generate. ColdHook runs a 4-stage AI pipeline — it enriches the signal, builds a key insight, drafts the email, then self-critiques before you see it.",
-      nextLabel: "Generate →",
+      nextLabel: generated ? "Next →" : "Generate first →",
+      disableNext: !generated,
     },
     {
       tourId: "pipeline-panel",
@@ -315,6 +324,12 @@ function ComposePageInner() {
         isActive={tourActive}
         onLockScroll={lockPanels}
         onUnlockScroll={unlockPanels}
+        onStepChange={(stepIndex) => {
+          // When tour reaches pipeline-panel step (index 4), ensure panel is open
+          if (stepIndex === 4 && generated) {
+            setPipelineOpen(true)
+          }
+        }}
       />
       <TopBar
         title="AI Compose"
