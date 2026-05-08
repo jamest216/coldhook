@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef, Suspense } from "react"
+import { useState, useEffect, useCallback, useRef, useMemo, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { OnboardingTour, type TourStep } from "@/components/onboarding/tour"
 import { TopBar } from "@/components/layout/top-bar"
@@ -127,7 +127,7 @@ function ComposePageInner() {
     }
   }
 
-  const tourSteps: TourStep[] = [
+  const tourSteps: TourStep[] = useMemo(() => [
     {
       tourId: "trigger",
       title: "Start with a buying signal",
@@ -167,7 +167,8 @@ function ComposePageInner() {
       nextLabel: "Done — let me compose",
       position: "top",
     },
-  ]
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  ], [generated])
 
   const fieldsEmpty = !firstName.trim() || !company.trim() || !trigger.trim()
 
@@ -334,6 +335,26 @@ function ComposePageInner() {
       <TopBar
         title="AI Compose"
         description="Generate a hyper-personalized cold email in seconds"
+        action={
+          <button
+            onClick={() => {
+              setFirstName("Alex")
+              setLastName("Rivera")
+              setTitle("VP of Sales")
+              setCompany("Northstar")
+              setTrigger("Just promoted internally from Senior Account Executive to VP of Sales at Northstar, announced on LinkedIn two days ago")
+              setTourStep(0)
+              setTourActive(true)
+              if (typeof window !== "undefined") {
+                localStorage.removeItem("coldhook_tour_complete")
+              }
+            }}
+            className="flex items-center gap-1.5 text-xs text-[#62666d] hover:text-[#8a8f98] border border-[#23252a] hover:border-[#34343a] rounded-lg px-3 py-1.5 transition-colors"
+          >
+            <Sparkles className="size-3" />
+            Take a tour
+          </button>
+        }
       />
 
       <div className="p-6">
