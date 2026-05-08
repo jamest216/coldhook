@@ -35,11 +35,11 @@ export function InfiniteGrid() {
   }, [mouseX, mouseY])
 
   useAnimationFrame(() => {
-    gridOffsetX.set((gridOffsetX.get() + 0.5) % 48)
-    gridOffsetY.set((gridOffsetY.get() + 0.5) % 48)
+    gridOffsetX.set((gridOffsetX.get() + 0.25) % 32)
+    gridOffsetY.set((gridOffsetY.get() + 0.25) % 32)
   })
 
-  const maskImage = useMotionTemplate`radial-gradient(320px circle at ${mouseX}px ${mouseY}px, black, transparent)`
+  const maskImage = useMotionTemplate`radial-gradient(160px circle at ${mouseX}px ${mouseY}px, black, transparent)`
 
   return (
     <div ref={containerRef} className="absolute inset-0 z-0 pointer-events-none">
@@ -49,7 +49,7 @@ export function InfiniteGrid() {
       </div>
       {/* Bright cursor-reveal layer */}
       <motion.div
-        className="absolute inset-0 opacity-25"
+        className="absolute inset-0 opacity-50"
         style={{ maskImage, WebkitMaskImage: maskImage }}
       >
         <GridPattern offsetX={gridOffsetX} offsetY={gridOffsetY} />
@@ -70,14 +70,14 @@ function GridPattern({
       <defs>
         <motion.pattern
           id="infinite-grid-pattern"
-          width={48}
-          height={48}
+          width={32}
+          height={32}
           patternUnits="userSpaceOnUse"
           x={offsetX}
           y={offsetY}
         >
           <path
-            d="M 48 0 L 0 0 0 48"
+            d="M 32 0 L 0 0 0 32"
             fill="none"
             stroke="rgba(255,255,255,1)"
             strokeWidth="0.75"
