@@ -6,6 +6,7 @@ import {
   Calendar,
   ArrowUpRight,
   Sparkles,
+  PlayCircle,
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -38,6 +39,7 @@ const quickActions = [
   { label: "Compose with AI", href: "/compose", icon: Sparkles, color: "#5e6ad2", bg: "rgba(94,106,210,0.12)" },
   { label: "Import Prospects", href: "/prospects", icon: Users, color: "#ff801f", bg: "rgba(255,128,31,0.12)" },
   { label: "Browse Templates", href: "/templates", icon: Mail, color: "#a78bfa", bg: "rgba(167,139,250,0.12)" },
+  { label: "Guided Tour", href: "/compose?onboarding=true", icon: PlayCircle, color: "#27a644", bg: "rgba(39,166,68,0.12)" },
 ]
 
 export default async function DashboardPage() {
@@ -66,15 +68,71 @@ export default async function DashboardPage() {
   const replyRate = totalEmails > 0 ? ((repliedCount / totalEmails) * 100).toFixed(1) : null
   const prospectsThisMonth = prospectsThisMonthRows[0]?.count ?? 0
   const hasEmails = recentEmailRows.length > 0
+  const isFirstRun = Number(totalEmails) === 0
 
   return (
     <div>
       <TopBar
         title="Dashboard"
-        description={`Welcome back${clerkUser?.firstName ? `, ${clerkUser.firstName}` : ""}. Here's your pipeline.`}
+        description={isFirstRun
+          ? `Welcome${clerkUser?.firstName ? `, ${clerkUser.firstName}` : ""}. Let's generate your first email.`
+          : `Welcome back${clerkUser?.firstName ? `, ${clerkUser.firstName}` : ""}. Here's your pipeline.`
+        }
       />
 
       <div className="p-6 space-y-6">
+        {/* First-run hero banner */}
+        {isFirstRun && (
+          <div className="relative overflow-hidden rounded-xl border border-[rgba(94,106,210,0.25)] bg-[rgba(94,106,210,0.04)] p-6">
+            {/* Subtle radial glow */}
+            <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse at 60% 50%, rgba(94,106,210,0.08) 0%, transparent 70%)" }} />
+
+            <div className="relative flex flex-col lg:flex-row items-start lg:items-center gap-8">
+              {/* Left — text */}
+              <div className="flex-1 space-y-4">
+                {/* Step indicators */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {["Trigger", "Insight", "Draft", "Sequence"].map((label, i) => (
+                    <div key={label} className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 rounded-full border border-[rgba(94,106,210,0.25)] bg-[rgba(94,106,210,0.08)] px-2.5 py-1">
+                        <span className="size-4 rounded-full bg-[#5e6ad2] text-white text-[10px] font-bold flex items-center justify-center shrink-0">
+                          {i + 1}
+                        </span>
+                        <span className="text-xs text-[#828fff] font-medium">{label}</span>
+                      </div>
+                      {i < 3 && <span className="text-[#34343a] text-xs">→</span>}
+                    </div>
+                  ))}
+                </div>
+
+                <h2 className="text-xl font-semibold text-[#f7f8f8] leading-snug">
+                  Generate your first email
+                </h2>
+
+                <p className="text-sm text-[#8a8f98] leading-relaxed max-w-lg">
+                  ColdHook researches your prospect, finds the non-obvious angle in their trigger, and writes a cold email that reads like you spent 30 minutes on them — in about 10 seconds. Start with a real prospect or use our pre-filled example.
+                </p>
+              </div>
+
+              {/* Right — CTAs */}
+              <div className="flex flex-col gap-3 shrink-0">
+                <Button size="lg" className="h-11 px-6 gap-2" asChild>
+                  <Link href="/compose?onboarding=true">
+                    <Sparkles className="size-4" />
+                    Start with guided tour
+                  </Link>
+                </Button>
+                <Link
+                  href="/compose"
+                  className="text-xs text-center text-[#62666d] hover:text-[#8a8f98] transition-colors"
+                >
+                  Skip tour — go straight to compose
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           {/* Emails Sent */}

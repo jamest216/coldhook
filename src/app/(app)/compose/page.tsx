@@ -88,7 +88,7 @@ function ComposePageInner() {
 
   useEffect(() => {
     if (searchParams.get("onboarding") !== "true") return
-    if (typeof window !== "undefined" && localStorage.getItem("coldhook_tour_complete")) return
+    // URL param is explicit intent — always start the tour regardless of localStorage
     setFirstName("Alex")
     setLastName("Rivera")
     setTitle("VP of Sales")
