@@ -31,7 +31,7 @@ type Props = {
 
 const BUBBLE_WIDTH = 320
 const BUBBLE_GAP = 16
-const BUBBLE_HEIGHT_ESTIMATE = 160
+const BUBBLE_HEIGHT_ESTIMATE = 220
 
 // Module-level vars — avoid re-renders during scroll/lock sequencing
 let _elevatedEl: HTMLElement | null = null
@@ -202,16 +202,23 @@ export function OnboardingTour({
   let showAbove = false
 
   if (spotlightRect) {
-    const spotlightBottom = spotlightRect.top + spotlightRect.height + 16
-    const wouldOverflowBottom = (spotlightBottom + BUBBLE_GAP + BUBBLE_HEIGHT_ESTIMATE) > (viewportHeight - 20)
-    const forceAbove = step.position === "top" || spotlightRect.top > viewportHeight * 0.6 || wouldOverflowBottom
+    // How much clear space exists above and below the spotlight (including padding)
+    const spaceBelow = viewportHeight - (spotlightRect.top + spotlightRect.height + 8)
+    const spaceAbove = spotlightRect.top - 8
 
-    showAbove = forceAbove
+    const belowHasRoom = spaceBelow >= BUBBLE_HEIGHT_ESTIMATE + BUBBLE_GAP + 16
+    const aboveHasRoom = spaceAbove >= BUBBLE_HEIGHT_ESTIMATE + BUBBLE_GAP + 16
 
-    if (forceAbove) {
+    // Prefer the side with more room; fall back to forced position from step config
+    showAbove =
+      step.position === "top" ||
+      (!belowHasRoom && aboveHasRoom) ||
+      (spaceAbove > spaceBelow && !belowHasRoom)
+
+    if (showAbove) {
       bubbleTop = spotlightRect.top - 8 - BUBBLE_GAP - BUBBLE_HEIGHT_ESTIMATE
     } else {
-      bubbleTop = spotlightRect.top + spotlightRect.height + 16 + BUBBLE_GAP
+      bubbleTop = spotlightRect.top + spotlightRect.height + 8 + BUBBLE_GAP
     }
 
     const rawLeft = spotlightRect.left - 8
@@ -221,9 +228,31 @@ export function OnboardingTour({
     bubbleLeft = viewportWidth / 2 - BUBBLE_WIDTH / 2
   }
 
-  // Final clamp — bubble must always be fully on screen
+  // Primary clamp — bubble must be fully on screen
   bubbleTop = Math.max(12, Math.min(bubbleTop, viewportHeight - BUBBLE_HEIGHT_ESTIMATE - 12))
   bubbleLeft = Math.max(12, Math.min(bubbleLeft, viewportWidth - BUBBLE_WIDTH - 12))
+
+  // Anti-overlap guard — if clamping pushed the bubble back into the spotlight, flip sides
+  if (spotlightRect) {
+    const bubbleBottom = bubbleTop + BUBBLE_HEIGHT_ESTIMATE
+    const spotTop = spotlightRect.top - 8
+    const spotBottom = spotlightRect.top + spotlightRect.height + 8
+    const overlaps = bubbleBottom > spotTop && bubbleTop < spotBottom
+
+    if (overlaps) {
+      if (showAbove) {
+        // Was above but clamped into spotlight — push below instead
+        bubbleTop = spotBottom + BUBBLE_GAP
+        showAbove = false
+      } else {
+        // Was below but clamped into spotlight — push above instead
+        bubbleTop = spotTop - BUBBLE_GAP - BUBBLE_HEIGHT_ESTIMATE
+        showAbove = true
+      }
+      // Re-clamp after nudge
+      bubbleTop = Math.max(12, Math.min(bubbleTop, viewportHeight - BUBBLE_HEIGHT_ESTIMATE - 12))
+    }
+  }
 
   return (
     <>
