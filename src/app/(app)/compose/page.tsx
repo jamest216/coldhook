@@ -160,7 +160,7 @@ function ComposePageInner() {
     },
     {
       tourId: "trigger",
-      title: "Start with a buying signal",
+      title: "Add a buying signal",
       description: "Paste in a recent trigger — a promotion, funding round, or LinkedIn post. ColdHook turns this into the hook that makes your email feel researched, not blasted.",
       nextLabel: "Got it →",
     },
