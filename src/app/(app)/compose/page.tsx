@@ -86,6 +86,22 @@ function ComposePageInner() {
   const [tourActive, setTourActive] = useState(false)
   const [tourStep, setTourStep] = useState(0)
 
+  // Pre-fill from saved user settings on mount (skip during tour)
+  useEffect(() => {
+    if (tourActive) return
+    fetch("/api/settings")
+      .then(r => r.json())
+      .then(s => {
+        if (s.senderValueProp) setValueProp(s.senderValueProp)
+        if (s.defaultTone)     setTone(s.defaultTone)
+        if (s.defaultLength)   setLength(s.defaultLength)
+        if (s.defaultCtaStyle) setCtaStyle(s.defaultCtaStyle)
+        if (s.defaultIndustry) setIndustry(s.defaultIndustry)
+      })
+      .catch(() => {/* silently ignore — defaults already set in state */})
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // intentionally runs once on mount only
+
   useEffect(() => {
     if (searchParams.get("onboarding") !== "true") return
     // URL param is explicit intent — always start the tour regardless of localStorage
