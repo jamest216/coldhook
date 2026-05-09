@@ -1,12 +1,9 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { useUser } from "@clerk/nextjs"
 import { TopBar } from "@/components/layout/top-bar"
-import {
-  Link2,
-  Zap,
-  Check,
-} from "lucide-react"
+import { Link2, Zap, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
@@ -16,10 +13,71 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
-
 export default function SettingsPage() {
   const { user } = useUser()
   const googleAccount = user?.externalAccounts?.find(a => a.provider === "google")
+
+  // Profile extras (not managed by Clerk)
+  const [jobTitle, setJobTitle] = useState("")
+  const [company,  setCompany]  = useState("")
+
+  // Sender identity
+  const [senderValueProp,   setSenderValueProp]   = useState("")
+  const [senderLinkedinUrl, setSenderLinkedinUrl] = useState("")
+  const [defaultTone,       setDefaultTone]       = useState("conversational")
+
+  // AI toggles
+  const [includeSocialProof,      setIncludeSocialProof]      = useState(true)
+  const [emojiInSubjects,         setEmojiInSubjects]         = useState(true)
+  const [personalizationFromNews, setPersonalizationFromNews] = useState(true)
+  const [spamScoreCheck,          setSpamScoreCheck]          = useState(true)
+  const [autoAbSubjects,          setAutoAbSubjects]          = useState(false)
+
+  // Notification prefs
+  const [notifyOnReply,       setNotifyOnReply]       = useState(true)
+  const [notifyWeeklySummary, setNotifyWeeklySummary] = useState(true)
+  const [notifyBuyingSignal,  setNotifyBuyingSignal]  = useState(true)
+
+  // UI state
+  const [saving,  setSaving]  = useState(false)
+  const [saved,   setSaved]   = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then(r => r.json())
+      .then(s => {
+        if (s.senderValueProp)   setSenderValueProp(s.senderValueProp)
+        if (s.senderLinkedinUrl) setSenderLinkedinUrl(s.senderLinkedinUrl)
+        if (s.defaultTone)       setDefaultTone(s.defaultTone)
+        if (s.senderTitle)       setJobTitle(s.senderTitle)
+        if (s.senderCompany)     setCompany(s.senderCompany)
+        setIncludeSocialProof(s.includeSocialProof ?? true)
+        setEmojiInSubjects(s.emojiInSubjects ?? true)
+        setPersonalizationFromNews(s.personalizationFromNews ?? true)
+        setSpamScoreCheck(s.spamScoreCheck ?? true)
+        setAutoAbSubjects(s.autoAbSubjects ?? false)
+        setNotifyOnReply(s.notifyOnReply ?? true)
+        setNotifyWeeklySummary(s.notifyWeeklySummary ?? true)
+        setNotifyBuyingSignal(s.notifyBuyingSignal ?? true)
+      })
+      .finally(() => setLoading(false))
+  }, [])
+
+  const saveSettings = async (payload: Record<string, unknown>, section: string) => {
+    setSaving(true)
+    try {
+      await fetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+      setSaved(section)
+      setTimeout(() => setSaved(null), 2000)
+    } finally {
+      setSaving(false)
+    }
+  }
 
   return (
     <div>
@@ -69,13 +127,27 @@ export default function SettingsPage() {
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-xs text-[#8a8f98]">Job title</label>
-                    <Input placeholder="e.g. Senior Account Executive" />
+                    <Input
+                      placeholder="e.g. Senior Account Executive"
+                      value={jobTitle}
+                      onChange={e => setJobTitle(e.target.value)}
+                    />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-xs text-[#8a8f98]">Company</label>
-                    <Input placeholder="Your company name" />
+                    <Input
+                      placeholder="Your company name"
+                      value={company}
+                      onChange={e => setCompany(e.target.value)}
+                    />
                   </div>
-                  <Button className="mt-2">Save changes</Button>
+                  <Button
+                    className="mt-2"
+                    disabled={saving || loading}
+                    onClick={() => saveSettings({ senderTitle: jobTitle, senderCompany: company }, "profile")}
+                  >
+                    {saved === "profile" ? "Saved ✓" : "Save changes"}
+                  </Button>
                 </CardContent>
               </Card>
 
@@ -87,15 +159,23 @@ export default function SettingsPage() {
                 <CardContent className="space-y-4">
                   <div className="space-y-1.5">
                     <label className="text-xs text-[#8a8f98]">Your value proposition (1-2 sentences)</label>
-                    <Input placeholder="I help [ICP] achieve [outcome] using [method]" />
+                    <Input
+                      placeholder="I help [ICP] achieve [outcome] using [method]"
+                      value={senderValueProp}
+                      onChange={e => setSenderValueProp(e.target.value)}
+                    />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-xs text-[#8a8f98]">LinkedIn URL</label>
-                    <Input placeholder="linkedin.com/in/yourprofile" />
+                    <Input
+                      placeholder="linkedin.com/in/yourprofile"
+                      value={senderLinkedinUrl}
+                      onChange={e => setSenderLinkedinUrl(e.target.value)}
+                    />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-xs text-[#8a8f98]">Preferred email tone</label>
-                    <Select defaultValue="conversational">
+                    <Select value={defaultTone} onValueChange={setDefaultTone}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -106,7 +186,12 @@ export default function SettingsPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <Button>Save identity</Button>
+                  <Button
+                    disabled={saving || loading}
+                    onClick={() => saveSettings({ senderValueProp, senderLinkedinUrl, defaultTone }, "identity")}
+                  >
+                    {saved === "identity" ? "Saved ✓" : "Save identity"}
+                  </Button>
                 </CardContent>
               </Card>
 
@@ -154,41 +239,56 @@ export default function SettingsPage() {
                   <CardDescription className="text-xs">Configure how the AI generates your emails</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {[
-                    {
-                      label: "Include social proof",
-                      desc: "Automatically reference relevant customer wins",
-                      enabled: true,
-                    },
-                    {
-                      label: "Emoji in subject lines",
-                      desc: "Use 1 emoji to boost open rates",
-                      enabled: true,
-                    },
-                    {
-                      label: "Personalization from news",
-                      desc: "Search recent news mentions of the prospect",
-                      enabled: true,
-                    },
-                    {
-                      label: "Spam score check",
-                      desc: "Automatically flag emails with high spam risk",
-                      enabled: true,
-                    },
-                    {
-                      label: "Auto A/B subject lines",
-                      desc: "Generate 3 subject variants for every email",
-                      enabled: false,
-                    },
-                  ].map((item) => (
-                    <div key={item.label} className="flex items-center justify-between py-2">
-                      <div>
-                        <p className="text-sm text-[#d0d6e0]">{item.label}</p>
-                        <p className="text-xs text-[#62666d]">{item.desc}</p>
-                      </div>
-                      <Switch defaultChecked={item.enabled} />
+                  <div className="flex items-center justify-between py-2">
+                    <div>
+                      <p className="text-sm text-[#d0d6e0]">Include social proof</p>
+                      <p className="text-xs text-[#62666d]">Automatically reference relevant customer wins</p>
                     </div>
-                  ))}
+                    <Switch
+                      checked={includeSocialProof}
+                      onCheckedChange={v => { setIncludeSocialProof(v); saveSettings({ includeSocialProof: v }, "ai") }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between py-2">
+                    <div>
+                      <p className="text-sm text-[#d0d6e0]">Emoji in subject lines</p>
+                      <p className="text-xs text-[#62666d]">Use 1 emoji to boost open rates</p>
+                    </div>
+                    <Switch
+                      checked={emojiInSubjects}
+                      onCheckedChange={v => { setEmojiInSubjects(v); saveSettings({ emojiInSubjects: v }, "ai") }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between py-2">
+                    <div>
+                      <p className="text-sm text-[#d0d6e0]">Personalization from news</p>
+                      <p className="text-xs text-[#62666d]">Search recent news mentions of the prospect</p>
+                    </div>
+                    <Switch
+                      checked={personalizationFromNews}
+                      onCheckedChange={v => { setPersonalizationFromNews(v); saveSettings({ personalizationFromNews: v }, "ai") }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between py-2">
+                    <div>
+                      <p className="text-sm text-[#d0d6e0]">Spam score check</p>
+                      <p className="text-xs text-[#62666d]">Automatically flag emails with high spam risk</p>
+                    </div>
+                    <Switch
+                      checked={spamScoreCheck}
+                      onCheckedChange={v => { setSpamScoreCheck(v); saveSettings({ spamScoreCheck: v }, "ai") }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between py-2">
+                    <div>
+                      <p className="text-sm text-[#d0d6e0]">Auto A/B subject lines</p>
+                      <p className="text-xs text-[#62666d]">Generate 3 subject variants for every email</p>
+                    </div>
+                    <Switch
+                      checked={autoAbSubjects}
+                      onCheckedChange={v => { setAutoAbSubjects(v); saveSettings({ autoAbSubjects: v }, "ai") }}
+                    />
+                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -232,18 +332,35 @@ export default function SettingsPage() {
                   <CardTitle className="text-sm">Email Notifications</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  {[
-                    { label: "Prospect replies to your email", enabled: true },
-                    { label: "Weekly performance summary", enabled: true },
-                    { label: "New buying signal detected", enabled: true },
-                    { label: "A/B test has a winner", enabled: false },
-                    { label: "Monthly AI insights report", enabled: true },
-                  ].map((item) => (
-                    <div key={item.label} className="flex items-center justify-between py-2.5 border-b border-[#1a1b1f] last:border-0">
-                      <span className="text-sm text-[#d0d6e0]">{item.label}</span>
-                      <Switch defaultChecked={item.enabled} />
-                    </div>
-                  ))}
+                  <div className="flex items-center justify-between py-2.5 border-b border-[#1a1b1f]">
+                    <span className="text-sm text-[#d0d6e0]">Prospect replies to your email</span>
+                    <Switch
+                      checked={notifyOnReply}
+                      onCheckedChange={v => { setNotifyOnReply(v); saveSettings({ notifyOnReply: v }, "notifications") }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between py-2.5 border-b border-[#1a1b1f]">
+                    <span className="text-sm text-[#d0d6e0]">Weekly performance summary</span>
+                    <Switch
+                      checked={notifyWeeklySummary}
+                      onCheckedChange={v => { setNotifyWeeklySummary(v); saveSettings({ notifyWeeklySummary: v }, "notifications") }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between py-2.5 border-b border-[#1a1b1f]">
+                    <span className="text-sm text-[#d0d6e0]">New buying signal detected</span>
+                    <Switch
+                      checked={notifyBuyingSignal}
+                      onCheckedChange={v => { setNotifyBuyingSignal(v); saveSettings({ notifyBuyingSignal: v }, "notifications") }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between py-2.5 border-b border-[#1a1b1f]">
+                    <span className="text-sm text-[#d0d6e0]">A/B test has a winner</span>
+                    <Switch defaultChecked={false} />
+                  </div>
+                  <div className="flex items-center justify-between py-2.5">
+                    <span className="text-sm text-[#d0d6e0]">Monthly AI insights report</span>
+                    <Switch defaultChecked={true} />
+                  </div>
                 </CardContent>
               </Card>
             </div>
