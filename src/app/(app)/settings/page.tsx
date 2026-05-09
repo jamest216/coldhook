@@ -34,9 +34,11 @@ export default function SettingsPage() {
   const [autoAbSubjects,          setAutoAbSubjects]          = useState(false)
 
   // Notification prefs
-  const [notifyOnReply,       setNotifyOnReply]       = useState(true)
-  const [notifyWeeklySummary, setNotifyWeeklySummary] = useState(true)
-  const [notifyBuyingSignal,  setNotifyBuyingSignal]  = useState(true)
+  const [notifyOnReply,        setNotifyOnReply]        = useState(true)
+  const [notifyWeeklySummary,  setNotifyWeeklySummary]  = useState(true)
+  const [notifyBuyingSignal,   setNotifyBuyingSignal]   = useState(true)
+  const [notifyAbTestWinner,   setNotifyAbTestWinner]   = useState(false)
+  const [notifyMonthlyInsights, setNotifyMonthlyInsights] = useState(true)
 
   // UI state
   const [saving,  setSaving]  = useState(false)
@@ -60,6 +62,8 @@ export default function SettingsPage() {
         setNotifyOnReply(s.notifyOnReply ?? true)
         setNotifyWeeklySummary(s.notifyWeeklySummary ?? true)
         setNotifyBuyingSignal(s.notifyBuyingSignal ?? true)
+        setNotifyAbTestWinner(s.notifyAbTestWinner ?? false)
+        setNotifyMonthlyInsights(s.notifyMonthlyInsights ?? true)
       })
       .finally(() => setLoading(false))
   }, [])
@@ -355,11 +359,17 @@ export default function SettingsPage() {
                   </div>
                   <div className="flex items-center justify-between py-2.5 border-b border-[#1a1b1f]">
                     <span className="text-sm text-[#d0d6e0]">A/B test has a winner</span>
-                    <Switch defaultChecked={false} />
+                    <Switch
+                      checked={notifyAbTestWinner}
+                      onCheckedChange={v => { setNotifyAbTestWinner(v); saveSettings({ notifyAbTestWinner: v }, "notifications") }}
+                    />
                   </div>
                   <div className="flex items-center justify-between py-2.5">
                     <span className="text-sm text-[#d0d6e0]">Monthly AI insights report</span>
-                    <Switch defaultChecked={true} />
+                    <Switch
+                      checked={notifyMonthlyInsights}
+                      onCheckedChange={v => { setNotifyMonthlyInsights(v); saveSettings({ notifyMonthlyInsights: v }, "notifications") }}
+                    />
                   </div>
                 </CardContent>
               </Card>

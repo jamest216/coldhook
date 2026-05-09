@@ -21,6 +21,8 @@ const DEFAULTS = {
   notifyOnReply:           true,
   notifyWeeklySummary:     true,
   notifyBuyingSignal:      true,
+  notifyAbTestWinner:      false,
+  notifyMonthlyInsights:   true,
 }
 
 export async function GET() {

@@ -59,7 +59,7 @@ const EMPTY_FORM: FormState = {
   tone: "conversational",
 }
 
-const CATEGORIES = ["All", "Trigger-Based", "Content-Based", "Competitive", "Follow-up", "Custom"]
+const CATEGORIES = ["All", "Cold Outreach", "Trigger-Based", "Content-Based", "Competitive", "Follow-up", "Custom"]
 
 export default function TemplatesPage() {
   const router = useRouter()

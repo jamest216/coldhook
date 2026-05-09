@@ -67,9 +67,11 @@ export const userSettings = pgTable("user_settings", {
   autoAbSubjects:          boolean("auto_ab_subjects").default(false),
 
   // ── Notification prefs ────────────────────────────────────────────────
-  notifyOnReply:       boolean("notify_on_reply").default(true),
-  notifyWeeklySummary: boolean("notify_weekly_summary").default(true),
-  notifyBuyingSignal:  boolean("notify_buying_signal").default(true),
+  notifyOnReply:        boolean("notify_on_reply").default(true),
+  notifyWeeklySummary:  boolean("notify_weekly_summary").default(true),
+  notifyBuyingSignal:   boolean("notify_buying_signal").default(true),
+  notifyAbTestWinner:   boolean("notify_ab_test_winner").default(false),
+  notifyMonthlyInsights: boolean("notify_monthly_insights").default(true),
 
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
