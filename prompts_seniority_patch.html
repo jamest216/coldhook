@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ColdHook — Seniority Divergence Patch</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #010102; color: #f7f8f8; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding: 32px 24px; min-height: 100vh; }
+  h1 { font-size: 20px; font-weight: 700; color: #f7f8f8; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #8a8f98; margin-bottom: 12px; }
+  .context-note { font-size: 12px; color: #62666d; margin-bottom: 32px; padding: 12px 16px; border: 1px solid #23252a; border-radius: 8px; background: #0f1011; line-height: 1.8; }
+  .context-note strong { color: #8a8f98; }
+  .context-note code { font-family: "SF Mono", "Fira Code", monospace; font-size: 11px; color: #828fff; background: rgba(94,106,210,0.1); padding: 1px 5px; border-radius: 3px; }
+
+  .prompt-card { background: #0f1011; border: 1px solid #23252a; border-radius: 12px; overflow: hidden; }
+  .card-header { padding: 16px 20px; border-bottom: 1px solid #23252a; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .card-meta { display: flex; align-items: center; gap: 10px; }
+  .num { width: 24px; height: 24px; border-radius: 6px; background: rgba(94,106,210,0.15); border: 1px solid rgba(94,106,210,0.25); color: #828fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .card-title { font-size: 14px; font-weight: 600; color: #f7f8f8; }
+  .card-sub { font-size: 12px; color: #8a8f98; margin-top: 2px; }
+  .model-badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+  .model-claude { background: rgba(255,128,31,0.12); border: 1px solid rgba(255,128,31,0.25); color: #ff801f; }
+
+  .card-body { padding: 16px 20px; }
+  .why { font-size: 12px; color: #8a8f98; line-height: 1.6; margin-bottom: 14px; }
+
+  pre { background: #0a0a0b; border: 1px solid #23252a; border-radius: 8px; padding: 16px; font-size: 12px; line-height: 1.65; color: #d0d6e0; white-space: pre-wrap; word-break: break-word; font-family: "SF Mono", "Fira Code", monospace; max-height: 560px; overflow-y: auto; }
+
+  .copy-btn { margin-top: 12px; width: 100%; padding: 9px 0; border-radius: 8px; border: 1px solid #34343a; background: #141516; color: #d0d6e0; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+  .copy-btn:hover { background: #1e1f22; border-color: #5e6ad2; color: #828fff; }
+  .copy-btn.copied { background: rgba(39,166,68,0.1); border-color: rgba(39,166,68,0.3); color: #27a644; }
+</style>
+</head>
+<body>
+
+<h1>ColdHook — Seniority Divergence Patch</h1>
+<p class="subtitle">1 prompt · Two targeted string replacements in route.ts</p>
+
+<p class="context-note">
+  <strong>Problem:</strong> VP and CEO emails for the same trigger feel too similar because the seniority focus strings tell the model what to focus on but don't prevent it from bleeding across levels. The VP email said "ramp curves become the Series C story" (C-suite language). The CEO email referenced "pipeline velocity without adding headcount" (VP language). The insight stage is conflating job functions.<br><br>
+  <strong>Fix:</strong> Two targeted string replacements in the <code>seniorityFocus</code> record inside <code>generateInsight()</code> and the <code>seniorityAbstraction</code> record inside <code>buildDraftPrompt()</code>. Each seniority level gets an explicit prohibition alongside its focus instruction — not more rules, just accuracy about what each role actually owns. The goal is wider divergence between levels while preserving creative latitude within each level.
+</p>
+
+<div class="prompt-card">
+  <div class="card-header">
+    <div class="card-meta">
+      <div class="num">1</div>
+      <div>
+        <div class="card-title">Seniority Divergence Patch</div>
+        <div class="card-sub">src/app/api/generate/route.ts — two record replacements only</div>
+      </div>
+    </div>
+    <span class="model-badge model-claude">Claude (terminal)</span>
+  </div>
+  <div class="card-body">
+    <p class="why">Two targeted replacements. Do not touch anything else in the file.</p>
+    <pre id="p1">You are working on ColdHook, a Next.js 16 App Router TypeScript project.
+
+File to edit: src/app/api/generate/route.ts
+
+Make exactly 2 targeted replacements. Do not touch anything else.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REPLACEMENT 1 — seniorityFocus record inside generateInsight()
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find the seniorityFocus record inside generateInsight(). It currently has 4 entries (c_suite, vp, director, manager_ic). Replace the entire record with this version — the focus instructions stay the same but each level now has an explicit prohibition that prevents job-function bleed:
+
+  const seniorityFocus: Record<SeniorityLevel, string> = {
+    c_suite: `This is a ${fields.title}. Frame the implication at the STRATEGIC level: board narrative, competitive position, company valuation, and the 18-month growth trajectory. Think about what their board will be measuring and what this trigger means for how they'll be judged.
+
+NEVER produce implications about: AE ramp time, rep productivity, SDR hiring, team-level pipeline metrics, sales onboarding, or operational GTM mechanics. Those are VP-level concerns. The CEO does not own the quarter — they own the story of the company.`,
+
+    vp: `This is a VP-level leader who owns a function and has to scale it. Frame the implication at the OPERATIONAL level: hiring and ramp pressure, quota and coverage math, systems that break under headcount growth, the gap between what leadership expects and what the current stack can deliver.
+
+NEVER produce board-level or valuation framing. The VP does not own the Series C story — they own the next two quarters. Focus entirely on what this trigger means for their function's execution, not for the company's strategic narrative.`,
+
+    director: `This is a Director focused on delivering their team's number. Frame the implication at the PRACTICAL level: a specific process problem, a team execution challenge, something that makes the next quarter easier or harder. Outcome-oriented and concrete.
+
+NEVER produce C-suite strategy or VP-level scaling framing. Directors are not worried about board decks or headcount plans — they are worried about hitting their number with the team they have.`,
+
+    manager_ic: `This is a Manager or individual contributor. Frame the implication at the TACTICAL level: their day-to-day workflow, a specific skill or tool problem, something that removes friction or saves time. Be specific and concrete.
+
+NEVER produce strategic or scaling language. This person cares about their own output, not the company's growth narrative.`,
+  }
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REPLACEMENT 2 — seniorityAbstraction record inside buildDraftPrompt()
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find the seniorityAbstraction record inside buildDraftPrompt(). Replace the entire record with this version:
+
+  const seniorityAbstraction: Record<SeniorityLevel, string> = {
+    c_suite: `SENIORITY — C-SUITE (${fields.title}): Write at the highest level of abstraction. The email should feel like a peer note from someone who understands the board conversation they're about to have — not a vendor pitching a tool.
+
+Lead with: board narrative, competitive moat, valuation story, 18-month horizon, what this trigger means for how investors will evaluate the company.
+Use: peer social proof referencing other CEOs, founders, or C-suite leaders. One strategic outcome only — no metrics about individual reps or team-level productivity.
+
+NEVER write about: AE ramp time, SDR hiring, rep productivity, team onboarding, pipeline coverage by rep, or any operational sales metric. If the insight stage produced something at this level, reframe it upward — what does that operational pressure mean for the board story?`,
+
+    vp: `SENIORITY — VP (${fields.title}): Write at the operational level. This person owns a function and is measured on scaling it — the email should speak to that pressure directly.
+
+Lead with: the gap between what leadership now expects and what the current system can deliver, hiring and ramp timelines, quota coverage under growth, the specific mechanics of scaling their function.
+Use: social proof from similar companies at the same stage ("a Series B sales team," "a VP in the same seat"). Operational outcomes — time saved, ramp reduced, pipeline contribution accelerated.
+
+NEVER write board-level abstraction, valuation language, or investor narrative. The VP is not thinking about Series C — they are thinking about Q3.`,
+
+    director: `SENIORITY — DIRECTOR (${fields.title}): Write at the practical execution level. This person cares about delivering results with the team they have right now.
+
+Lead with: a specific process friction, a team execution challenge, what makes the next quarter harder or easier. Ground the value prop in a concrete operational outcome.
+Use: specific numbers and timeframes. Social proof from similar teams.
+
+NEVER write about board narratives, company valuation, headcount scaling plans, or abstract strategy.`,
+
+    manager_ic: `SENIORITY — MANAGER/IC (${fields.title}): Write at the individual workflow level. Keep it specific and tactically useful.
+
+Lead with: how this affects their day-to-day, a friction point in their current process, something they'd recognize from their own experience.
+Use: direct and conversational language. Technical specificity is welcome.
+
+NEVER write about company strategy, team scaling, or board-level concerns.`,
+  }
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VERIFICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+After both replacements:
+1. Run: npx tsc --noEmit — fix any TypeScript errors
+2. Confirm no other code was changed
+3. Confirm seniorityFocus is inside generateInsight() and seniorityAbstraction is inside buildDraftPrompt() — they are two separate records in two separate functions, do not merge them</pre>
+    <button class="copy-btn" id="btn1" onclick="copyPrompt('p1', 'btn1', 'Copy Prompt')">Copy Prompt</button>
+  </div>
+</div>
+
+<script>
+function copyPrompt(preId, btnId, label) {
+  const el = document.getElementById(preId)
+  navigator.clipboard.writeText(el.innerText).then(() => {
+    const btn = document.getElementById(btnId)
+    btn.textContent = "✓ Copied!"
+    btn.classList.add("copied")
+    setTimeout(() => {
+      btn.textContent = label
+      btn.classList.remove("copied")
+    }, 2000)
+  })
+}
+</script>
+</body>
+</html>

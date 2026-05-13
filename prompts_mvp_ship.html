@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ColdHook — MVP Ship Prompts</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #010102; color: #f7f8f8; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding: 32px 24px; min-height: 100vh; }
+  h1 { font-size: 20px; font-weight: 700; color: #f7f8f8; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #8a8f98; margin-bottom: 12px; }
+  .context-note { font-size: 12px; color: #62666d; margin-bottom: 32px; padding: 12px 16px; border: 1px solid #23252a; border-radius: 8px; background: #0f1011; line-height: 1.6; }
+  .context-note strong { color: #8a8f98; }
+
+  .prompt-card { background: #0f1011; border: 1px solid #23252a; border-radius: 12px; margin-bottom: 24px; overflow: hidden; }
+  .card-header { padding: 16px 20px; border-bottom: 1px solid #23252a; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .card-meta { display: flex; align-items: center; gap: 10px; }
+  .num { width: 24px; height: 24px; border-radius: 6px; background: rgba(94,106,210,0.15); border: 1px solid rgba(94,106,210,0.25); color: #828fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .card-title { font-size: 14px; font-weight: 600; color: #f7f8f8; }
+  .card-sub { font-size: 12px; color: #8a8f98; margin-top: 2px; }
+  .model-badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+  .model-claude { background: rgba(255,128,31,0.12); border: 1px solid rgba(255,128,31,0.25); color: #ff801f; }
+
+  .card-body { padding: 16px 20px; }
+  .why { font-size: 12px; color: #8a8f98; line-height: 1.6; margin-bottom: 14px; }
+  .why strong { color: #d0d6e0; }
+
+  pre { background: #0a0a0b; border: 1px solid #23252a; border-radius: 8px; padding: 16px; font-size: 12px; line-height: 1.65; color: #d0d6e0; white-space: pre-wrap; word-break: break-word; font-family: "SF Mono", "Fira Code", monospace; max-height: 500px; overflow-y: auto; }
+
+  .copy-btn { margin-top: 12px; width: 100%; padding: 9px 0; border-radius: 8px; border: 1px solid #34343a; background: #141516; color: #d0d6e0; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+  .copy-btn:hover { background: #1e1f22; border-color: #5e6ad2; color: #828fff; }
+  .copy-btn.copied { background: rgba(39,166,68,0.1); border-color: rgba(39,166,68,0.3); color: #27a644; }
+</style>
+</head>
+<body>
+
+<h1>ColdHook — MVP Ship Prompts</h1>
+<p class="subtitle">2 prompts · Get the product ready for real testers</p>
+<p class="context-note">
+  <strong>Goal:</strong> Fix the two things that would confuse or mislead a real user before you share the link widely.<br><br>
+  <strong>Prompt 1</strong> cleans up the landing page — fixes the one broken pricing CTA, updates the "Claude 3.5 Sonnet" badge to something accurate, and removes the fake social proof numbers that will hurt credibility with SDRs who know it's day one.<br><br>
+  <strong>Prompt 2</strong> fixes the Send button on the compose page — it currently does nothing when clicked, which is confusing. Add a tooltip that sets expectations correctly.
+</p>
+
+<!-- PROMPT 1: Landing page cleanup -->
+<div class="prompt-card">
+  <div class="card-header">
+    <div class="card-meta">
+      <div class="num">1</div>
+      <div>
+        <div class="card-title">Landing Page Cleanup</div>
+        <div class="card-sub">hero.tsx + pricing.tsx — fix badge, broken CTA, fake social proof</div>
+      </div>
+    </div>
+    <span class="model-badge model-claude">Claude (terminal)</span>
+  </div>
+  <div class="card-body">
+    <p class="why">Three small edits across two existing landing components. Claude handles multi-file landing component edits cleanly.</p>
+    <pre id="p1">You are working on ColdHook, a Next.js 16 App Router TypeScript project.
+
+Make the following 3 targeted changes. Do not touch anything else.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 1 — src/components/landing/hero.tsx
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Fix 1a — Update the announcement pill badge text.
+
+Find:
+  Powered by Claude 3.5 Sonnet
+
+Replace with:
+  Powered by Claude AI
+
+Fix 1b — Replace the fake social proof row entirely.
+
+Find and remove this entire block (the div containing the fake user avatars, star rating, and reply rate):
+  <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-[#62666d]">
+    <div className="flex items-center gap-1.5">
+      <div className="flex -space-x-1.5">
+        {["JD", "SK", "MR", "TL", "AP"].map((init) => (
+          ...
+        ))}
+      </div>
+      <span>2,400+ SDRs & AEs</span>
+    </div>
+    <div className="flex items-center gap-1">
+      {[1,2,3,4,5].map(i => <Star key={i} ... />)}
+      <span className="ml-1">4.9/5 rating</span>
+    </div>
+    <div className="flex items-center gap-1.5">
+      <TrendingUp className="size-3 text-[#27a644]" />
+      <span>34% avg reply rate</span>
+    </div>
+  </div>
+
+Replace with this honest beta badge:
+  <div className="flex items-center justify-center gap-2">
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(39,166,68,0.3)] bg-[rgba(39,166,68,0.08)] px-3 py-1 text-xs text-[#27a644]">
+      <span className="size-1.5 rounded-full bg-[#27a644] animate-pulse" />
+      Now in beta — free early access
+    </span>
+  </div>
+
+After this change, check if Star and TrendingUp are still used anywhere else in hero.tsx. If not, remove them from the import line at the top of the file.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 2 — src/components/landing/pricing.tsx
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The Team plan "Contact sales" button incorrectly routes to /dashboard. Fix it to open a mailto link instead.
+
+Find:
+  <Link href={plan.name === "Team" ? "/dashboard" : "/sign-up"}>{plan.cta}</Link>
+
+Replace with:
+  <Link href={plan.name === "Team" ? "mailto:james.ct216@gmail.com?subject=ColdHook Team Plan" : "/sign-up"}>{plan.cta}</Link>
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+After making all changes, run: npx tsc --noEmit
+Fix any TypeScript errors before finishing.</pre>
+    <button class="copy-btn" id="btn1" onclick="copyPrompt('p1', 'btn1', 'Copy Prompt 1')">Copy Prompt 1</button>
+  </div>
+</div>
+
+<!-- PROMPT 2: Send button tooltip -->
+<div class="prompt-card">
+  <div class="card-header">
+    <div class="card-meta">
+      <div class="num">2</div>
+      <div>
+        <div class="card-title">Compose — Send Button Tooltip</div>
+        <div class="card-sub">Disable the Send button and explain why with a tooltip</div>
+      </div>
+    </div>
+    <span class="model-badge model-claude">Claude (terminal)</span>
+  </div>
+  <div class="card-body">
+    <p class="why">Existing complex client component — the Send button currently does nothing on click, which will confuse real testers. A tooltip sets honest expectations without removing the UI.</p>
+    <pre id="p2">You are working on ColdHook, a Next.js 16 App Router TypeScript project.
+
+File to edit: src/app/(app)/compose/page.tsx
+
+The Send button in the generated email output panel currently does nothing when clicked. Testers will click it and expect an email to send. Fix this by wrapping it in a Tooltip that explains email sending is coming soon.
+
+STEP 1 — Add Tooltip imports.
+
+The file currently imports from lucide-react and various @/components/ui files. Add the Tooltip imports by finding the existing ui import block and adding:
+  import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+
+STEP 2 — Find the Send button. It looks like this:
+  <Button variant="email" size="sm" className="h-7 text-xs gap-1.5">
+    <Send className="size-3" />
+    Send
+  </Button>
+
+Replace it with a disabled button wrapped in a tooltip:
+  <TooltipProvider delayDuration={0}>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span>
+          <Button
+            variant="email"
+            size="sm"
+            className="h-7 text-xs gap-1.5 opacity-40 cursor-not-allowed"
+            disabled
+          >
+            <Send className="size-3" />
+            Send
+          </Button>
+        </span>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="text-xs">
+        Email sending coming soon — copy your email above for now
+      </TooltipContent>
+    </Tooltip>
+  </TooltipProvider>
+
+Note: The TooltipTrigger needs a wrapping span because disabled buttons don't fire pointer events, which prevents the tooltip from showing.
+
+STEP 3 — After making the change, run: npx tsc --noEmit
+Fix any TypeScript errors before finishing.</pre>
+    <button class="copy-btn" id="btn2" onclick="copyPrompt('p2', 'btn2', 'Copy Prompt 2')">Copy Prompt 2</button>
+  </div>
+</div>
+
+<script>
+function copyPrompt(preId, btnId, label) {
+  const el = document.getElementById(preId)
+  navigator.clipboard.writeText(el.innerText).then(() => {
+    const btn = document.getElementById(btnId)
+    btn.textContent = "✓ Copied!"
+    btn.classList.add("copied")
+    setTimeout(() => {
+      btn.textContent = label
+      btn.classList.remove("copied")
+    }, 2000)
+  })
+}
+</script>
+</body>
+</html>

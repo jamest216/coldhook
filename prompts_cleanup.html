@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ColdHook — Cleanup</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #010102; color: #f7f8f8; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding: 32px 24px; min-height: 100vh; }
+  h1 { font-size: 20px; font-weight: 700; color: #f7f8f8; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #8a8f98; margin-bottom: 32px; }
+  .prompt-card { background: #0f1011; border: 1px solid #23252a; border-radius: 12px; overflow: hidden; }
+  .card-header { padding: 16px 20px; border-bottom: 1px solid #23252a; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .card-meta { display: flex; align-items: center; gap: 10px; }
+  .num { width: 24px; height: 24px; border-radius: 6px; background: rgba(94,106,210,0.15); border: 1px solid rgba(94,106,210,0.25); color: #828fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .card-title { font-size: 14px; font-weight: 600; color: #f7f8f8; }
+  .card-sub { font-size: 12px; color: #8a8f98; margin-top: 2px; }
+  .model-badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; flex-shrink: 0; background: rgba(255,128,31,0.12); border: 1px solid rgba(255,128,31,0.25); color: #ff801f; }
+  .card-body { padding: 16px 20px; }
+  .why { font-size: 12px; color: #8a8f98; line-height: 1.6; margin-bottom: 14px; }
+  pre { background: #0a0a0b; border: 1px solid #23252a; border-radius: 8px; padding: 16px; font-size: 12px; line-height: 1.65; color: #d0d6e0; white-space: pre-wrap; word-break: break-word; font-family: "SF Mono", "Fira Code", monospace; }
+  .copy-btn { margin-top: 12px; width: 100%; padding: 9px 0; border-radius: 8px; border: 1px solid #34343a; background: #141516; color: #d0d6e0; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+  .copy-btn:hover { background: #1e1f22; border-color: #5e6ad2; color: #828fff; }
+  .copy-btn.copied { background: rgba(39,166,68,0.1); border-color: rgba(39,166,68,0.3); color: #27a644; }
+</style>
+</head>
+<body>
+
+<h1>ColdHook — Cleanup</h1>
+<p class="subtitle">1 prompt · Delete stale middleware.ts left by a previous session</p>
+
+<div class="prompt-card">
+  <div class="card-header">
+    <div class="card-meta">
+      <div class="num">1</div>
+      <div>
+        <div class="card-title">Delete src/middleware.ts</div>
+        <div class="card-sub">Next.js 16 uses proxy.ts — middleware.ts is the deprecated convention and should not exist alongside proxy.ts</div>
+      </div>
+    </div>
+    <span class="model-badge">Claude (terminal)</span>
+  </div>
+  <div class="card-body">
+    <p class="why">A previous session created src/middleware.ts by mistake. Next.js 16 changed the middleware file convention to proxy.ts — the correct file already exists at src/proxy.ts with the full Clerk auth logic. Having both files causes a deprecation warning on every dev server start. Delete the stale one.</p>
+    <pre id="p1">You are working on ColdHook, a Next.js 16 App Router TypeScript project.
+
+Delete the file src/middleware.ts — it is a stale file created by mistake.
+
+The correct middleware is already at src/proxy.ts which uses the Next.js 16 "proxy" file convention. Both files must not coexist.
+
+Steps:
+1. Confirm src/proxy.ts exists and is non-empty before deleting anything
+2. Delete src/middleware.ts
+3. Run: npx tsc --noEmit — confirm no TypeScript errors
+4. Confirm src/middleware.ts no longer exists
+5. Confirm src/proxy.ts still exists and is unchanged</pre>
+    <button class="copy-btn" id="btn1" onclick="copyPrompt('p1', 'btn1')">Copy Prompt</button>
+  </div>
+</div>
+
+<script>
+function copyPrompt(preId, btnId) {
+  const el = document.getElementById(preId)
+  navigator.clipboard.writeText(el.innerText).then(() => {
+    const btn = document.getElementById(btnId)
+    btn.textContent = "✓ Copied!"
+    btn.classList.add("copied")
+    setTimeout(() => { btn.textContent = "Copy Prompt"; btn.classList.remove("copied") }, 2000)
+  })
+}
+</script>
+</body>
+</html>

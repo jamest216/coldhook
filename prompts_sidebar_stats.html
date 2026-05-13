@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ColdHook — Sidebar Stats Prompts</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #010102; color: #f7f8f8; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding: 32px 24px; min-height: 100vh; }
+  h1 { font-size: 20px; font-weight: 700; color: #f7f8f8; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #8a8f98; margin-bottom: 36px; }
+
+  .prompt-card { background: #0f1011; border: 1px solid #23252a; border-radius: 12px; margin-bottom: 24px; overflow: hidden; }
+  .card-header { padding: 16px 20px; border-bottom: 1px solid #23252a; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .card-meta { display: flex; align-items: center; gap: 10px; }
+  .num { width: 24px; height: 24px; border-radius: 6px; background: rgba(94,106,210,0.15); border: 1px solid rgba(94,106,210,0.25); color: #828fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .card-title { font-size: 14px; font-weight: 600; color: #f7f8f8; }
+  .card-sub { font-size: 12px; color: #8a8f98; margin-top: 2px; }
+  .model-badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+  .model-claude { background: rgba(255,128,31,0.12); border: 1px solid rgba(255,128,31,0.25); color: #ff801f; }
+  .model-deepseek { background: rgba(94,106,210,0.12); border: 1px solid rgba(94,106,210,0.25); color: #828fff; }
+
+  .card-body { padding: 16px 20px; }
+  .why { font-size: 12px; color: #8a8f98; line-height: 1.6; margin-bottom: 14px; }
+  .why strong { color: #d0d6e0; }
+
+  pre { background: #0a0a0b; border: 1px solid #23252a; border-radius: 8px; padding: 16px; font-size: 12px; line-height: 1.65; color: #d0d6e0; white-space: pre-wrap; word-break: break-word; font-family: "SF Mono", "Fira Code", monospace; max-height: 480px; overflow-y: auto; }
+
+  .copy-btn { margin-top: 12px; width: 100%; padding: 9px 0; border-radius: 8px; border: 1px solid #34343a; background: #141516; color: #d0d6e0; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+  .copy-btn:hover { background: #1e1f22; border-color: #5e6ad2; color: #828fff; }
+  .copy-btn.copied { background: rgba(39,166,68,0.1); border-color: rgba(39,166,68,0.3); color: #27a644; }
+  .order-note { font-size: 12px; color: #62666d; margin-bottom: 24px; padding: 10px 14px; border: 1px solid #23252a; border-radius: 8px; background: #0f1011; }
+  .order-note strong { color: #8a8f98; }
+</style>
+</head>
+<body>
+
+<h1>ColdHook — Sidebar Stats Prompts</h1>
+<p class="subtitle">2 prompts · Run in order</p>
+<p class="order-note"><strong>Order matters:</strong> Run Prompt 1 (DeepSeek) first to extend the API, then Prompt 2 (Claude) to wire the sidebar to it.</p>
+
+<!-- PROMPT 1: Extend stats API -->
+<div class="prompt-card">
+  <div class="card-header">
+    <div class="card-meta">
+      <div class="num">1</div>
+      <div>
+        <div class="card-title">Extend /api/stats Route</div>
+        <div class="card-sub">Add reply rate + prospects count to the stats endpoint</div>
+      </div>
+    </div>
+    <span class="model-badge model-deepseek">DeepSeek</span>
+  </div>
+  <div class="card-body">
+    <p class="why">Simple backend file — add 2 queries and return new fields. Greenfield-style edit, good for DeepSeek.</p>
+    <pre id="p1">You are working on ColdHook, a Next.js 16 App Router TypeScript project. Stack: Next.js 16, TypeScript, Drizzle ORM, Supabase (Postgres), Clerk v5, AI SDK v6.
+
+File to edit: src/app/api/stats/route.ts
+
+Current file contents:
+  import { auth } from '@clerk/nextjs/server'
+  import { db } from '@/lib/db'
+  import { emails } from '@/lib/db/schema'
+  import { eq, count, gte, and } from 'drizzle-orm'
+
+  export async function GET() {
+    try {
+      const { userId } = await auth()
+      if (!userId) {
+        return Response.json({ emailsTotal: 0, emailsThisMonth: 0 })
+      }
+      const thisMonthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+      const [totalRows, monthRows] = await Promise.all([
+        db.select({ count: count() }).from(emails).where(eq(emails.userId, userId)),
+        db.select({ count: count() }).from(emails).where(and(eq(emails.userId, userId), gte(emails.createdAt, thisMonthStart))),
+      ])
+      return Response.json({
+        emailsTotal: totalRows[0]?.count ?? 0,
+        emailsThisMonth: monthRows[0]?.count ?? 0,
+      })
+    } catch {
+      return Response.json({ emailsTotal: 0, emailsThisMonth: 0 })
+    }
+  }
+
+Make the following changes:
+
+1. Add prospects to the import:
+   Change: import { emails } from '@/lib/db/schema'
+   To:     import { emails, prospects } from '@/lib/db/schema'
+
+2. Expand the Promise.all from 2 queries to 4 — add:
+   - A count of emails where status = 'replied' (for reply rate numerator)
+   - A count of prospects added this month (for prospects stat)
+
+   Final Promise.all:
+     const [totalRows, monthRows, repliedRows, prospectsMonthRows] = await Promise.all([
+       db.select({ count: count() }).from(emails).where(eq(emails.userId, userId)),
+       db.select({ count: count() }).from(emails).where(and(eq(emails.userId, userId), gte(emails.createdAt, thisMonthStart))),
+       db.select({ count: count() }).from(emails).where(and(eq(emails.userId, userId), eq(emails.status, 'replied'))),
+       db.select({ count: count() }).from(prospects).where(and(eq(prospects.userId, userId), gte(prospects.createdAt, thisMonthStart))),
+     ])
+
+3. Compute reply rate after the queries:
+     const emailsTotal = totalRows[0]?.count ?? 0
+     const repliedCount = repliedRows[0]?.count ?? 0
+     const replyRate = emailsTotal > 0
+       ? parseFloat(((repliedCount / emailsTotal) * 100).toFixed(1))
+       : null
+
+4. Return the expanded response:
+     return Response.json({
+       emailsTotal,
+       emailsThisMonth: monthRows[0]?.count ?? 0,
+       replyRate,         // number | null  (null = no emails yet)
+       prospectsThisMonth: prospectsMonthRows[0]?.count ?? 0,
+     })
+
+5. Update the fallback return (the catch block and the unauthenticated early return) to also include the new fields with safe defaults:
+     return Response.json({ emailsTotal: 0, emailsThisMonth: 0, replyRate: null, prospectsThisMonth: 0 })
+
+After editing, run: npx tsc --noEmit
+Fix any TypeScript errors before finishing.</pre>
+    <button class="copy-btn" id="btn1" onclick="copyPrompt('p1', 'btn1', 'Copy Prompt 1')">Copy Prompt 1</button>
+  </div>
+</div>
+
+<!-- PROMPT 2: Sidebar wiring -->
+<div class="prompt-card">
+  <div class="card-header">
+    <div class="card-meta">
+      <div class="num">2</div>
+      <div>
+        <div class="card-title">Wire Sidebar to Real Stats</div>
+        <div class="card-sub">Replace hardcoded Reply Rate / Meetings Booked in app-sidebar.tsx</div>
+      </div>
+    </div>
+    <span class="model-badge model-claude">Claude (terminal)</span>
+  </div>
+  <div class="card-body">
+    <p class="why">Existing complex client component with Clerk hooks, Radix UI, and custom StatRow — Claude is better at modifying large files without breaking surrounding code.</p>
+    <pre id="p2">You are working on ColdHook, a Next.js 16 App Router TypeScript project. Stack: Next.js 16, TypeScript, Tailwind CSS v4, Clerk v5, Radix UI.
+
+File to edit: src/components/layout/app-sidebar.tsx
+
+The /api/stats GET endpoint has been updated and now returns:
+  {
+    emailsTotal: number,
+    emailsThisMonth: number,
+    replyRate: number | null,   // null means no emails sent yet
+    prospectsThisMonth: number
+  }
+
+Make the following two changes only — do not touch anything else in the file:
+
+CHANGE 1 — Update the state type and state variable.
+
+Find this line:
+  const [emailStats, setEmailStats] = useState<{ emailsTotal: number; emailsThisMonth: number } | null>(null)
+
+Replace with:
+  const [emailStats, setEmailStats] = useState<{
+    emailsTotal: number
+    emailsThisMonth: number
+    replyRate: number | null
+    prospectsThisMonth: number
+  } | null>(null)
+
+CHANGE 2 — Replace the three hardcoded StatRow lines inside the "This Month" stats block.
+
+Find:
+  &lt;StatRow
+    label="Emails Sent"
+    value={emailStats ? emailStats.emailsTotal.toLocaleString() : '—'}
+    trend={emailStats && emailStats.emailsThisMonth > 0 ? `+${emailStats.emailsThisMonth} mo` : '—'}
+  /&gt;
+  &lt;StatRow label="Reply Rate" value="34.2%" trend="+5.1%" /&gt;
+  &lt;StatRow label="Meetings Booked" value="28" trend="+8" /&gt;
+
+Replace with:
+  &lt;StatRow
+    label="Emails Sent"
+    value={emailStats ? emailStats.emailsTotal.toLocaleString() : '—'}
+    trend={emailStats && emailStats.emailsThisMonth > 0 ? `+${emailStats.emailsThisMonth} mo` : undefined}
+  /&gt;
+  &lt;StatRow
+    label="Reply Rate"
+    value={emailStats ? (emailStats.replyRate !== null ? `${emailStats.replyRate}%` : '—') : '—'}
+    trend={emailStats?.replyRate !== null && emailStats?.replyRate !== undefined ? 'vs 8% avg' : undefined}
+  /&gt;
+  &lt;StatRow
+    label="Meetings Booked"
+    value="—"
+    trend={undefined}
+  /&gt;
+
+CHANGE 3 — The StatRow component signature currently expects trend as a string. Update it to accept string | undefined so the undefined trend values above don't cause TypeScript errors.
+
+Find:
+  function StatRow({ label, value, trend }: { label: string; value: string; trend: string }) {
+    return (
+      &lt;div className="flex items-center justify-between"&gt;
+        &lt;span className="text-xs text-[#62666d]"&gt;{label}&lt;/span&gt;
+        &lt;div className="flex items-center gap-1.5"&gt;
+          &lt;span className="text-xs font-medium text-[#d0d6e0]"&gt;{value}&lt;/span&gt;
+          &lt;span className="text-[10px] text-[#27a644]"&gt;{trend}&lt;/span&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    )
+  }
+
+Replace with:
+  function StatRow({ label, value, trend }: { label: string; value: string; trend?: string }) {
+    return (
+      &lt;div className="flex items-center justify-between"&gt;
+        &lt;span className="text-xs text-[#62666d]"&gt;{label}&lt;/span&gt;
+        &lt;div className="flex items-center gap-1.5"&gt;
+          &lt;span className="text-xs font-medium text-[#d0d6e0]"&gt;{value}&lt;/span&gt;
+          {trend &amp;&amp; &lt;span className="text-[10px] text-[#27a644]"&gt;{trend}&lt;/span&gt;}
+        &lt;/div&gt;
+      &lt;/div&gt;
+    )
+  }
+
+After making all changes, run: npx tsc --noEmit
+Fix any TypeScript errors before finishing.</pre>
+    <button class="copy-btn" id="btn2" onclick="copyPrompt('p2', 'btn2', 'Copy Prompt 2')">Copy Prompt 2</button>
+  </div>
+</div>
+
+<script>
+function copyPrompt(preId, btnId, label) {
+  const el = document.getElementById(preId)
+  navigator.clipboard.writeText(el.innerText).then(() => {
+    const btn = document.getElementById(btnId)
+    btn.textContent = "✓ Copied!"
+    btn.classList.add("copied")
+    setTimeout(() => {
+      btn.textContent = label
+      btn.classList.remove("copied")
+    }, 2000)
+  })
+}
+</script>
+</body>
+</html>

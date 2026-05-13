@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ColdHook — Tour Fixes</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #010102; color: #f7f8f8; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding: 32px 24px; min-height: 100vh; }
+  h1 { font-size: 20px; font-weight: 700; color: #f7f8f8; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #8a8f98; margin-bottom: 12px; }
+  .context-note { font-size: 12px; color: #62666d; margin-bottom: 32px; padding: 12px 16px; border: 1px solid #23252a; border-radius: 8px; background: #0f1011; line-height: 1.8; }
+  .context-note strong { color: #8a8f98; }
+  .context-note code { font-family: "SF Mono", "Fira Code", monospace; font-size: 11px; color: #828fff; background: rgba(94,106,210,0.1); padding: 1px 5px; border-radius: 3px; }
+  .order-note { font-size: 12px; color: #62666d; margin-bottom: 24px; padding: 10px 14px; border: 1px solid #23252a; border-radius: 8px; background: #0f1011; }
+  .order-note strong { color: #8a8f98; }
+
+  .prompt-card { background: #0f1011; border: 1px solid #23252a; border-radius: 12px; margin-bottom: 24px; overflow: hidden; }
+  .card-header { padding: 16px 20px; border-bottom: 1px solid #23252a; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .card-meta { display: flex; align-items: center; gap: 10px; }
+  .num { width: 24px; height: 24px; border-radius: 6px; background: rgba(94,106,210,0.15); border: 1px solid rgba(94,106,210,0.25); color: #828fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .card-title { font-size: 14px; font-weight: 600; color: #f7f8f8; }
+  .card-sub { font-size: 12px; color: #8a8f98; margin-top: 2px; }
+  .model-badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; flex-shrink: 0; background: rgba(255,128,31,0.12); border: 1px solid rgba(255,128,31,0.25); color: #ff801f; }
+
+  .card-body { padding: 16px 20px; }
+  .why { font-size: 12px; color: #8a8f98; line-height: 1.6; margin-bottom: 14px; }
+
+  pre { background: #0a0a0b; border: 1px solid #23252a; border-radius: 8px; padding: 16px; font-size: 12px; line-height: 1.65; color: #d0d6e0; white-space: pre-wrap; word-break: break-word; font-family: "SF Mono", "Fira Code", monospace; max-height: 680px; overflow-y: auto; }
+
+  .copy-btn { margin-top: 12px; width: 100%; padding: 9px 0; border-radius: 8px; border: 1px solid #34343a; background: #141516; color: #d0d6e0; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+  .copy-btn:hover { background: #1e1f22; border-color: #5e6ad2; color: #828fff; }
+  .copy-btn.copied { background: rgba(39,166,68,0.1); border-color: rgba(39,166,68,0.3); color: #27a644; }
+</style>
+</head>
+<body>
+
+<h1>ColdHook — Onboarding Tour Fixes</h1>
+<p class="subtitle">2 prompts · Run in order</p>
+
+<p class="context-note">
+  <strong>Problems being fixed:</strong><br><br>
+  <strong>1. Overlay too opaque (all steps):</strong> The dark surround at <code>rgba(1,1,2,0.85)</code> makes the page feel completely hidden. Reduce to <code>rgba(1,1,2,0.72)</code> so the user can see the app context around the spotlight.<br><br>
+  <strong>2. Bubble clips off screen bottom (Email Settings step):</strong> The bubble always renders below the spotlight. When the target element is low in the viewport (e.g. Email Settings card), the bubble overflows below the visible area. Fix: after calculating position, check if the bubble would overflow the viewport bottom — if so, flip it above the spotlight. Also clamp the final position so it can never escape the viewport.<br><br>
+  <strong>3. Steps 5 &amp; 6 have no spotlight (pipeline panel / sequence):</strong> These elements only exist in the DOM after email generation. When the tour advances to those steps, the DOM query fires before the element has mounted. Fix: retry the DOM query up to 8 times with 150ms intervals until the element appears. Also, compose.tsx must auto-open the pipeline panel when the tour reaches the pipeline-panel step (so the card is expanded and scrolled into view), and pass an <code>onStepChange</code> callback prop into OnboardingTour for this purpose.<br><br>
+  <strong>4. Generate step should block Next until generation completes:</strong> The user can click Next on the Generate step without actually generating, sending them to step 5 with no email and no spotlight. The Next button on the generate-btn step should be disabled and relabeled "Generate first →" when no email has been generated yet. The tour auto-advances from this step automatically after generation — the user does not click Next manually.
+</p>
+
+<p class="order-note"><strong>Order matters:</strong> Prompt 1 (tour.tsx) → Prompt 2 (compose/page.tsx). Do not skip steps.</p>
+
+<!-- PROMPT 1 -->
+<div class="prompt-card">
+  <div class="card-header">
+    <div class="card-meta">
+      <div class="num">1</div>
+      <div>
+        <div class="card-title">Fix OnboardingTour component</div>
+        <div class="card-sub">src/components/onboarding/tour.tsx — 4 targeted fixes</div>
+      </div>
+    </div>
+    <span class="model-badge">Claude (terminal)</span>
+  </div>
+  <div class="card-body">
+    <p class="why">Read the existing file fully before editing. Make only the changes described. Do not restructure or rewrite the component.</p>
+    <pre id="p1">You are working on ColdHook, a Next.js 16 App Router TypeScript project.
+
+File to edit: src/components/onboarding/tour.tsx
+
+Read the full file before making any changes. Make exactly the 4 fixes described below. Do not restructure the component.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIX 1 — Reduce overlay opacity
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+In the spotlight div's boxShadow style, change:
+  "0 0 0 9999px rgba(1,1,2,0.85)"
+to:
+  "0 0 0 9999px rgba(1,1,2,0.72)"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIX 2 — Add onStepChange prop + retry DOM query
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add an optional prop to the Props type:
+  onStepChange?: (stepIndex: number) => void
+
+Call it inside the useEffect that runs on currentStep change, BEFORE the DOM query:
+  props.onStepChange?.(currentStep)
+
+Then replace the single DOM query in the currentStep useEffect with a retry loop. The existing code queries the element once — replace that logic with:
+
+  let attempts = 0
+  const MAX_ATTEMPTS = 8
+  const RETRY_MS = 150
+
+  const tryFind = () => {
+    const el = document.querySelector(`[data-tour="${step.tourId}"]`)
+    if (el) {
+      const rect = el.getBoundingClientRect()
+      setSpotlightRect({ top: rect.top, left: rect.left, width: rect.width, height: rect.height })
+      el.scrollIntoView({ behavior: "smooth", block: "center" })
+    } else if (attempts < MAX_ATTEMPTS) {
+      attempts++
+      setTimeout(tryFind, RETRY_MS)
+    } else {
+      setSpotlightRect(null)
+    }
+  }
+
+  tryFind()
+
+Return the cleanup: return () => { attempts = MAX_ATTEMPTS } so retry stops if step changes before element is found.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIX 3 — Smart bubble positioning (prevent viewport overflow)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Replace the existing bubble position calculation block with this logic. The key change: after computing the initial position, check if the bubble would overflow the viewport bottom — if so, flip it above the spotlight. Then clamp the final value to always stay within the viewport.
+
+  const BUBBLE_HEIGHT_ESTIMATE = 160   // update this constant too — use 160 not 130
+
+  let bubbleTop: number
+  let bubbleLeft: number
+  let showAbove = false
+
+  if (spotlightRect) {
+    const spotlightBottom = spotlightRect.top + spotlightRect.height + 16
+    const wouldOverflowBottom = (spotlightBottom + BUBBLE_GAP + BUBBLE_HEIGHT_ESTIMATE) > (viewportHeight - 20)
+    const forceAbove = step.position === "top" || spotlightRect.top > viewportHeight * 0.6 || wouldOverflowBottom
+
+    showAbove = forceAbove
+
+    if (forceAbove) {
+      bubbleTop = spotlightRect.top - 8 - BUBBLE_GAP - BUBBLE_HEIGHT_ESTIMATE
+    } else {
+      bubbleTop = spotlightRect.top + spotlightRect.height + 16 + BUBBLE_GAP
+    }
+
+    const rawLeft = spotlightRect.left - 8
+    bubbleLeft = Math.max(16, Math.min(rawLeft, viewportWidth - BUBBLE_WIDTH - 16))
+  } else {
+    bubbleTop = viewportHeight / 2 - BUBBLE_HEIGHT_ESTIMATE / 2
+    bubbleLeft = viewportWidth / 2 - BUBBLE_WIDTH / 2
+  }
+
+  // Final clamp — bubble must always be fully on screen
+  bubbleTop = Math.max(12, Math.min(bubbleTop, viewportHeight - BUBBLE_HEIGHT_ESTIMATE - 12))
+  bubbleLeft = Math.max(12, Math.min(bubbleLeft, viewportWidth - BUBBLE_WIDTH - 12))
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FIX 4 — Export updated TourStep type (add optional disabled prop)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add an optional field to TourStep:
+  disableNext?: boolean   // when true, Next button is dimmed and non-functional
+
+In the bubble's Next button, apply this:
+  - If step.disableNext is true: render the button with opacity 0.4, cursor "not-allowed", and do NOT call onNext when clicked
+  - Label: step.nextLabel ?? "Next →"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VERIFICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Run: npx tsc --noEmit — fix all errors
+2. Confirm Props now includes onStepChange?: (stepIndex: number) => void
+3. Confirm TourStep now includes disableNext?: boolean
+4. Confirm the retry loop has a cleanup that stops retrying on unmount/step change
+5. Confirm BUBBLE_HEIGHT_ESTIMATE is 160 everywhere it is used</pre>
+    <button class="copy-btn" id="btn1" onclick="copyPrompt('p1', 'btn1')">Copy Prompt 1</button>
+  </div>
+</div>
+
+<!-- PROMPT 2 -->
+<div class="prompt-card">
+  <div class="card-header">
+    <div class="card-meta">
+      <div class="num">2</div>
+      <div>
+        <div class="card-title">Fix compose page tour wiring</div>
+        <div class="card-sub">src/app/(app)/compose/page.tsx — 3 targeted changes</div>
+      </div>
+    </div>
+    <span class="model-badge">Claude (terminal)</span>
+  </div>
+  <div class="card-body">
+    <p class="why">Read the full file before editing. Three targeted changes: disable Next on generate step, auto-open pipeline panel when tour reaches it, pass onStepChange to OnboardingTour.</p>
+    <pre id="p2">You are working on ColdHook, a Next.js 16 App Router TypeScript project.
+
+File to edit: src/app/(app)/compose/page.tsx
+
+Read the full file before making any changes. Make exactly the 3 changes described below.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 1 — Disable Next button on generate-btn step
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find the tourSteps array. Locate the step with tourId: "generate-btn". Update it to add disableNext when no email has been generated:
+
+The step currently looks like:
+  {
+    tourId: "generate-btn",
+    title: "Generate your email",
+    description: "...",
+    nextLabel: "Generate →",
+  }
+
+Replace the nextLabel and add disableNext. The step should be computed dynamically (not a static const array) so it can reference the `generated` state. Move the tourSteps array to inside the component function if it isn't already there, and make the generate-btn step use:
+  nextLabel: generated ? "Next →" : "Generate first →",
+  disableNext: !generated,
+
+This means the Next button is locked until the user actually generates an email. The tour auto-advances from this step after generation via the existing useEffect — the user never needs to click Next manually on this step.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 2 — Auto-open pipeline panel when tour reaches it
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add a new useEffect that watches tourStep and tourActive. When the tour is active and reaches the pipeline-panel step (index 4), auto-open the pipeline panel:
+
+Find the tourSteps array to determine the correct index for the pipeline-panel step. It is the step with tourId: "pipeline-panel". In the current steps array it is at index 4 (0-based). Verify this is correct by reading the array.
+
+Add this useEffect:
+  useEffect(() => {
+    if (!tourActive) return
+    // Index 4 = pipeline-panel step
+    if (tourStep === 4 && generated) {
+      setPipelineOpen(true)
+    }
+  }, [tourStep, tourActive, generated])
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 3 — Pass onStepChange to OnboardingTour
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find the OnboardingTour component render in the JSX (near the bottom of ComposePageInner). Add the onStepChange prop:
+
+  onStepChange={(stepIndex) => {
+    // When tour reaches pipeline-panel step (index 4), ensure panel is open
+    if (stepIndex === 4 && generated) {
+      setPipelineOpen(true)
+    }
+  }}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VERIFICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Run: npx tsc --noEmit — fix all errors
+2. Confirm tourSteps is computed inside the component (not as a module-level const) so it can read the `generated` state
+3. Confirm the generate-btn step has disableNext: !generated
+4. Confirm onStepChange is passed to OnboardingTour
+5. Confirm no existing tour logic was removed — only additions and targeted changes</pre>
+    <button class="copy-btn" id="btn2" onclick="copyPrompt('p2', 'btn2')">Copy Prompt 2</button>
+  </div>
+</div>
+
+<script>
+function copyPrompt(preId, btnId) {
+  const el = document.getElementById(preId)
+  navigator.clipboard.writeText(el.innerText).then(() => {
+    const btn = document.getElementById(btnId)
+    btn.textContent = "✓ Copied!"
+    btn.classList.add("copied")
+    setTimeout(() => { btn.textContent = btn.id === "btn1" ? "Copy Prompt 1" : "Copy Prompt 2"; btn.classList.remove("copied") }, 2000)
+  })
+}
+</script>
+</body>
+</html>

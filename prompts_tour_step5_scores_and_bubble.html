@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ColdHook — Tour Step 5 Scores + Bubble Positioning</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #010102; color: #f7f8f8; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding: 32px 24px; min-height: 100vh; }
+  h1 { font-size: 20px; font-weight: 700; color: #f7f8f8; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #8a8f98; margin-bottom: 12px; }
+  .context-note { font-size: 12px; color: #62666d; margin-bottom: 32px; padding: 12px 16px; border: 1px solid #23252a; border-radius: 8px; background: #0f1011; line-height: 1.9; }
+  .context-note strong { color: #8a8f98; }
+  .context-note code { font-family: "SF Mono", "Fira Code", monospace; font-size: 11px; color: #828fff; background: rgba(94,106,210,0.1); padding: 1px 5px; border-radius: 3px; }
+  .prompt-card { background: #0f1011; border: 1px solid #23252a; border-radius: 12px; overflow: hidden; margin-bottom: 24px; }
+  .card-header { padding: 16px 20px; border-bottom: 1px solid #23252a; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .card-meta { display: flex; align-items: center; gap: 10px; }
+  .num { width: 24px; height: 24px; border-radius: 6px; background: rgba(94,106,210,0.15); border: 1px solid rgba(94,106,210,0.25); color: #828fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .card-title { font-size: 14px; font-weight: 600; color: #f7f8f8; }
+  .card-sub { font-size: 12px; color: #8a8f98; margin-top: 2px; }
+  .model-badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; flex-shrink: 0; background: rgba(255,128,31,0.12); border: 1px solid rgba(255,128,31,0.25); color: #ff801f; }
+  .card-body { padding: 16px 20px; }
+  .why { font-size: 12px; color: #8a8f98; line-height: 1.6; margin-bottom: 14px; }
+  pre { background: #0a0a0b; border: 1px solid #23252a; border-radius: 8px; padding: 16px; font-size: 12px; line-height: 1.65; color: #d0d6e0; white-space: pre-wrap; word-break: break-word; font-family: "SF Mono", "Fira Code", monospace; max-height: 780px; overflow-y: auto; }
+  .copy-btn { margin-top: 12px; width: 100%; padding: 9px 0; border-radius: 8px; border: 1px solid #34343a; background: #141516; color: #d0d6e0; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+  .copy-btn:hover { background: #1e1f22; border-color: #5e6ad2; color: #828fff; }
+  .copy-btn.copied { background: rgba(39,166,68,0.1); border-color: rgba(39,166,68,0.3); color: #27a644; }
+</style>
+</head>
+<body>
+
+<h1>ColdHook — Tour Step 5 Scores + Bubble Positioning</h1>
+<p class="subtitle">2 prompts · compose/page.tsx + onboarding/tour.tsx</p>
+
+<p class="context-note">
+  <strong>Prompt 1 — Show scores on step 5:</strong><br><br>
+  Tour step 5 (<code>tourId: "email-result"</code>, new) spotlights the "Your personalized email" result. Currently the spotlight only covers the Generated Email card. We want it to also cover the personalization score card and spam check card above it — so the user sees the full output at a glance. The fix: wrap all three output cards (score, spam, email) in a single <code>&lt;div data-tour="email-result"&gt;</code> and update step 5's <code>tourId</code> from <code>"email-output"</code> to <code>"email-result"</code>.<br><br>
+  <strong>Prompt 2 — Bubble never covers the spotlight:</strong><br><br>
+  The tour bubble sometimes sits on top of the section it is highlighting. Root cause: (a) <code>BUBBLE_HEIGHT_ESTIMATE</code> is too small (160px) so the "above" placement doesn't reserve enough clearance; (b) the viewport clamp forces <code>bubbleTop</code> back into the spotlight when the element is near the top of the screen; (c) there is no post-clamp overlap check. Fix: increase the estimate to 220px, rewrite the above/below decision to pick whichever side has more available space, and add a final anti-overlap guard that detects intersection and pushes the bubble to the opposite side.
+</p>
+
+<!-- PROMPT 1 -->
+<div class="prompt-card">
+  <div class="card-header">
+    <div class="card-meta">
+      <div class="num">1</div>
+      <div>
+        <div class="card-title">Step 5 — spotlight scores + email together</div>
+        <div class="card-sub">src/app/(app)/compose/page.tsx — targeted changes only</div>
+      </div>
+    </div>
+    <span class="model-badge">Claude (terminal)</span>
+  </div>
+  <div class="card-body">
+    <p class="why">Read the full file first. Make only the changes described. Do not touch non-tour logic.</p>
+    <pre id="p1">You are working on ColdHook, a Next.js 16 App Router TypeScript project.
+
+File to edit: src/app/(app)/compose/page.tsx
+
+Read the full file before making any changes.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CONTEXT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Tour step 5 (tourId: "email-output") spotlights the Generated Email card. We want
+step 5 to spotlight the full output group — personalization score card + spam check
+card + generated email card — so the user sees everything at once.
+
+The right output panel currently renders in this order:
+  1. Score card     — conditional on (generated || isGenerating)
+  2. Spam-flags card — conditional on (generated && spamFlags.length > 0)
+  3. Spam-clean card — conditional on (generated && spamScore >= 80 && spamFlags.length === 0)
+  4. Generated Email card — data-tour="email-output", always rendered
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 1 — Wrap output cards in a data-tour="email-result" container
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+In the right output panel, find the block that begins with the score card comment
+and ends with the closing tag of the Generated Email card (the one with
+data-tour="email-output"). Wrap all four cards in a single div:
+
+  {/* Email result group — score + spam + email, spotlit together on step 5 */}
+  <div data-tour="email-result" className="flex flex-col gap-4">
+    {/* Score */}
+    {(generated || isGenerating) && (
+      ...existing score card...
+    )}
+
+    {/* Spam check — flags found */}
+    {generated && spamFlags.length > 0 && (
+      ...existing spam flags card...
+    )}
+
+    {/* Spam check — clean */}
+    {generated && spamScore >= 80 && spamFlags.length === 0 && (
+      ...existing spam clean card...
+    )}
+
+    {/* Generated email */}
+    <Card className="flex-1" data-tour="email-output">
+      ...existing generated email card content, unchanged...
+    </Card>
+  </div>
+
+Do NOT remove data-tour="email-output" from the inner Generated Email card — it is
+still used as the spotlight target for step 4 (the loading animation step).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 2 — Update step 5 tourId from "email-output" to "email-result"
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find the tourSteps useMemo array. Step 5 currently reads:
+
+  {
+    tourId: "email-output",
+    title: "Your personalized email",
+    description: "This is the output — subject line written for a VP who just got promoted, body under 100 words, single soft ask. No pitch, no filler. Read it, then see what went into it.",
+    nextLabel: "See how it was written →",
+    position: "top",
+  },
+
+Change only the tourId:
+
+  tourId: "email-result",
+
+All other fields remain unchanged.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VERIFICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Run: npx tsc --noEmit — fix all errors
+2. Confirm the wrapper div with data-tour="email-result" wraps exactly the four cards
+3. Confirm data-tour="email-output" still exists on the inner Generated Email card
+4. Confirm tourSteps[5].tourId === "email-result"
+5. Confirm tourSteps[4].tourId === "email-output" (loading step, unchanged)
+6. Confirm no other tour logic was modified</pre>
+    <button class="copy-btn" id="btn1" onclick="copyPrompt('p1', 'btn1')">Copy Prompt</button>
+  </div>
+</div>
+
+<!-- PROMPT 2 -->
+<div class="prompt-card">
+  <div class="card-header">
+    <div class="card-meta">
+      <div class="num">2</div>
+      <div>
+        <div class="card-title">Tour bubble never covers the spotlight element</div>
+        <div class="card-sub">src/components/onboarding/tour.tsx — positioning logic only</div>
+      </div>
+    </div>
+    <span class="model-badge">Claude (terminal)</span>
+  </div>
+  <div class="card-body">
+    <p class="why">Read the full file first. Touch only the bubble positioning block inside the render return. Do not modify any useEffect, scroll logic, elevation logic, or backdrop rendering.</p>
+    <pre id="p2">You are working on ColdHook, a Next.js 16 App Router TypeScript project.
+
+File to edit: src/components/onboarding/tour.tsx
+
+Read the full file before making any changes.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PROBLEM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The tour bubble sometimes overlaps the element it is spotlighting. Three root causes:
+
+1. BUBBLE_HEIGHT_ESTIMATE = 160 is too small. Real bubbles are ~200–220px tall.
+   When placing the bubble above the spotlight, the bottom of the bubble can
+   intrude into the top of the element.
+
+2. The above/below decision uses a fixed heuristic (element below 60% viewport).
+   It does not check how much actual space exists above vs. below.
+
+3. The viewport clamp (bubbleTop = Math.max(12, ...)) can push a bubble that was
+   calculated for the "above" position back down into the spotlight when the
+   element is near the top of the screen. There is no post-clamp overlap check.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE — Replace the bubble positioning block
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find and replace the constant at the top of the file:
+
+  const BUBBLE_HEIGHT_ESTIMATE = 160
+
+Change to:
+
+  const BUBBLE_HEIGHT_ESTIMATE = 220
+
+Then find the bubble positioning block inside the render. It currently looks like
+this (starting after the "if (!isActive) return null" guards):
+
+  const viewportWidth = typeof window !== "undefined" ? window.innerWidth : 1200
+  const viewportHeight = typeof window !== "undefined" ? window.innerHeight : 800
+
+  let bubbleTop: number
+  let bubbleLeft: number
+  let showAbove = false
+
+  if (spotlightRect) {
+    const spotlightBottom = spotlightRect.top + spotlightRect.height + 16
+    const wouldOverflowBottom = (spotlightBottom + BUBBLE_GAP + BUBBLE_HEIGHT_ESTIMATE) > (viewportHeight - 20)
+    const forceAbove = step.position === "top" || spotlightRect.top > viewportHeight * 0.6 || wouldOverflowBottom
+
+    showAbove = forceAbove
+
+    if (forceAbove) {
+      bubbleTop = spotlightRect.top - 8 - BUBBLE_GAP - BUBBLE_HEIGHT_ESTIMATE
+    } else {
+      bubbleTop = spotlightRect.top + spotlightRect.height + 16 + BUBBLE_GAP
+    }
+
+    const rawLeft = spotlightRect.left - 8
+    bubbleLeft = Math.max(16, Math.min(rawLeft, viewportWidth - BUBBLE_WIDTH - 16))
+  } else {
+    bubbleTop = viewportHeight / 2 - BUBBLE_HEIGHT_ESTIMATE / 2
+    bubbleLeft = viewportWidth / 2 - BUBBLE_WIDTH / 2
+  }
+
+  // Final clamp — bubble must always be fully on screen
+  bubbleTop = Math.max(12, Math.min(bubbleTop, viewportHeight - BUBBLE_HEIGHT_ESTIMATE - 12))
+  bubbleLeft = Math.max(12, Math.min(bubbleLeft, viewportWidth - BUBBLE_WIDTH - 12))
+
+Replace the entire block above (from "const viewportWidth" through the two final
+clamp lines) with:
+
+  const viewportWidth = typeof window !== "undefined" ? window.innerWidth : 1200
+  const viewportHeight = typeof window !== "undefined" ? window.innerHeight : 800
+
+  let bubbleTop: number
+  let bubbleLeft: number
+  let showAbove = false
+
+  if (spotlightRect) {
+    // How much clear space exists above and below the spotlight (including padding)
+    const spaceBelow = viewportHeight - (spotlightRect.top + spotlightRect.height + 8)
+    const spaceAbove = spotlightRect.top - 8
+
+    const belowHasRoom = spaceBelow >= BUBBLE_HEIGHT_ESTIMATE + BUBBLE_GAP + 16
+    const aboveHasRoom = spaceAbove >= BUBBLE_HEIGHT_ESTIMATE + BUBBLE_GAP + 16
+
+    // Prefer the side with more room; fall back to forced position from step config
+    showAbove =
+      step.position === "top" ||
+      (!belowHasRoom && aboveHasRoom) ||
+      (spaceAbove > spaceBelow && !belowHasRoom)
+
+    if (showAbove) {
+      bubbleTop = spotlightRect.top - 8 - BUBBLE_GAP - BUBBLE_HEIGHT_ESTIMATE
+    } else {
+      bubbleTop = spotlightRect.top + spotlightRect.height + 8 + BUBBLE_GAP
+    }
+
+    const rawLeft = spotlightRect.left - 8
+    bubbleLeft = Math.max(16, Math.min(rawLeft, viewportWidth - BUBBLE_WIDTH - 16))
+  } else {
+    bubbleTop = viewportHeight / 2 - BUBBLE_HEIGHT_ESTIMATE / 2
+    bubbleLeft = viewportWidth / 2 - BUBBLE_WIDTH / 2
+  }
+
+  // Primary clamp — bubble must be fully on screen
+  bubbleTop = Math.max(12, Math.min(bubbleTop, viewportHeight - BUBBLE_HEIGHT_ESTIMATE - 12))
+  bubbleLeft = Math.max(12, Math.min(bubbleLeft, viewportWidth - BUBBLE_WIDTH - 12))
+
+  // Anti-overlap guard — if clamping pushed the bubble back into the spotlight, flip sides
+  if (spotlightRect) {
+    const bubbleBottom = bubbleTop + BUBBLE_HEIGHT_ESTIMATE
+    const spotTop = spotlightRect.top - 8
+    const spotBottom = spotlightRect.top + spotlightRect.height + 8
+    const overlaps = bubbleBottom > spotTop && bubbleTop < spotBottom
+
+    if (overlaps) {
+      if (showAbove) {
+        // Was above but clamped into spotlight — push below instead
+        bubbleTop = spotBottom + BUBBLE_GAP
+        showAbove = false
+      } else {
+        // Was below but clamped into spotlight — push above instead
+        bubbleTop = spotTop - BUBBLE_GAP - BUBBLE_HEIGHT_ESTIMATE
+        showAbove = true
+      }
+      // Re-clamp after nudge
+      bubbleTop = Math.max(12, Math.min(bubbleTop, viewportHeight - BUBBLE_HEIGHT_ESTIMATE - 12))
+    }
+  }
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VERIFICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Run: npx tsc --noEmit — fix all errors
+2. Confirm BUBBLE_HEIGHT_ESTIMATE === 220
+3. Confirm the anti-overlap guard block exists after the primary clamp
+4. Confirm no useEffect, scroll logic, elevation logic, or backdrop code was changed
+5. Confirm the caret rendering (showAbove checks) still references the same showAbove variable — it is now set correctly by the new logic</pre>
+    <button class="copy-btn" id="btn2" onclick="copyPrompt('p2', 'btn2')">Copy Prompt</button>
+  </div>
+</div>
+
+<script>
+function copyPrompt(preId, btnId) {
+  const el = document.getElementById(preId)
+  navigator.clipboard.writeText(el.innerText).then(() => {
+    const btn = document.getElementById(btnId)
+    btn.textContent = "✓ Copied!"
+    btn.classList.add("copied")
+    setTimeout(() => { btn.textContent = "Copy Prompt"; btn.classList.remove("copied") }, 2000)
+  })
+}
+</script>
+</body>
+</html>

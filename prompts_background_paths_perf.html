@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ColdHook — Background Paths Performance</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #010102; color: #f7f8f8; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding: 32px 24px; min-height: 100vh; }
+  h1 { font-size: 20px; font-weight: 700; color: #f7f8f8; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #8a8f98; margin-bottom: 12px; }
+  .context-note { font-size: 12px; color: #62666d; margin-bottom: 32px; padding: 12px 16px; border: 1px solid #23252a; border-radius: 8px; background: #0f1011; line-height: 1.9; }
+  .context-note strong { color: #8a8f98; }
+  .context-note code { font-family: "SF Mono", "Fira Code", monospace; font-size: 11px; color: #828fff; background: rgba(94,106,210,0.1); padding: 1px 5px; border-radius: 3px; }
+  .prompt-card { background: #0f1011; border: 1px solid #23252a; border-radius: 12px; overflow: hidden; margin-bottom: 24px; }
+  .card-header { padding: 16px 20px; border-bottom: 1px solid #23252a; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .card-meta { display: flex; align-items: center; gap: 10px; }
+  .num { width: 24px; height: 24px; border-radius: 6px; background: rgba(94,106,210,0.15); border: 1px solid rgba(94,106,210,0.25); color: #828fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .card-title { font-size: 14px; font-weight: 600; color: #f7f8f8; }
+  .card-sub { font-size: 12px; color: #8a8f98; margin-top: 2px; }
+  .model-badge-ds { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; flex-shrink: 0; background: rgba(94,106,210,0.12); border: 1px solid rgba(94,106,210,0.3); color: #828fff; }
+  .card-body { padding: 16px 20px; }
+  .why { font-size: 12px; color: #8a8f98; line-height: 1.6; margin-bottom: 14px; }
+  pre { background: #0a0a0b; border: 1px solid #23252a; border-radius: 8px; padding: 16px; font-size: 12px; line-height: 1.65; color: #d0d6e0; white-space: pre-wrap; word-break: break-word; font-family: "SF Mono", "Fira Code", monospace; max-height: 820px; overflow-y: auto; }
+  .copy-btn { margin-top: 12px; width: 100%; padding: 9px 0; border-radius: 8px; border: 1px solid #34343a; background: #141516; color: #d0d6e0; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+  .copy-btn:hover { background: #1e1f22; border-color: #5e6ad2; color: #828fff; }
+  .copy-btn.copied { background: rgba(39,166,68,0.1); border-color: rgba(39,166,68,0.3); color: #27a644; }
+</style>
+</head>
+<body>
+
+<h1>ColdHook — Background Paths Performance Fix</h1>
+<p class="subtitle">1 prompt · src/components/ui/background-paths.tsx</p>
+
+<p class="context-note">
+  <strong>Root cause:</strong><br><br>
+  <code>FloatingPaths</code> renders 36 <code>motion.path</code> elements and is mounted twice in the hero (<code>position={1}</code> and <code>position={-1}</code>) — 72 simultaneously animating SVG paths total.<br><br>
+  The <code>pathOffset</code> and <code>pathLength</code> properties in framer-motion map to <code>stroke-dashoffset</code> and <code>stroke-dasharray</code>. Animating these forces the browser to recalculate the geometric length of each cubic bézier path on <em>every frame</em> — this cannot be GPU-composited and runs entirely on the main thread. With 72 paths all cycling at once, this is the primary source of the page lag.<br><br>
+  <strong>Fix strategy:</strong><br>
+  Remove <code>pathLength</code> and <code>pathOffset</code> from the animation entirely. Keep each path drawn at a fixed partial length (set via <code>initial</code> only — no animation). Replace the motion with a simple <code>opacity</code> pulse, which <em>is</em> GPU-compositable. Add <code>will-change: "opacity"</code>, stagger starts across paths to spread CPU load, and respect the user's reduced-motion preference. The visual result is nearly identical — semi-transparent curved lines that breathe — with a fraction of the rendering cost.<br><br>
+  <strong>Constraint:</strong> Only edit <code>src/components/ui/background-paths.tsx</code>. Do not touch <code>hero.tsx</code> or any other file.
+</p>
+
+<div class="prompt-card">
+  <div class="card-header">
+    <div class="card-meta">
+      <div class="num">1</div>
+      <div>
+        <div class="card-title">Remove stroke-dash animations, replace with GPU-compositable opacity pulse</div>
+        <div class="card-sub">src/components/ui/background-paths.tsx — only this file</div>
+      </div>
+    </div>
+    <span class="model-badge-ds">DeepSeek (terminal)</span>
+  </div>
+  <div class="card-body">
+    <p class="why">Read the file before editing. Make only the changes described. Do not touch hero.tsx or any other file.</p>
+    <pre id="p1">You are working on ColdHook, a Next.js 16 App Router TypeScript project.
+
+File to edit: src/components/ui/background-paths.tsx
+
+Read the full file before making any changes.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ROOT CAUSE ANALYSIS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The current implementation animates three properties simultaneously on each
+motion.path:
+
+  animate={{
+    pathLength: 1,
+    opacity: [0.3, 0.6, 0.3],
+    pathOffset: [0, 1, 0],
+  }}
+
+Both pathLength and pathOffset map to stroke-dasharray / stroke-dashoffset.
+Animating these properties forces the browser to re-measure the geometric length
+of each SVG cubic bézier path every frame. This measurement cannot be offloaded to
+the GPU — it runs on the main thread. With 72 paths animating concurrently
+(the component is mounted twice with position=1 and position=-1), this is the
+direct cause of the page lag.
+
+opacity, by contrast, is GPU-compositable and has near-zero CPU cost.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 1 — Add useReducedMotion import
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add useReducedMotion to the framer-motion import:
+
+  import { motion, useReducedMotion } from "framer-motion"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 2 — Read reduced-motion preference at the top of FloatingPaths
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+At the very top of the FloatingPaths function body, before the paths array, add:
+
+  const prefersReduced = useReducedMotion()
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 3 — Replace the motion.path animation props
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find the motion.path element. It currently has:
+
+  <motion.path
+    key={path.id}
+    d={path.d}
+    stroke="white"
+    strokeWidth={path.width}
+    strokeOpacity={0.04 + path.id * 0.008}
+    initial={{ pathLength: 0.3, opacity: 0.6 }}
+    animate={{
+      pathLength: 1,
+      opacity: [0.3, 0.6, 0.3],
+      pathOffset: [0, 1, 0],
+    }}
+    transition={{
+      duration: 20 + (path.id * 7919) % 10,
+      repeat: Number.POSITIVE_INFINITY,
+      ease: "linear",
+    }}
+  />
+
+Replace it with:
+
+  <motion.path
+    key={path.id}
+    d={path.d}
+    stroke="white"
+    strokeWidth={path.width}
+    strokeOpacity={0.04 + path.id * 0.008}
+    style={{ willChange: "opacity" }}
+    initial={{ opacity: 0 }}
+    animate={prefersReduced ? { opacity: 0.5 } : { opacity: [0.2, 0.55, 0.2] }}
+    transition={prefersReduced ? { duration: 0 } : {
+      duration: 6 + (path.id * 7919) % 8,
+      repeat: Infinity,
+      ease: "easeInOut",
+      delay: (path.id * 0.18) % 4,
+    }}
+  />
+
+Key differences from the original:
+- pathLength and pathOffset removed entirely — no stroke-dash recalculation on any frame
+- opacity-only animation — GPU-compositable, zero main-thread cost
+- will-change: "opacity" — promotes each path to its own compositor layer
+- delay: (path.id * 0.18) % 4 — staggers animation starts across paths to
+  spread the initial GPU upload cost instead of hitting all 72 at once
+- prefersReduced branch — static opacity=0.5 for users with reduced motion,
+  no animation at all
+- duration shortened from 20-30s to 6-14s — the opacity pulse reads faster
+  and more alive at this range without the dash-draw motion to carry it
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VERIFICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Run: npx tsc --noEmit — fix all errors
+2. Confirm pathLength and pathOffset no longer appear anywhere in the file
+3. Confirm useReducedMotion is imported and called
+4. Confirm each motion.path has style={{ willChange: "opacity" }}
+5. Confirm the animate prop contains only opacity (no pathLength, no pathOffset)
+6. Confirm delay is set per path using the stagger formula
+7. Confirm no other files were modified</pre>
+    <button class="copy-btn" id="btn1" onclick="copyPrompt('p1', 'btn1')">Copy Prompt</button>
+  </div>
+</div>
+
+<script>
+function copyPrompt(preId, btnId) {
+  const el = document.getElementById(preId)
+  navigator.clipboard.writeText(el.innerText).then(() => {
+    const btn = document.getElementById(btnId)
+    btn.textContent = "✓ Copied!"
+    btn.classList.add("copied")
+    setTimeout(() => { btn.textContent = "Copy Prompt"; btn.classList.remove("copied") }, 2000)
+  })
+}
+</script>
+</body>
+</html>

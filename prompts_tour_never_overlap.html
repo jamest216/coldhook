@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ColdHook — Tour Never Overlap + Prospect Step</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #010102; color: #f7f8f8; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding: 32px 24px; min-height: 100vh; }
+  h1 { font-size: 20px; font-weight: 700; color: #f7f8f8; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #8a8f98; margin-bottom: 12px; }
+  .context-note { font-size: 12px; color: #62666d; margin-bottom: 32px; padding: 12px 16px; border: 1px solid #23252a; border-radius: 8px; background: #0f1011; line-height: 1.9; }
+  .context-note strong { color: #8a8f98; }
+  .context-note code { font-family: "SF Mono", "Fira Code", monospace; font-size: 11px; color: #828fff; background: rgba(94,106,210,0.1); padding: 1px 5px; border-radius: 3px; }
+  .prompt-card { background: #0f1011; border: 1px solid #23252a; border-radius: 12px; overflow: hidden; margin-bottom: 24px; }
+  .card-header { padding: 16px 20px; border-bottom: 1px solid #23252a; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .card-meta { display: flex; align-items: center; gap: 10px; }
+  .num { width: 24px; height: 24px; border-radius: 6px; background: rgba(94,106,210,0.15); border: 1px solid rgba(94,106,210,0.25); color: #828fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .card-title { font-size: 14px; font-weight: 600; color: #f7f8f8; }
+  .card-sub { font-size: 12px; color: #8a8f98; margin-top: 2px; }
+  .model-badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; flex-shrink: 0; background: rgba(255,128,31,0.12); border: 1px solid rgba(255,128,31,0.25); color: #ff801f; }
+  .card-body { padding: 16px 20px; }
+  .why { font-size: 12px; color: #8a8f98; line-height: 1.6; margin-bottom: 14px; }
+  pre { background: #0a0a0b; border: 1px solid #23252a; border-radius: 8px; padding: 16px; font-size: 12px; line-height: 1.65; color: #d0d6e0; white-space: pre-wrap; word-break: break-word; font-family: "SF Mono", "Fira Code", monospace; max-height: 820px; overflow-y: auto; }
+  .copy-btn { margin-top: 12px; width: 100%; padding: 9px 0; border-radius: 8px; border: 1px solid #34343a; background: #141516; color: #d0d6e0; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+  .copy-btn:hover { background: #1e1f22; border-color: #5e6ad2; color: #828fff; }
+  .copy-btn.copied { background: rgba(39,166,68,0.1); border-color: rgba(39,166,68,0.3); color: #27a644; }
+</style>
+</head>
+<body>
+
+<h1>ColdHook — Tour Bubble Never Overlap + Prospect Intelligence Step</h1>
+<p class="subtitle">2 prompts · onboarding/tour.tsx + compose/page.tsx</p>
+
+<p class="context-note">
+  <strong>Prompt 1 — Bubble never covers the spotlight (full replacement):</strong><br><br>
+  Replace the entire bubble positioning block in <code>tour.tsx</code> with a try-all-sides algorithm. For each step, attempt placement in the preferred direction first, then fall back through the remaining three sides in order. Accept the first placement whose clamped rect does not intersect the spotlight. If all four sides overlap (very tall element + small viewport), pick the side whose bubble centre is furthest from the spotlight centre. This is a hard guarantee — no heuristics, no fixed percentages.<br><br>
+  <strong>Also:</strong> extend the <code>TourStep</code> position type to include <code>"left"</code> and <code>"right"</code>, and render the appropriate caret (rightward for left placement, leftward for right placement).<br><br>
+  <strong>Prompt 2 — Add Prospect Intelligence as step 0 + fix all shifted indices:</strong><br><br>
+  Insert a new first step (<code>tourId: "prospect-intelligence"</code>) that spotlights the Prospect Intelligence card. All existing step indices shift by 1. Update every index reference in the file: <code>handleTourNext</code> (generate-btn check 3→4), the pipeline-panel <code>useEffect</code> (6→7), the <code>onStepChange</code> callback (6→7), and <code>handleGenerateSequence</code> (7→8). Add <code>position: "left"</code> to the pipeline-panel step so its bubble floats over the dimmed left panel. Add <code>data-tour="prospect-intelligence"</code> to the Prospect Intelligence card.
+</p>
+
+<!-- PROMPT 1 -->
+<div class="prompt-card">
+  <div class="card-header">
+    <div class="card-meta">
+      <div class="num">1</div>
+      <div>
+        <div class="card-title">Tour bubble — try-all-sides positioning, never overlaps spotlight</div>
+        <div class="card-sub">src/components/onboarding/tour.tsx — positioning block + caret only</div>
+      </div>
+    </div>
+    <span class="model-badge">Claude (terminal)</span>
+  </div>
+  <div class="card-body">
+    <p class="why">Read the full file first. Replace only the bubble positioning block inside the render (from the viewport size declarations through the final clamp/anti-overlap logic). Do not touch any useEffect, scroll, elevation, or backdrop code.</p>
+    <pre id="p1">You are working on ColdHook, a Next.js 16 App Router TypeScript project.
+
+File to edit: src/components/onboarding/tour.tsx
+
+Read the full file before making any changes.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 1 — Extend TourStep position type
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find the TourStep type definition. Change:
+
+  position?: "top" | "bottom"
+
+To:
+
+  position?: "top" | "bottom" | "left" | "right"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 2 — Replace BUBBLE_HEIGHT_ESTIMATE constant
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find:
+  const BUBBLE_HEIGHT_ESTIMATE = 160
+
+Replace with:
+  const BUBBLE_HEIGHT_ESTIMATE = 220
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 3 — Replace the entire bubble positioning block
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find the block inside the render that starts with:
+
+  const viewportWidth = typeof window !== "undefined" ? window.innerWidth : 1200
+
+...and ends with the last clamp or anti-overlap guard line before the return statement.
+
+Replace that entire block with the following:
+
+  const viewportWidth  = typeof window !== "undefined" ? window.innerWidth  : 1200
+  const viewportHeight = typeof window !== "undefined" ? window.innerHeight : 800
+
+  // ── Try-all-sides placement ──────────────────────────────────────────────
+  // Attempt positions in priority order; accept first one that does not
+  // intersect the spotlight rect. Hard guarantee: bubble never covers the
+  // element it is spotlighting.
+
+  type Side = "top" | "bottom" | "left" | "right"
+
+  // Preferred side based on step.position; default priority favours bottom
+  const preferredOrder: Side[] = (() => {
+    switch (step.position) {
+      case "top":    return ["top",    "left", "right", "bottom"]
+      case "bottom": return ["bottom", "left", "right", "top"]
+      case "left":   return ["left",   "top",  "bottom", "right"]
+      case "right":  return ["right",  "top",  "bottom", "left"]
+      default:       return ["bottom", "left", "right", "top"]
+    }
+  })()
+
+  function rawForSide(side: Side, sr: SpotlightRect): { top: number; left: number } {
+    switch (side) {
+      case "top":
+        return {
+          top:  sr.top - 8 - BUBBLE_GAP - BUBBLE_HEIGHT_ESTIMATE,
+          left: Math.max(16, Math.min(sr.left - 8, viewportWidth - BUBBLE_WIDTH - 16)),
+        }
+      case "bottom":
+        return {
+          top:  sr.top + sr.height + 8 + BUBBLE_GAP,
+          left: Math.max(16, Math.min(sr.left - 8, viewportWidth - BUBBLE_WIDTH - 16)),
+        }
+      case "left":
+        return {
+          top:  sr.top + sr.height / 2 - BUBBLE_HEIGHT_ESTIMATE / 2,
+          left: sr.left - 8 - BUBBLE_GAP - BUBBLE_WIDTH,
+        }
+      case "right":
+        return {
+          top:  sr.top + sr.height / 2 - BUBBLE_HEIGHT_ESTIMATE / 2,
+          left: sr.left + sr.width + 8 + BUBBLE_GAP,
+        }
+    }
+  }
+
+  function clampPos(pos: { top: number; left: number }): { top: number; left: number } {
+    return {
+      top:  Math.max(12, Math.min(pos.top,  viewportHeight - BUBBLE_HEIGHT_ESTIMATE - 12)),
+      left: Math.max(12, Math.min(pos.left, viewportWidth  - BUBBLE_WIDTH - 12)),
+    }
+  }
+
+  function overlaps(pos: { top: number; left: number }, sr: SpotlightRect): boolean {
+    const bT = pos.top,  bB = pos.top  + BUBBLE_HEIGHT_ESTIMATE
+    const bL = pos.left, bR = pos.left + BUBBLE_WIDTH
+    const sT = sr.top  - 8,        sB = sr.top  + sr.height + 8
+    const sL = sr.left - 8,        sR = sr.left + sr.width  + 8
+    return bB > sT && bT < sB && bR > sL && bL < sR
+  }
+
+  let bubbleTop  = viewportHeight / 2 - BUBBLE_HEIGHT_ESTIMATE / 2
+  let bubbleLeft = viewportWidth  / 2 - BUBBLE_WIDTH / 2
+  let chosenSide: Side = "bottom"
+
+  if (spotlightRect) {
+    let picked = false
+    for (const side of preferredOrder) {
+      const clamped = clampPos(rawForSide(side, spotlightRect))
+      if (!overlaps(clamped, spotlightRect)) {
+        bubbleTop  = clamped.top
+        bubbleLeft = clamped.left
+        chosenSide = side
+        picked = true
+        break
+      }
+    }
+
+    // Last resort: all sides overlap — pick the one whose bubble centre is
+    // furthest from the spotlight centre (maximises visible content)
+    if (!picked) {
+      const sCx = spotlightRect.left + spotlightRect.width  / 2
+      const sCy = spotlightRect.top  + spotlightRect.height / 2
+      let bestDist = -1
+      for (const side of preferredOrder) {
+        const clamped = clampPos(rawForSide(side, spotlightRect))
+        const bCx = clamped.left + BUBBLE_WIDTH / 2
+        const bCy = clamped.top  + BUBBLE_HEIGHT_ESTIMATE / 2
+        const dist = Math.abs(bCx - sCx) + Math.abs(bCy - sCy)
+        if (dist > bestDist) {
+          bestDist   = dist
+          bubbleTop  = clamped.top
+          bubbleLeft = clamped.left
+          chosenSide = side
+        }
+      }
+    }
+  }
+
+  const showAbove = chosenSide === "top"
+  const showLeft  = chosenSide === "left"
+  const showRight = chosenSide === "right"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 4 — Update caret rendering in the bubble JSX
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find the existing caret blocks inside the bubble div. They currently check
+!showAbove (upward caret) and showAbove (downward caret).
+
+Replace all existing caret blocks with these four:
+
+  {/* Upward caret — bubble is BELOW the spotlight */}
+  {chosenSide === "bottom" && spotlightRect && (
+    <div style={{ position: "absolute", top: -6, left: 20 }}>
+      <div style={{ position: "absolute", top: 0, left: 0, width: 0, height: 0,
+        borderLeft: "8px solid transparent", borderRight: "8px solid transparent",
+        borderBottom: "6px solid #23252a" }} />
+      <div style={{ position: "absolute", top: 1, left: 1, width: 0, height: 0,
+        borderLeft: "7px solid transparent", borderRight: "7px solid transparent",
+        borderBottom: "6px solid #0f1011" }} />
+    </div>
+  )}
+
+  {/* Downward caret — bubble is ABOVE the spotlight */}
+  {chosenSide === "top" && spotlightRect && (
+    <div style={{ position: "absolute", bottom: -6, left: 20, width: 0, height: 0,
+      borderLeft: "8px solid transparent", borderRight: "8px solid transparent",
+      borderTop: "6px solid #0f1011" }} />
+  )}
+
+  {/* Rightward caret — bubble is to the LEFT of the spotlight */}
+  {chosenSide === "left" && spotlightRect && (
+    <div style={{ position: "absolute", right: -6, top: "50%",
+      transform: "translateY(-50%)" }}>
+      <div style={{ position: "absolute", right: 0, top: "50%", transform: "translateY(-50%)",
+        width: 0, height: 0,
+        borderTop: "8px solid transparent", borderBottom: "8px solid transparent",
+        borderLeft: "6px solid #23252a" }} />
+      <div style={{ position: "absolute", right: 1, top: "50%", transform: "translateY(-50%)",
+        width: 0, height: 0,
+        borderTop: "7px solid transparent", borderBottom: "7px solid transparent",
+        borderLeft: "6px solid #0f1011" }} />
+    </div>
+  )}
+
+  {/* Leftward caret — bubble is to the RIGHT of the spotlight */}
+  {chosenSide === "right" && spotlightRect && (
+    <div style={{ position: "absolute", left: -6, top: "50%",
+      transform: "translateY(-50%)" }}>
+      <div style={{ position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)",
+        width: 0, height: 0,
+        borderTop: "8px solid transparent", borderBottom: "8px solid transparent",
+        borderRight: "6px solid #23252a" }} />
+      <div style={{ position: "absolute", left: 1, top: "50%", transform: "translateY(-50%)",
+        width: 0, height: 0,
+        borderTop: "7px solid transparent", borderBottom: "7px solid transparent",
+        borderRight: "6px solid #0f1011" }} />
+    </div>
+  )}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VERIFICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Run: npx tsc --noEmit — fix all errors
+2. Confirm TourStep.position includes "left" and "right"
+3. Confirm BUBBLE_HEIGHT_ESTIMATE === 220
+4. Confirm the try-all-sides loop exists and iterates preferredOrder
+5. Confirm the last-resort fallback (furthest centre distance) exists
+6. Confirm chosenSide drives showAbove / showLeft / showRight
+7. Confirm all four caret variants are rendered in the bubble JSX
+8. Confirm no useEffect, scroll, elevation, or backdrop code was changed</pre>
+    <button class="copy-btn" id="btn1" onclick="copyPrompt('p1', 'btn1')">Copy Prompt</button>
+  </div>
+</div>
+
+<!-- PROMPT 2 -->
+<div class="prompt-card">
+  <div class="card-header">
+    <div class="card-meta">
+      <div class="num">2</div>
+      <div>
+        <div class="card-title">Add Prospect Intelligence step 0 + fix all shifted indices</div>
+        <div class="card-sub">src/app/(app)/compose/page.tsx — tour logic only</div>
+      </div>
+    </div>
+    <span class="model-badge">Claude (terminal)</span>
+  </div>
+  <div class="card-body">
+    <p class="why">Read the full file first. Make only the changes described. Do not touch any non-tour logic.</p>
+    <pre id="p2">You are working on ColdHook, a Next.js 16 App Router TypeScript project.
+
+File to edit: src/app/(app)/compose/page.tsx
+
+Read the full file before making any changes.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CONTEXT — current tour step indices (before this change)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  0: trigger
+  1: valueprop
+  2: settings
+  3: generate-btn         ← handleTourNext checks tourStep === 3
+  4: email-output (load)
+  5: email-result
+  6: pipeline-panel       ← useEffect + onStepChange check === 6
+  7: sequence-section     ← handleGenerateSequence checks tourStep === 7
+
+After this change:
+
+  0: prospect-intelligence  ← NEW
+  1: trigger
+  2: valueprop
+  3: settings
+  4: generate-btn           ← handleTourNext now checks tourStep === 4
+  5: email-output (load)
+  6: email-result
+  7: pipeline-panel         ← useEffect + onStepChange now check === 7
+  8: sequence-section       ← handleGenerateSequence now checks tourStep === 8
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 1 — Add data-tour="prospect-intelligence" to the Prospect Intelligence card
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find the Prospect Intelligence card. It currently starts with:
+
+  <Card>
+    <CardHeader className="pb-3">
+      <CardTitle className="text-sm flex items-center gap-2">
+        ...
+        Prospect Intelligence
+
+Change the opening tag to:
+
+  <Card data-tour="prospect-intelligence">
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 2 — Insert the new step 0 into tourSteps
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find the tourSteps useMemo array. Insert a new step as the FIRST entry (before the
+trigger step):
+
+  {
+    tourId: "prospect-intelligence",
+    title: "Who are you emailing?",
+    description: "Start with your prospect's name, title, and company. ColdHook uses this to personalize every line — not just the greeting.",
+    nextLabel: "Got it →",
+  },
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 3 — Update handleTourNext: generate-btn check 3 → 4
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find:
+
+  if (tourStep === 3 && tourActive) {
+
+Change to:
+
+  if (tourStep === 4 && tourActive) {
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 4 — Update pipeline-panel useEffect: 6 → 7
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find:
+
+  if (tourStep === 6 && generated) {
+    setPipelineOpen(true)
+  }
+
+Change to:
+
+  if (tourStep === 7 && generated) {
+    setPipelineOpen(true)
+  }
+
+Update the comment above it to say "Index 7 = pipeline-panel step".
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 5 — Update onStepChange callback: 6 → 7
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find:
+
+  if (stepIndex === 6 && generated) {
+    setPipelineOpen(true)
+  }
+
+Change to:
+
+  if (stepIndex === 7 && generated) {
+    setPipelineOpen(true)
+  }
+
+Update the comment to say "index 7".
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 6 — Update handleGenerateSequence tour check: 7 → 8
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find:
+
+  if (tourActive && tourStep === 7) {
+
+Change to:
+
+  if (tourActive && tourStep === 8) {
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 7 — Add position: "left" to the pipeline-panel step
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find the pipeline-panel step in tourSteps (now at index 7). It currently reads:
+
+  {
+    tourId: "pipeline-panel",
+    title: "See how it was written",
+    description: "Expand this panel to see every reasoning step the AI took — from raw signal to final draft. No black boxes.",
+    nextLabel: "Next →",
+    position: "top",
+  },
+
+Change position from "top" to "left":
+
+  position: "left",
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VERIFICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Run: npx tsc --noEmit — fix all errors
+2. Confirm tourSteps has 9 entries total
+3. Confirm tourSteps[0].tourId === "prospect-intelligence"
+4. Confirm handleTourNext checks tourStep === 4 (not 3)
+5. Confirm the pipeline useEffect checks tourStep === 7
+6. Confirm onStepChange checks stepIndex === 7
+7. Confirm handleGenerateSequence checks tourStep === 8
+8. Confirm tourSteps[7].position === "left"
+9. Confirm data-tour="prospect-intelligence" is on the Prospect Intelligence Card</pre>
+    <button class="copy-btn" id="btn2" onclick="copyPrompt('p2', 'btn2')">Copy Prompt</button>
+  </div>
+</div>
+
+<script>
+function copyPrompt(preId, btnId) {
+  const el = document.getElementById(preId)
+  navigator.clipboard.writeText(el.innerText).then(() => {
+    const btn = document.getElementById(btnId)
+    btn.textContent = "✓ Copied!"
+    btn.classList.add("copied")
+    setTimeout(() => { btn.textContent = "Copy Prompt"; btn.classList.remove("copied") }, 2000)
+  })
+}
+</script>
+</body>
+</html>

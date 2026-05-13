@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Prospects Page — Real Database Data</title>
+<style>
+  :root {
+    --bg-0: #0b0d12;
+    --bg-1: #11141b;
+    --bg-2: #161a23;
+    --border: rgba(255,255,255,0.08);
+    --border-strong: rgba(255,255,255,0.14);
+    --text: #e7eaf0;
+    --text-muted: #9aa3b2;
+    --text-faint: #6b7383;
+    --accent: #e8a87c;
+    --accent-2: #f3c4a3;
+    --accent-soft: rgba(232,168,124,0.18);
+    --code-bg: #0e1119;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 30px rgba(0,0,0,0.35);
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background:
+      radial-gradient(900px 600px at 12% -10%, rgba(232,168,124,0.08), transparent 60%),
+      radial-gradient(800px 600px at 100% 10%, rgba(124,168,232,0.06), transparent 60%),
+      var(--bg-0);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.55;
+    min-height: 100vh;
+  }
+  .wrap {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 56px 28px 80px;
+  }
+  header.top {
+    margin-bottom: 28px;
+  }
+  .eyebrow {
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 10px;
+  }
+  h1 {
+    font-size: 30px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin: 0 0 10px;
+  }
+  .summary {
+    color: var(--text-muted);
+    font-size: 16px;
+    margin: 0;
+    max-width: 64ch;
+  }
+
+  .chips {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    margin-top: 18px;
+  }
+  .chip {
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--accent-2);
+    background: rgba(232,168,124,0.08);
+    border: 1px solid rgba(232,168,124,0.22);
+    padding: 4px 10px;
+    border-radius: 999px;
+  }
+
+  .card {
+    background: var(--bg-1);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    margin-top: 24px;
+    overflow: hidden;
+  }
+  .card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-2);
+    gap: 10px;
+  }
+  .card-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    letter-spacing: 0.02em;
+  }
+  .card-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn {
+    appearance: none;
+    border: 1px solid var(--border-strong);
+    background: linear-gradient(180deg, #20242e 0%, #181c25 100%);
+    color: var(--text);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 7px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.06s ease, border-color 0.15s ease, background 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn:hover { border-color: rgba(232,168,124,0.55); }
+  .btn:active { transform: translateY(1px); }
+  .btn.ghost {
+    background: transparent;
+    border-color: var(--border);
+    color: var(--text-muted);
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+  .btn.ghost:hover { color: var(--text); border-color: var(--border-strong); }
+  .btn.copied {
+    border-color: rgba(124, 224, 162, 0.55);
+    color: #b5f0c8;
+  }
+  .btn svg {
+    width: 14px; height: 14px;
+    stroke: currentColor; fill: none;
+    stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;
+  }
+
+  /* Variable inputs */
+  .vars-body {
+    padding: 8px 0 4px;
+  }
+  .var-field {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+  }
+  .var-field:last-child { border-bottom: 0; }
+  .var-field-head {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .var-name-tag {
+    font-family: ui-monospace, "SF Mono", "JetBrains Mono", monospace;
+    color: var(--accent-2);
+    background: rgba(232,168,124,0.10);
+    border: 1px solid rgba(232,168,124,0.22);
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  .var-desc {
+    color: var(--text-muted);
+    font-size: 13px;
+    flex: 1 1 auto;
+    min-width: 200px;
+  }
+  textarea.var-input {
+    width: 100%;
+    background: var(--code-bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-family: ui-monospace, "SF Mono", "JetBrains Mono", monospace;
+    font-size: 13px;
+    line-height: 1.55;
+    resize: vertical;
+    min-height: 38px;
+    transition: border-color 0.15s ease;
+  }
+  textarea.var-input:focus {
+    outline: none;
+    border-color: rgba(232,168,124,0.55);
+  }
+  textarea.var-input::placeholder {
+    color: var(--text-faint);
+    opacity: 0.7;
+  }
+
+  pre.prompt {
+    margin: 0;
+    padding: 22px;
+    background: var(--code-bg);
+    color: var(--text);
+    font-family: ui-monospace, "SF Mono", "JetBrains Mono", "Menlo", monospace;
+    font-size: 13.5px;
+    line-height: 1.62;
+    white-space: pre-wrap;
+    word-break: normal;
+    overflow-wrap: anywhere;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+  /* Highlighted unfilled placeholder */
+  pre.prompt .placeholder {
+    background: var(--accent-soft);
+    color: var(--accent-2);
+    border: 1px solid rgba(232,168,124,0.32);
+    border-radius: 4px;
+    padding: 0 4px;
+    font-weight: 500;
+  }
+  /* Filled-in value, subtle highlight */
+  pre.prompt .filled {
+    background: rgba(124, 224, 162, 0.10);
+    border-radius: 3px;
+    padding: 0 2px;
+  }
+
+  details.rationale {
+    margin-top: 28px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg-1);
+    padding: 0;
+    overflow: hidden;
+  }
+  details.rationale > summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 14px 18px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    user-select: none;
+  }
+  details.rationale > summary::-webkit-details-marker { display: none; }
+  details.rationale > summary::before {
+    content: "";
+    width: 7px; height: 7px;
+    border-right: 1.6px solid var(--text-muted);
+    border-bottom: 1.6px solid var(--text-muted);
+    transform: rotate(-45deg);
+    transition: transform 0.15s ease;
+    display: inline-block;
+  }
+  details.rationale[open] > summary::before {
+    transform: rotate(45deg);
+  }
+  .rationale-body {
+    padding: 4px 22px 22px;
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 1.7;
+    border-top: 1px solid var(--border);
+  }
+  .rationale-body p { margin: 14px 0; }
+  .rationale-body code {
+    background: var(--code-bg);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 12.5px;
+    color: var(--accent-2);
+  }
+
+  footer.foot {
+    margin-top: 36px;
+    color: var(--text-faint);
+    font-size: 12px;
+    text-align: center;
+  }
+
+  @media (max-width: 600px) {
+    .wrap { padding: 32px 16px 56px; }
+    h1 { font-size: 24px; }
+    .card-head { padding: 12px; }
+    pre.prompt { padding: 16px; font-size: 13px; }
+    .var-field { padding: 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="eyebrow">Claude Prompt</div>
+    <h1>Prospects Page — Real Database Data</h1>
+    <p class="summary">Creates a /api/prospects endpoint and updates the prospects page to fetch and display real prospects from Supabase, with a working Add Prospect flow and empty state.</p>
+    <div class="chips"><span class="chip">Role</span><span class="chip">XML tags</span><span class="chip">Exact file context</span><span class="chip">Output format contract</span><span class="chip">Scoped surgical changes</span></div>
+  </header>
+
+  
+
+  <section class="card" aria-label="Prompt">
+    <div class="card-head">
+      <span class="card-title">Prompt</span>
+      <div class="card-actions">
+        
+        <button class="btn" id="copyBtn" type="button" aria-label="Copy prompt to clipboard">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="9" y="9" width="11" height="11" rx="2"/>
+            <path d="M5 15V6a2 2 0 0 1 2-2h9"/>
+          </svg>
+          <span id="copyLabel">Copy prompt</span>
+        </button>
+      </div>
+    </div>
+    <pre class="prompt" id="promptPane"></pre>
+  </section>
+
+  <details class="rationale"><summary>Why this structure</summary><div class="rationale-body"><p>The API route handles both GET (list) and POST (create) so the Add Prospect modal can save directly without additional infrastructure. The refetch pattern (fetchProspects called after a successful add) keeps the table in sync without requiring a full page reload. Null handling for score is explicit to prevent NaN in the SVG stroke calculation. The loading skeleton prevents layout shift while data loads.</p></div></details>
+
+  <footer class="foot">Generated 2026-05-06 14:52 by the prompt-builder skill.</footer>
+</div>
+
+<script>
+(function() {
+  // ---- Data injected from Python ----
+  const RAW_PROMPT = "You are a senior Next.js/TypeScript engineer updating ColdHook. Two files need to change: a new API route and the existing prospects page. The page must keep all its interactive state (search, bulk select, filter) working exactly as before \u2014 only the data source changes.\n\n<context>\nStack: Next.js 16 App Router, TypeScript, Drizzle ORM, Clerk v5.\nThe prospects page is a \"use client\" component with useState for search and row selection. Data must be fetched client-side via a GET API route.\nDatabase: `db` from '@/lib/db', `prospects` table from '@/lib/db/schema', type `Prospect` from '@/lib/db/schema'.\nClerk server-side in API routes: `import { auth } from '@clerk/nextjs/server'`\nDrizzle imports: `import { eq, count, and } from 'drizzle-orm'`\n\nProspects table columns: id (uuid), userId (text), name (text), title (text|null), company (text), industry (text|null), linkedinUrl (text|null), triggerSignal (text|null), score (integer|null), status (text \u2014 hot|warm|cool), emailsSent (integer), createdAt (timestamp)\n</context>\n\n<task>\n\n1. CREATE src/app/api/prospects/route.ts\n\n   GET handler:\n   - Get userId from `await auth()` \u2014 if null return `{ prospects: [], stats: { total: 0, hot: 0, awaitingEmail: 0 } }`\n   - Run these queries with Promise.all:\n     a. All prospects for user: `db.select().from(prospects).where(eq(prospects.userId, userId)).orderBy(desc(prospects.createdAt))`  (import `desc` from drizzle-orm)\n     b. Hot count: `db.select({ count: count() }).from(prospects).where(and(eq(prospects.userId, userId), eq(prospects.status, 'hot')))`\n     c. Awaiting email count: `db.select({ count: count() }).from(prospects).where(and(eq(prospects.userId, userId), eq(prospects.emailsSent, 0)))`\n   - Return: `Response.json({ prospects: rows, stats: { total: rows.length, hot: hotRows[0]?.count ?? 0, awaitingEmail: awaitingRows[0]?.count ?? 0 } })`\n   - Wrap in try/catch, return empty data on error\n\n   POST handler (for adding a new prospect):\n   - Get userId from `await auth()` \u2014 if null return 401\n   - Parse body: `{ name, company, title, industry, linkedinUrl, triggerSignal, status }` \u2014 only name and company are required\n   - Validate name and company are non-empty strings\n   - Insert: `await db.insert(prospects).values({ userId, name, company, title: title || null, industry: industry || null, linkedinUrl: linkedinUrl || null, triggerSignal: triggerSignal || null, status: status || 'warm', emailsSent: 0 }).returning()`\n   - Return the inserted row with status 201\n\n2. UPDATE src/app/(app)/prospects/page.tsx\n\n   Keep \"use client\" and all existing imports. Make these changes:\n\n   a. Add `useEffect` to the React import.\n\n   b. Define a type at the top of the file:\n   ```ts\n   type ProspectRow = {\n     id: string\n     name: string\n     title: string | null\n     company: string\n     industry: string | null\n     triggerSignal: string | null\n     score: number | null\n     status: string\n     emailsSent: number\n     linkedinUrl: string | null\n     createdAt: string\n   }\n   ```\n\n   c. Remove the hardcoded `const prospects = [...]` array entirely.\n\n   d. Inside ProspectsPage(), replace the two existing useState calls and add new state:\n   ```ts\n   const [search, setSearch] = useState(\"\")\n   const [selected, setSelected] = useState<string[]>([])\n   const [prospectRows, setProspectRows] = useState<ProspectRow[]>([])\n   const [stats, setStats] = useState({ total: 0, hot: 0, awaitingEmail: 0 })\n   const [loading, setLoading] = useState(true)\n   const [showAddModal, setShowAddModal] = useState(false)\n   const [addForm, setAddForm] = useState({ name: \"\", company: \"\", title: \"\", industry: \"\", triggerSignal: \"\", status: \"warm\" })\n   const [adding, setAdding] = useState(false)\n   ```\n\n   e. Add a fetch effect and a refetch helper:\n   ```ts\n   const fetchProspects = () => {\n     setLoading(true)\n     fetch(\"/api/prospects\")\n       .then(r => r.json())\n       .then(data => {\n         setProspectRows(data.prospects || [])\n         setStats(data.stats || { total: 0, hot: 0, awaitingEmail: 0 })\n       })\n       .catch(() => {})\n       .finally(() => setLoading(false))\n   }\n   useEffect(() => { fetchProspects() }, [])\n   ```\n\n   f. Update `toggleSelect` to use `string` id instead of `number`.\n\n   g. Update `filtered` to filter over `prospectRows` instead of the removed `prospects` array.\n\n   h. Update the 4 summary KPI cards to use real values:\n   - \"Total Prospects\": `stats.total.toString()`\n   - \"Hot Leads\": `stats.hot.toString()`\n   - \"Awaiting Email\": `stats.awaitingEmail.toString()`\n   - \"Enrichment Queue\": keep hardcoded \"12\" for now\n\n   i. Update the TopBar description to use `stats.total` instead of `prospects.length`.\n\n   j. Add an Add Prospect modal. When `showAddModal` is true, render a simple overlay modal (fixed inset-0 bg-black/50 z-50 flex items-center justify-center) containing a Card (max-w-md w-full mx-4) with:\n   - Title \"Add Prospect\"\n   - Form fields: Name (required), Company (required), Title, Industry, Trigger signal, Status select (warm/hot/cool)\n   - Cancel button (sets showAddModal false, resets form)\n   - Save button (calls POST /api/prospects with addForm, calls fetchProspects() on success, closes modal)\n   - The adding state disables the Save button and shows \"Saving...\" text\n   - Style everything using the existing design tokens (bg-[#141516], border-[#23252a], text-[#f7f8f8], etc)\n\n   k. Wire the existing \"Add prospect\" button to `setShowAddModal(true)`.\n\n   l. In the table body, map over `filtered` (now ProspectRow[]). Adapt each row:\n   - `p.id` is now a uuid string \u2014 update selected state and toggleSelect accordingly\n   - `p.trigger` \u2192 `p.triggerSignal`\n   - `p.emails` \u2192 `p.emailsSent`\n   - `p.enriched` \u2192 `!!p.linkedinUrl` (show the ExternalLink icon if linkedinUrl exists)\n   - `p.score` may be null \u2014 show `p.score ?? '\u2014'` in the score circle, handle null gracefully (treat null as 0 for the SVG stroke calculation)\n   - `p.lastActivity` \u2192 remove (no longer in the data model)\n   - The `statusConfig` object keys and logic remain the same\n\n   m. Add a loading state: when `loading` is true and `prospectRows` is empty, show a simple centered skeleton \u2014 3 rows of `<div className=\"h-12 rounded-lg bg-[#141516] animate-pulse\" />` inside the table card instead of the table rows.\n\n   n. Add an empty state: when `!loading` and `filtered.length === 0` and `search === \"\"`, replace the table rows with a centered empty state:\n   ```\n   <div className=\"flex flex-col items-center justify-center py-16 text-center\">\n     <div className=\"size-10 rounded-xl bg-[rgba(94,106,210,0.08)] border border-[rgba(94,106,210,0.15)] flex items-center justify-center mb-3\">\n       <Users className=\"size-5 text-[#5e6ad2]\" />\n     </div>\n     <p className=\"text-sm text-[#8a8f98] mb-1\">No prospects yet</p>\n     <p className=\"text-xs text-[#62666d] mb-4\">Add your first prospect to start tracking your pipeline.</p>\n     <Button size=\"sm\" className=\"h-7 text-xs gap-1.5\" onClick={() => setShowAddModal(true)}>\n       <Plus className=\"size-3\" />Add prospect\n     </Button>\n   </div>\n   ```\n</task>\n\n<output_format>\nReturn two clearly separated files:\n// \u2500\u2500 FILE: src/app/api/prospects/route.ts \u2500\u2500\n// \u2500\u2500 FILE: src/app/(app)/prospects/page.tsx \u2500\u2500\n\nFull file content for each. No diffs, no commentary. Both must compile without TypeScript errors. Preserve all existing JSX structure and class names in the prospects page.\n</output_format>";
+  const VARIABLES  = [];  // [{name, description}]
+
+  const promptPane = document.getElementById('promptPane');
+  const copyBtn    = document.getElementById('copyBtn');
+  const copyLabel  = document.getElementById('copyLabel');
+  const resetBtn   = document.getElementById('resetBtn');
+
+  function escapeHtml(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // Collect current values from textareas keyed by variable name.
+  function getValues() {
+    const out = {};
+    for (const v of VARIABLES) {
+      const el = document.getElementById('var-' + v.name);
+      out[v.name] = el ? el.value : '';
+    }
+    return out;
+  }
+
+  // Substitute {{VAR}} in raw prompt. Returns plain string with values inserted.
+  function substitute(raw, values) {
+    return raw.replace(/\{\{\s*([A-Za-z0-9_]+)\s*\}\}/g, function(match, name) {
+      if (Object.prototype.hasOwnProperty.call(values, name) && values[name].trim() !== '') {
+        return values[name];
+      }
+      return match;  // leave unfilled
+    });
+  }
+
+  // Build HTML for the prompt pane: highlight unfilled and filled placeholders.
+  function renderPaneHtml(raw, values) {
+    // We do escaping in chunks so we can wrap the placeholder spans without
+    // accidentally escaping our own tag delimiters.
+    let html = '';
+    let lastIdx = 0;
+    const re = /\{\{\s*([A-Za-z0-9_]+)\s*\}\}/g;
+    let m;
+    while ((m = re.exec(raw)) !== null) {
+      const before = raw.slice(lastIdx, m.index);
+      html += escapeHtml(before);
+      const name = m[1];
+      const value = values[name];
+      if (value && value.trim() !== '') {
+        html += '<span class="filled">' + escapeHtml(value) + '</span>';
+      } else {
+        html += '<span class="placeholder">{{' + escapeHtml(name) + '}}</span>';
+      }
+      lastIdx = m.index + m[0].length;
+    }
+    html += escapeHtml(raw.slice(lastIdx));
+    return html;
+  }
+
+  function update() {
+    const values = getValues();
+    promptPane.innerHTML = renderPaneHtml(RAW_PROMPT, values);
+  }
+
+  // Wire up textarea inputs
+  for (const v of VARIABLES) {
+    const el = document.getElementById('var-' + v.name);
+    if (el) el.addEventListener('input', update);
+  }
+
+  // Copy button — copies the SUBSTITUTED prompt
+  copyBtn.addEventListener('click', async function() {
+    const text = substitute(RAW_PROMPT, getValues());
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select(); document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      copyBtn.classList.add('copied');
+      copyLabel.textContent = 'Copied!';
+      setTimeout(function() {
+        copyBtn.classList.remove('copied');
+        copyLabel.textContent = 'Copy prompt';
+      }, 1600);
+    } catch (e) {
+      copyLabel.textContent = 'Copy failed';
+      setTimeout(function() { copyLabel.textContent = 'Copy prompt'; }, 1600);
+    }
+  });
+
+  // Reset button
+  if (resetBtn) {
+    resetBtn.addEventListener('click', function() {
+      for (const v of VARIABLES) {
+        const el = document.getElementById('var-' + v.name);
+        if (el) el.value = '';
+      }
+      update();
+    });
+  }
+
+  update();  // initial render
+})();
+</script>
+</body>
+</html>

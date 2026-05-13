@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ColdHook — Generation Engine Rewrite</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #010102; color: #f7f8f8; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding: 32px 24px; min-height: 100vh; }
+  h1 { font-size: 20px; font-weight: 700; color: #f7f8f8; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #8a8f98; margin-bottom: 12px; }
+  .context-note { font-size: 12px; color: #62666d; margin-bottom: 32px; padding: 12px 16px; border: 1px solid #23252a; border-radius: 8px; background: #0f1011; line-height: 1.8; }
+  .context-note strong { color: #8a8f98; }
+  .context-note code { font-family: "SF Mono", "Fira Code", monospace; font-size: 11px; color: #828fff; background: rgba(94,106,210,0.1); padding: 1px 5px; border-radius: 3px; }
+
+  .prompt-card { background: #0f1011; border: 1px solid #23252a; border-radius: 12px; margin-bottom: 24px; overflow: hidden; }
+  .card-header { padding: 16px 20px; border-bottom: 1px solid #23252a; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .card-meta { display: flex; align-items: center; gap: 10px; }
+  .num { width: 24px; height: 24px; border-radius: 6px; background: rgba(94,106,210,0.15); border: 1px solid rgba(94,106,210,0.25); color: #828fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .card-title { font-size: 14px; font-weight: 600; color: #f7f8f8; }
+  .card-sub { font-size: 12px; color: #8a8f98; margin-top: 2px; }
+  .model-badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+  .model-claude { background: rgba(255,128,31,0.12); border: 1px solid rgba(255,128,31,0.25); color: #ff801f; }
+
+  .card-body { padding: 16px 20px; }
+  .why { font-size: 12px; color: #8a8f98; line-height: 1.6; margin-bottom: 14px; }
+
+  .change-list { margin-bottom: 16px; }
+  .change-item { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 6px; font-size: 12px; color: #8a8f98; line-height: 1.5; }
+  .change-dot { width: 5px; height: 5px; border-radius: 50%; background: #5e6ad2; flex-shrink: 0; margin-top: 5px; }
+  .change-item strong { color: #d0d6e0; }
+
+  pre { background: #0a0a0b; border: 1px solid #23252a; border-radius: 8px; padding: 16px; font-size: 12px; line-height: 1.65; color: #d0d6e0; white-space: pre-wrap; word-break: break-word; font-family: "SF Mono", "Fira Code", monospace; max-height: 620px; overflow-y: auto; }
+
+  .copy-btn { margin-top: 12px; width: 100%; padding: 9px 0; border-radius: 8px; border: 1px solid #34343a; background: #141516; color: #d0d6e0; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+  .copy-btn:hover { background: #1e1f22; border-color: #5e6ad2; color: #828fff; }
+  .copy-btn.copied { background: rgba(39,166,68,0.1); border-color: rgba(39,166,68,0.3); color: #27a644; }
+
+  .pipeline-diagram { display: flex; gap: 0; margin-bottom: 20px; }
+  .stage { flex: 1; padding: 10px 12px; border: 1px solid #23252a; border-right: none; font-size: 11px; line-height: 1.4; }
+  .stage:first-child { border-radius: 8px 0 0 8px; }
+  .stage:last-child { border-right: 1px solid #23252a; border-radius: 0 8px 8px 0; }
+  .stage-label { font-weight: 700; color: #5e6ad2; margin-bottom: 3px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .stage-desc { color: #62666d; }
+  .stage-model { color: #8a8f98; font-weight: 600; margin-top: 4px; font-size: 10px; }
+  .stage-arrow { display: flex; align-items: center; padding: 0 2px; color: #34343a; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<h1>ColdHook — Generation Engine Rewrite</h1>
+<p class="subtitle">1 prompt · Full rewrite of <code>src/app/api/generate/route.ts</code></p>
+
+<p class="context-note">
+  <strong>What this fixes:</strong> The current generate route uses a single-prompt approach — trigger goes in as a string variable, Sonnet outputs an email that literally restates the trigger ("Saw you raised your Series B — congrats!"). This is the exact pattern every competitor uses and the pattern practitioners universally complain about.<br><br>
+  <strong>What's being built:</strong> A 2-stage pipeline within the same route. Stage 1: a dedicated insight-generation call (Haiku) that reasons about non-obvious second-order implications of the trigger before any email is written. Stage 2: a fully rewritten drafting prompt (Sonnet) that receives the insight output and enforces hard craft constraints — trigger-type-specific opening structure, 50–125 word cap, 1:2 you/I ratio, interest-based CTA, no pitch in body, colleague test. All existing scoring, DB writes, and response shape are kept intact.<br><br>
+  <strong>Model:</strong> Claude terminal — this is a full rewrite of a complex existing route. Read the full spec carefully before writing any code.
+</p>
+
+<div class="pipeline-diagram">
+  <div class="stage">
+    <div class="stage-label">Stage 1</div>
+    <div class="stage-desc">Classify trigger type<br>(inline logic)</div>
+    <div class="stage-model">TypeScript fn</div>
+  </div>
+  <div class="stage-arrow">→</div>
+  <div class="stage">
+    <div class="stage-label">Stage 2</div>
+    <div class="stage-desc">Insight generation<br>(non-obvious implications)</div>
+    <div class="stage-model">Haiku</div>
+  </div>
+  <div class="stage-arrow">→</div>
+  <div class="stage">
+    <div class="stage-label">Stage 3</div>
+    <div class="stage-desc">Draft email from<br>insight + hard rules</div>
+    <div class="stage-model">Sonnet</div>
+  </div>
+  <div class="stage-arrow">→</div>
+  <div class="stage">
+    <div class="stage-label">Stage 4</div>
+    <div class="stage-desc">Score + DB write<br>(existing logic)</div>
+    <div class="stage-model">scoring.ts</div>
+  </div>
+</div>
+
+<div class="prompt-card">
+  <div class="card-header">
+    <div class="card-meta">
+      <div class="num">1</div>
+      <div>
+        <div class="card-title">Generation Engine Rewrite</div>
+        <div class="card-sub">src/app/api/generate/route.ts — full rewrite</div>
+      </div>
+    </div>
+    <span class="model-badge model-claude">Claude (terminal)</span>
+  </div>
+  <div class="card-body">
+    <div class="change-list">
+      <div class="change-item"><div class="change-dot"></div><div><strong>Add:</strong> classifyTrigger() function that returns one of: "promotion" | "funding" | "content" | "job_change" | "other"</div></div>
+      <div class="change-item"><div class="change-dot"></div><div><strong>Add:</strong> generateInsight() async function — a separate Haiku call that reasons about non-obvious implications of the trigger before any email is drafted</div></div>
+      <div class="change-item"><div class="change-dot"></div><div><strong>Replace:</strong> buildPrompt() with buildDraftPrompt() that accepts the insight output and enforces all craft research constraints as hard rules</div></div>
+      <div class="change-item"><div class="change-dot"></div><div><strong>Keep intact:</strong> All imports, validation logic, scoring calls, DB insert, and response shape — nothing else changes</div></div>
+    </div>
+    <pre id="p1">You are working on ColdHook, a Next.js 16 App Router TypeScript project. Stack: Next.js 16, TypeScript, Tailwind CSS v4, AI SDK v6 (@ai-sdk/anthropic + ai).
+
+File to fully rewrite: src/app/api/generate/route.ts
+
+Read the entire spec before writing a single line of code. The existing file does one LLM call with a weak prompt. You are replacing it with a 2-stage pipeline that adds an insight-generation step before drafting. All existing imports, validation, scoring, DB writes, and response shape must remain unchanged.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EXISTING CODE TO KEEP EXACTLY AS-IS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Keep these imports unchanged:
+  import { anthropic } from "@ai-sdk/anthropic"
+  import { generateText } from "ai"
+  import { auth } from "@clerk/nextjs/server"
+  import { db } from "@/lib/db"
+  import { emails } from "@/lib/db/schema"
+  import { computePersonalizationScore, computeSpamScore } from "@/lib/scoring"
+
+Keep the entire POST handler structure: body parsing, the three required-field validations (firstName, company, trigger), the fields object construction, the subject/body parsing regex, the computePersonalizationScore and computeSpamScore calls, the auth() + db.insert(), and the final Response.json() shape.
+
+Do NOT change: validation error messages, field names, response JSON keys, or DB insert field names.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STAGE 1 — ADD: classifyTrigger()
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add this TypeScript function before the POST handler:
+
+  type TriggerType = "promotion" | "funding" | "content" | "job_change" | "other"
+
+  function classifyTrigger(trigger: string): TriggerType {
+    const t = trigger.toLowerCase()
+    if (/\b(promot|vp |cro|cmo|cto|ceo|chief|head of|director|new role|stepped into|just became)\b/.test(t)) return "promotion"
+    if (/\b(series [abcde]|seed round|raised|funding|raise|investors|led by|venture|capital)\b/.test(t)) return "funding"
+    if (/\b(podcast|episode|post|article|talk|spoke|wrote|published|interview|webinar|keynote|linkedin post)\b/.test(t)) return "content"
+    if (/\b(joined|just joined|started at|new job|moved to|left .+ for|now at)\b/.test(t)) return "job_change"
+    return "other"
+  }
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STAGE 2 — ADD: generateInsight()
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add this async function before the POST handler. This is the core of ColdHook's differentiation — a dedicated reasoning call that thinks about what the trigger MEANS for this person's job before any email is drafted.
+
+  async function generateInsight(fields: {
+    firstName: string
+    title: string
+    company: string
+    trigger: string
+    triggerType: TriggerType
+  }): Promise<string> {
+    const triggerContext: Record<TriggerType, string> = {
+      promotion: `Focus on: what specific operational and political challenges come with this exact role transition. What does this person now have to prove, build, or fix that they didn't before? What mandate do they likely have?`,
+      funding: `Focus on: what the round size and stage actually mean in operational pressure — hiring timelines, board expectations, burn rate, GTM acceleration. What is the person in this seat now accountable for that they weren't before the round closed?`,
+      content: `Focus on: the specific argument or perspective they expressed — what does holding that view imply about how they see their biggest problem right now? What would a peer say in response?`,
+      job_change: `Focus on: the gap between where they came from and where they've landed. What expectations does their previous company set that won't match reality at the new company? What audit are they already running?`,
+      other: `Focus on: what this trigger event implies is changing or under pressure in their world right now. What problem does it surface that probably wasn't urgent 3 months ago?`,
+    }
+
+    const { text } = await generateText({
+      model: anthropic("claude-haiku-4-5-20251001"),
+      maxOutputTokens: 200,
+      prompt: `You are a senior B2B sales strategist reasoning about a prospect trigger event. Your job is NOT to write an email. Your job is to identify the single most non-obvious, second-order implication of this trigger for this specific person's job.
+
+PROSPECT:
+- Name: ${fields.firstName}
+- Title: ${fields.title || "unknown"}
+- Company: ${fields.company}
+- Trigger: ${fields.trigger}
+- Trigger type: ${fields.triggerType}
+
+${triggerContext[fields.triggerType]}
+
+Output format — write exactly 2–3 sentences:
+1. The non-obvious implication (what changes for them now that most people wouldn't think to mention)
+2. Why this implication is specifically relevant to their title/role (not generic — tie it to the actual job function)
+
+Do NOT write a cold email. Do NOT include a subject line. Do NOT include pleasantries. Just output the 2–3 sentence insight that a smart colleague would think of.`,
+    })
+
+    return text.trim()
+  }
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STAGE 3 — REPLACE: buildPrompt() → buildDraftPrompt()
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Delete the existing buildPrompt() function entirely and replace with this buildDraftPrompt(). This is the drafting prompt — it receives the insight from Stage 2 and enforces all craft constraints as hard rules, not suggestions.
+
+  function buildDraftPrompt(fields: {
+    firstName: string
+    lastName: string
+    title: string
+    company: string
+    trigger: string
+    triggerType: TriggerType
+    insight: string
+    valueProp: string
+    tone: string
+    length: string
+    ctaStyle: string
+  }): string {
+    const toneInstructions: Record<string, string> = {
+      conversational: "Casual, direct peer-to-peer. Fragments are fine. Lowercase subject line. No formal closings.",
+      professional: "Clear and respectful but never stiff. Full sentences. Avoid contractions only if the industry demands it.",
+      formal: "Complete sentences. No fragments. Full name in greeting if one is used. No contractions.",
+    }
+
+    const ctaExamples: Record<string, string> = {
+      soft: `Use an interest-based CTA. Examples: "Worth a look?", "Is this on your radar right now?", "Open to a quick walk-through?", "Is [specific problem] something ${fields.company} is dealing with right now?"`,
+      value: `Use a value-offer CTA. Examples: "Want me to send the playbook we ran for [similar company]?", "Should I send over the benchmark data?", "Happy to share the 3-page breakdown — want me to send it?"`,
+      direct: `Use a soft open-meeting CTA. Example: "Worth 15 minutes next week?" — do NOT include a calendar link. No Calendly links in the first email.`,
+    }
+
+    const triggerOpeningGuide: Record<TriggerType, string> = {
+      promotion: `OPENING STRUCTURE FOR PROMOTIONS: Do NOT say "congratulations." Instead, acknowledge the transition and frame the specific challenge that comes with this exact role. Reference their previous situation if known. Pattern: "Saw you stepped into [role] at [company] — [what makes this transition specifically hard or different]."`,
+      funding: `OPENING STRUCTURE FOR FUNDING: Do NOT say "congrats on the round." Skip the celebration and go directly to the operational consequence. Name specific details from the trigger if available (round size, lead investor, stage). Pattern: "The [round details] means [what the board now expects / what pressure this creates for their specific role]."`,
+      content: `OPENING STRUCTURE FOR CONTENT: Reference the specific argument they made, not the platform or show. Do not summarize their content back to them. Build on their argument or extend it. Pattern: "Your [specific argument from the content] connects to something we've seen at [similar companies] — [related insight]."`,
+      job_change: `OPENING STRUCTURE FOR JOB CHANGES: Reference where they came from. Name the universal phase they're in right now (first 60-90 days, auditing the stack, building opinions). Do not say "congrats on the new role." Pattern: "Saw you joined [company] — coming from [previous company], you're probably [in the specific phase they're navigating]."`,
+      other: `OPENING STRUCTURE FOR OTHER TRIGGERS: Start with the specific observable fact from the trigger, then pivot immediately to what it implies for their work. Never generic.`,
+    }
+
+    const lengthTarget: Record<string, string> = {
+      short: "HARD CAP: 50–75 words total for the body. Under 5 lines. Cut everything that isn't essential.",
+      medium: "HARD CAP: 75–100 words total for the body. Under 6 lines. Ruthlessly remove anything that doesn't earn its place.",
+      long: "HARD CAP: 100–125 words total for the body. This is the absolute maximum. Never exceed 125 words.",
+    }
+
+    return `You are an elite cold email writer who produces emails that read like they were written by a human who spent 30 minutes thinking about this one person, not an AI processing a list of 5,000.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PROSPECT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Name: ${fields.firstName} ${fields.lastName}
+Title: ${fields.title || "unknown"}
+Company: ${fields.company}
+Trigger: ${fields.trigger}
+Value proposition: ${fields.valueProp || "not specified"}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+THE INSIGHT (USE THIS — do not ignore it)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+A senior strategist has already reasoned about this trigger and identified the non-obvious implication:
+
+${fields.insight}
+
+Your email MUST be built around this insight, not around the trigger itself. The opening line should make the prospect feel like someone actually thought about what this trigger means for them — not just that someone noticed the trigger happened.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TRIGGER-SPECIFIC OPENING RULES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${triggerOpeningGuide[fields.triggerType]}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+HARD CRAFT RULES — EVERY RULE IS MANDATORY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+LENGTH: ${lengthTarget[fields.length] || lengthTarget.medium}
+
+STRUCTURE (5 lines max):
+  Line 1: Trigger-based opening built from the insight — specific, no generic congrats
+  Lines 2–3: Value proposition — what it is, who it's for, one specific outcome from a similar company (not a feature list)
+  Line 4: CTA (see CTA rules below)
+  Line 5: Low-pressure out — "Either way, appreciate the read." or similar
+
+PERSONALIZATION RATIO:
+  For every sentence about yourself or your product, write two sentences about the prospect or their situation.
+  Count before you submit. I/my to you/your target: 1:2 or better.
+
+CTA RULES:
+  ${ctaExamples[fields.ctaStyle] || ctaExamples.soft}
+  — ONE CTA only. Never two.
+  — No calendar links, no Calendly URLs in the email body.
+  — Personalize the CTA to their specific situation when possible.
+  — End with a low-pressure out after the CTA.
+
+TONE: ${toneInstructions[fields.tone] || toneInstructions.conversational}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ABSOLUTE PROHIBITIONS — NEVER INCLUDE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✗ "I hope this email finds you well" or any variant
+✗ "Just wanted to reach out" or "I'm reaching out because"
+✗ "My name is X and I'm the [role] at [company]"
+✗ "Congratulations on" anything — acknowledge, don't celebrate
+✗ Pitching language in the body: "best-in-class", "AI-powered", "leveraging", "synergy", "holistic", "seamless", "robust", "cutting-edge"
+✗ ROI claims or percentage promises ("3x your pipeline", "increase revenue by 40%")
+✗ More than one exclamation point in the entire email (zero is better)
+✗ Emojis
+✗ Links of any kind in the body (calendar links belong in signature only)
+✗ Multiple CTAs
+✗ "I know you're busy but"
+✗ "Quick question" used dishonestly (when the email is actually a pitch)
+✗ Any sentence beginning with "I" — restructure to open with "you" or the prospect's context
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+COLLEAGUE TEST — APPLY BEFORE FINALIZING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Read the email aloud. Would this sound normal coming from a smart coworker in an internal Slack message? If it sounds like marketing copy, rewrite it. Boring beats clever. A peer note beats a pitch.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SUBJECT LINE RULES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1–4 words. Colleague-message style, not newsletter style.
+Good: "quick question", "re: the [topic]", "[first name]", "[company] + [your company]"
+Bad: "Unlock Your Q4 Revenue Potential", "AI-Powered Cold Email Strategy for [Company]"
+Lowercase is fine and often better for tech/SaaS.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OUTPUT FORMAT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Output exactly this format — nothing else:
+
+Subject: [1–4 word subject line]
+
+[email body — no salutation prefix like "Hi Sarah," unless the tone setting requires it. No closing signature like "Best," or "Thanks," — just the body ending naturally with the low-pressure out]`
+  }
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+UPDATE THE POST HANDLER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Inside the POST handler, replace the single generateText call with this 2-stage pipeline. Do not touch anything before or after it — only replace the call itself.
+
+REPLACE this block:
+
+  const { text } = await generateText({
+    model: anthropic("claude-sonnet-4-6"),
+    prompt: buildPrompt(fields),
+  })
+
+WITH this block:
+
+  // Stage 1: classify the trigger type
+  const triggerType = classifyTrigger(fields.trigger)
+
+  // Stage 2: generate a non-obvious insight from the trigger before drafting
+  const insight = await generateInsight({
+    firstName: fields.firstName,
+    title: fields.title,
+    company: fields.company,
+    trigger: fields.trigger,
+    triggerType,
+  })
+
+  // Stage 3: draft the email using the insight + hard craft rules
+  const { text } = await generateText({
+    model: anthropic("claude-sonnet-4-6"),
+    maxOutputTokens: 400,
+    prompt: buildDraftPrompt({ ...fields, triggerType, insight }),
+  })
+
+Also update the fields object to include triggerType and insight as local variables (they're only used within the handler, not passed in from the request body — they're computed).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VERIFICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+After completing the rewrite:
+1. Run: npx tsc --noEmit
+2. Fix any TypeScript errors before finishing
+3. Confirm the response JSON shape is unchanged: { subject, email, score, scoreBreakdown, spamScore, spamFlags, spamIsClean }
+4. Confirm the DB insert fields are unchanged
+5. Confirm generateInsight uses model: anthropic("claude-haiku-4-5-20251001") and maxOutputTokens: 200
+6. Confirm buildDraftPrompt uses model: anthropic("claude-sonnet-4-6") and maxOutputTokens: 400
+   NOTE: AI SDK v6 uses maxOutputTokens — NOT maxTokens. Using maxTokens will cause a TypeScript error.</pre>
+    <button class="copy-btn" id="btn1" onclick="copyPrompt('p1', 'btn1', 'Copy Prompt')">Copy Prompt</button>
+  </div>
+</div>
+
+<script>
+function copyPrompt(preId, btnId, label) {
+  const el = document.getElementById(preId)
+  navigator.clipboard.writeText(el.innerText).then(() => {
+    const btn = document.getElementById(btnId)
+    btn.textContent = "✓ Copied!"
+    btn.classList.add("copied")
+    setTimeout(() => {
+      btn.textContent = label
+      btn.classList.remove("copied")
+    }, 2000)
+  })
+}
+</script>
+</body>
+</html>

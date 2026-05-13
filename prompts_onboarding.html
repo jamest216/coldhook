@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ColdHook — Onboarding Tour</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #010102; color: #f7f8f8; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding: 32px 24px; min-height: 100vh; }
+  h1 { font-size: 20px; font-weight: 700; color: #f7f8f8; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #8a8f98; margin-bottom: 12px; }
+  .context-note { font-size: 12px; color: #62666d; margin-bottom: 32px; padding: 12px 16px; border: 1px solid #23252a; border-radius: 8px; background: #0f1011; line-height: 1.8; }
+  .context-note strong { color: #8a8f98; }
+  .context-note code { font-family: "SF Mono", "Fira Code", monospace; font-size: 11px; color: #828fff; background: rgba(94,106,210,0.1); padding: 1px 5px; border-radius: 3px; }
+  .order-note { font-size: 12px; color: #62666d; margin-bottom: 24px; padding: 10px 14px; border: 1px solid #23252a; border-radius: 8px; background: #0f1011; }
+  .order-note strong { color: #8a8f98; }
+
+  .prompt-card { background: #0f1011; border: 1px solid #23252a; border-radius: 12px; margin-bottom: 24px; overflow: hidden; }
+  .card-header { padding: 16px 20px; border-bottom: 1px solid #23252a; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .card-meta { display: flex; align-items: center; gap: 10px; }
+  .num { width: 24px; height: 24px; border-radius: 6px; background: rgba(94,106,210,0.15); border: 1px solid rgba(94,106,210,0.25); color: #828fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .card-title { font-size: 14px; font-weight: 600; color: #f7f8f8; }
+  .card-sub { font-size: 12px; color: #8a8f98; margin-top: 2px; }
+  .model-badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+  .model-claude { background: rgba(255,128,31,0.12); border: 1px solid rgba(255,128,31,0.25); color: #ff801f; }
+
+  .card-body { padding: 16px 20px; }
+  .why { font-size: 12px; color: #8a8f98; line-height: 1.6; margin-bottom: 14px; }
+  .change-list { margin-bottom: 16px; }
+  .change-item { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 6px; font-size: 12px; color: #8a8f98; line-height: 1.5; }
+  .change-dot { width: 5px; height: 5px; border-radius: 50%; background: #5e6ad2; flex-shrink: 0; margin-top: 5px; }
+  .change-item strong { color: #d0d6e0; }
+
+  pre { background: #0a0a0b; border: 1px solid #23252a; border-radius: 8px; padding: 16px; font-size: 12px; line-height: 1.65; color: #d0d6e0; white-space: pre-wrap; word-break: break-word; font-family: "SF Mono", "Fira Code", monospace; max-height: 680px; overflow-y: auto; }
+
+  .copy-btn { margin-top: 12px; width: 100%; padding: 9px 0; border-radius: 8px; border: 1px solid #34343a; background: #141516; color: #d0d6e0; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+  .copy-btn:hover { background: #1e1f22; border-color: #5e6ad2; color: #828fff; }
+  .copy-btn.copied { background: rgba(39,166,68,0.1); border-color: rgba(39,166,68,0.3); color: #27a644; }
+</style>
+</head>
+<body>
+
+<h1>ColdHook — First-Run Onboarding Tour</h1>
+<p class="subtitle">3 prompts · Run in order</p>
+
+<p class="context-note">
+  <strong>What this builds:</strong> A spotlight-based click-through onboarding tour for first-time users. When a new user (zero emails in DB) lands on the dashboard, they see a focused first-run hero state with a single CTA. Clicking it sends them to <code>/compose?onboarding=true</code> with a fictional example prospect pre-filled. A spotlight tour activates — dimming everything except the element being explained, with a bubble tooltip and Next/Skip navigation. Steps guide them through: trigger field → value prop → generate button → pipeline panel (auto-fires after generation) → sequence section (auto-fires after generation). Tour completes when they generate the sequence. Stored in localStorage so it never shows again.<br><br>
+  <strong>Spotlight effect:</strong> Fixed div sized to the target element's bounding rect, <code>box-shadow: 0 0 0 9999px rgba(1,1,2,0.85)</code> creates the darkened surround. Smooth transition between steps. Bubble positioned below or above depending on screen position. No click-blocking — the tour guides, doesn't trap.
+</p>
+<p class="order-note"><strong>Order matters:</strong> Prompt 1 (tour component) → Prompt 2 (dashboard) → Prompt 3 (compose). Do not skip steps.</p>
+
+<!-- PROMPT 1 -->
+<div class="prompt-card">
+  <div class="card-header">
+    <div class="card-meta">
+      <div class="num">1</div>
+      <div>
+        <div class="card-title">Create OnboardingTour Component</div>
+        <div class="card-sub">src/components/onboarding/tour.tsx — new file</div>
+      </div>
+    </div>
+    <span class="model-badge model-claude">Claude (terminal)</span>
+  </div>
+  <div class="card-body">
+    <p class="why">Greenfield client component. No existing code to preserve. Create the directory if it doesn't exist.</p>
+    <pre id="p1">You are working on ColdHook, a Next.js 16 App Router TypeScript project. Stack: Next.js 16, TypeScript, Tailwind CSS v4.
+
+Create a new file: src/components/onboarding/tour.tsx
+Create the directory src/components/onboarding/ if it doesn't exist.
+
+This is a "use client" spotlight onboarding tour component. Read the full spec before writing any code.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DESIGN TOKENS (match the rest of the app)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+--color-canvas: #010102
+--color-surface-1: #0f1011
+--color-surface-2: #141516
+--color-accent: #5e6ad2
+--color-accent-hover: #828fff
+--color-ink: #f7f8f8
+--color-ink-muted: #d0d6e0
+--color-ink-subtle: #8a8f98
+--color-hairline: #23252a
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+HOW IT WORKS — data-tour attribute system
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The tour finds elements to spotlight by querying document.querySelector('[data-tour="<id>"]'). The compose page adds data-tour attributes to specific elements. The tour component does not receive refs — it queries the DOM directly by data-tour ID.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TYPES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  export type TourStep = {
+    tourId: string        // matches data-tour attribute on the target element
+    title: string
+    description: string
+    nextLabel?: string    // custom Next button label, defaults to "Next →"
+    position?: "top" | "bottom"  // where the bubble appears relative to spotlight, defaults to "bottom"
+  }
+
+  type Props = {
+    steps: TourStep[]
+    currentStep: number               // controlled by parent
+    onNext: () => void                // parent increments currentStep
+    onSkip: () => void                // parent marks tour complete
+    isActive: boolean                 // parent can pause/hide the tour
+  }
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SPOTLIGHT STATE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The component tracks spotlightRect: { top, left, width, height } | null in state.
+
+On every currentStep change (useEffect):
+1. Query document.querySelector('[data-tour="${step.tourId}"]')
+2. If found, call getBoundingClientRect()
+3. Set spotlightRect to { top, left, width, height } from the rect
+4. Also scroll the element into view: element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+5. If not found, set spotlightRect to null
+
+Also add resize and scroll event listeners (passive) that re-query and update spotlightRect when the window changes. Clean up on unmount.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SPOTLIGHT RENDERING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+When isActive is true and spotlightRect is not null, render a fixed-position div (the spotlight) with:
+- position: fixed
+- top: spotlightRect.top - 8 (8px padding around the element)
+- left: spotlightRect.left - 8
+- width: spotlightRect.width + 16
+- height: spotlightRect.height + 16
+- borderRadius: 10px
+- boxShadow: "0 0 0 9999px rgba(1,1,2,0.85)"
+- zIndex: 50
+- pointerEvents: "none"
+- transition: "all 0.35s cubic-bezier(0.22, 1, 0.36, 1)"
+- border: "1px solid rgba(94,106,210,0.3)"
+
+Use inline styles for top/left/width/height since they are dynamic. Use Tailwind for the rest where possible.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BUBBLE RENDERING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Render the bubble tooltip as a fixed-position div, z-index: 51.
+
+POSITION LOGIC:
+  const BUBBLE_WIDTH = 320
+  const BUBBLE_GAP = 16  // gap between spotlight edge and bubble
+
+  If step.position === "top" OR spotlightRect.top > window.innerHeight * 0.6:
+    // Place bubble ABOVE the spotlight
+    top = spotlightRect.top - 8 - BUBBLE_GAP - bubbleHeight (estimate ~130px)
+    left = clamp(spotlightRect.left - 8, 16, window.innerWidth - BUBBLE_WIDTH - 16)
+    Show a downward-pointing caret below the bubble
+
+  Otherwise (default "bottom"):
+    // Place bubble BELOW the spotlight
+    top = spotlightRect.top + spotlightRect.height + 16 + BUBBLE_GAP
+    left = clamp(spotlightRect.left - 8, 16, window.innerWidth - BUBBLE_WIDTH - 16)
+    Show an upward-pointing caret above the bubble
+
+BUBBLE STYLES:
+  width: 320px
+  background: #0f1011
+  border: 1px solid #23252a
+  border-radius: 12px
+  padding: 16px
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(94,106,210,0.1)
+
+BUBBLE CONTENT (top to bottom):
+  1. Step indicator: "step X of Y" — text-[10px] text-[#62666d] uppercase tracking-wider mb-2
+  2. Title: text-sm font-semibold text-[#f7f8f8] mb-1.5
+  3. Description: text-xs text-[#8a8f98] leading-relaxed mb-4
+  4. Button row (flex, justify-between, items-center):
+     Left: Skip button — text-xs text-[#62666d] hover:text-[#8a8f98] underline cursor-pointer (calls onSkip)
+     Right: Next button — small accent button, text-xs, gap-1.5, bg-[#5e6ad2] hover:bg-[#828fff] text-white rounded-lg px-3 py-1.5 font-medium transition-colors (calls onNext)
+       Label: step.nextLabel ?? "Next →"
+
+CARET:
+  A small triangle created with a div — 8px wide, 6px tall, positioned at the left edge of the bubble (horizontally) or at the bubble's edge nearest the spotlight.
+  Use inline border trick:
+    Upward caret (bubble below spotlight):
+      position absolute, top: -6px, left: 20px
+      border-left: 8px solid transparent
+      border-right: 8px solid transparent
+      border-bottom: 6px solid #23252a (border color)
+      And a second slightly smaller one for fill: border-bottom: 6px solid #0f1011
+
+    Downward caret (bubble above spotlight):
+      position absolute, bottom: -6px, left: 20px
+      border-left: 8px solid transparent
+      border-right: 8px solid transparent
+      border-top: 6px solid #0f1011
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ENTRANCE ANIMATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+When the bubble first renders or step changes, animate in:
+Use a key={currentStep} on the bubble div so React remounts it on step change.
+Add a CSS class with:
+  @keyframes tour-bubble-in {
+    from { opacity: 0; transform: translateY(6px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  animation: tour-bubble-in 0.25s ease-out forwards;
+
+Inject this via a style tag inside the component.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EARLY RETURNS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+If !isActive → return null
+If currentStep >= steps.length → return null
+If spotlightRect is null → render only the bubble (no spotlight) so the step text is still visible even if the target element hasn't mounted yet
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EXPORTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Export OnboardingTour as named export.
+Export TourStep type as named export.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VERIFICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Run: npx tsc --noEmit — fix all errors
+2. Confirm the component has "use client" at the top
+3. Confirm it does NOT import framer-motion — pure CSS transitions only
+4. Confirm it does NOT import anything from @clerk or the DB</pre>
+    <button class="copy-btn" id="btn1" onclick="copyPrompt('p1', 'btn1', 'Copy Prompt 1')">Copy Prompt 1</button>
+  </div>
+</div>
+
+<!-- PROMPT 2 -->
+<div class="prompt-card">
+  <div class="card-header">
+    <div class="card-meta">
+      <div class="num">2</div>
+      <div>
+        <div class="card-title">Dashboard — First-Run Detection</div>
+        <div class="card-sub">src/app/(app)/dashboard/page.tsx — targeted additions</div>
+      </div>
+    </div>
+    <span class="model-badge model-claude">Claude (terminal)</span>
+  </div>
+  <div class="card-body">
+    <div class="change-list">
+      <div class="change-item"><div class="change-dot"></div><div><strong>Add:</strong> isFirstRun boolean — true when totalEmails === 0</div></div>
+      <div class="change-item"><div class="change-dot"></div><div><strong>Add:</strong> First-run hero banner above the stats grid — full-width, focused, single CTA to /compose?onboarding=true</div></div>
+      <div class="change-item"><div class="change-dot"></div><div><strong>Update:</strong> TopBar description — personalised welcome for first-time vs returning users</div></div>
+    </div>
+    <pre id="p2">You are working on ColdHook, a Next.js 16 App Router TypeScript project.
+
+File to edit: src/app/(app)/dashboard/page.tsx
+
+This is a targeted update — do NOT rewrite the file. Make only the changes described. All existing imports, queries, stats cards, recent emails section, and quick actions stay exactly as-is.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 1 — Add isFirstRun flag
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+After this existing line:
+  const hasEmails = recentEmailRows.length > 0
+
+Add:
+  const isFirstRun = totalEmails === 0
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 2 — Update TopBar description for first-run
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find the TopBar component. Update its description prop:
+
+  description={isFirstRun
+    ? `Welcome${clerkUser?.firstName ? `, ${clerkUser.firstName}` : ""}. Let's generate your first email.`
+    : `Welcome back${clerkUser?.firstName ? `, ${clerkUser.firstName}` : ""}. Here's your pipeline.`
+  }
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 3 — Add first-run hero banner
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find the main content div:
+  <div className="p-6 space-y-6">
+
+Immediately after this opening div (before the stats grid), add the following conditional block. It only renders when isFirstRun is true. When the user has emails it disappears completely — never shows again once they've generated:
+
+  {isFirstRun && (
+    <div className="relative rounded-2xl border border-[rgba(94,106,210,0.25)] bg-[rgba(94,106,210,0.04)] overflow-hidden p-8">
+      {/* Subtle radial glow */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-30"
+        style={{
+          background: "radial-gradient(ellipse at 60% 50%, rgba(94,106,210,0.15) 0%, transparent 70%)",
+        }}
+      />
+
+      <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+        {/* Left — text */}
+        <div className="max-w-lg">
+          {/* Step indicators */}
+          <div className="flex items-center gap-2 mb-4">
+            {["Trigger", "Insight", "Draft", "Sequence"].map((label, i) => (
+              <div key={label} className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
+                  <div className="size-5 rounded-full bg-[rgba(94,106,210,0.15)] border border-[rgba(94,106,210,0.25)] flex items-center justify-center text-[10px] font-bold text-[#828fff]">
+                    {i + 1}
+                  </div>
+                  <span className="text-[11px] text-[#62666d]">{label}</span>
+                </div>
+                {i < 3 && <span className="text-[#34343a] text-xs">→</span>}
+              </div>
+            ))}
+          </div>
+
+          <h2 className="text-xl font-bold text-[#f7f8f8] mb-2 tracking-tight">
+            Generate your first email
+          </h2>
+          <p className="text-sm text-[#8a8f98] leading-relaxed">
+            ColdHook researches your prospect, finds the non-obvious angle in their trigger, and writes a cold email that reads like you spent 30 minutes on them — in about 10 seconds. Start with a real prospect or use our pre-filled example.
+          </p>
+        </div>
+
+        {/* Right — CTA */}
+        <div className="flex flex-col items-start lg:items-end gap-3 shrink-0">
+          <Button asChild size="lg" className="h-11 px-8 text-sm font-medium gap-2">
+            <Link href="/compose?onboarding=true">
+              <Sparkles className="size-4" />
+              Start with guided tour
+            </Link>
+          </Button>
+          <Link
+            href="/compose"
+            className="text-xs text-[#62666d] hover:text-[#8a8f98] transition-colors underline underline-offset-4"
+          >
+            Skip tour — go straight to compose
+          </Link>
+        </div>
+      </div>
+    </div>
+  )}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VERIFICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Run: npx tsc --noEmit — fix all errors
+2. Confirm the hero banner only renders when isFirstRun is true
+3. Confirm Button and Link are already imported (they are)
+4. Confirm the "Skip tour" link goes to /compose (no onboarding param)
+5. Confirm the "Start with guided tour" link goes to /compose?onboarding=true</pre>
+    <button class="copy-btn" id="btn2" onclick="copyPrompt('p2', 'btn2', 'Copy Prompt 2')">Copy Prompt 2</button>
+  </div>
+</div>
+
+<!-- PROMPT 3 -->
+<div class="prompt-card">
+  <div class="card-header">
+    <div class="card-meta">
+      <div class="num">3</div>
+      <div>
+        <div class="card-title">Compose — Tour Integration + Pre-fill</div>
+        <div class="card-sub">src/app/(app)/compose/page.tsx — onboarding wiring</div>
+      </div>
+    </div>
+    <span class="model-badge model-claude">Claude (terminal)</span>
+  </div>
+  <div class="card-body">
+    <div class="change-list">
+      <div class="change-item"><div class="change-dot"></div><div><strong>Add:</strong> useSearchParams to detect ?onboarding=true on mount</div></div>
+      <div class="change-item"><div class="change-dot"></div><div><strong>Add:</strong> tourStep, tourActive, tourComplete state + localStorage persistence</div></div>
+      <div class="change-item"><div class="change-dot"></div><div><strong>Add:</strong> Pre-fill fictional example prospect when onboarding=true (firstName, lastName, title, company, trigger)</div></div>
+      <div class="change-item"><div class="change-dot"></div><div><strong>Add:</strong> data-tour attributes on 5 target elements</div></div>
+      <div class="change-item"><div class="change-dot"></div><div><strong>Add:</strong> OnboardingTour component with 5-step definition + auto-advance logic after generation and sequence</div></div>
+    </div>
+    <pre id="p3">You are working on ColdHook, a Next.js 16 App Router TypeScript project. Stack: Next.js 16, TypeScript, Tailwind CSS v4.
+
+File to edit: src/app/(app)/compose/page.tsx
+
+This is a complex existing file. Read carefully. Make only the changes described — do not rewrite the file or reorder any existing sections.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 1 — Add imports
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add to the existing import block:
+  import { useSearchParams } from "next/navigation"
+  import { OnboardingTour, type TourStep } from "@/components/onboarding/tour"
+
+Also add Suspense to the React import if not already there:
+  import { useState, useEffect, Suspense } from "react"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 2 — Wrap ComposePage in Suspense for useSearchParams
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+useSearchParams() requires a Suspense boundary in Next.js App Router. Rename the existing export default function to ComposePageInner (keep all internals identical). Then add a new default export at the bottom of the file:
+
+  export default function ComposePage() {
+    return (
+      <Suspense>
+        <ComposePageInner />
+      </Suspense>
+    )
+  }
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 3 — Add tour state inside ComposePageInner
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add this at the top of ComposePageInner, after the existing useState declarations:
+
+  const searchParams = useSearchParams()
+  const [tourActive, setTourActive] = useState(false)
+  const [tourStep, setTourStep] = useState(0)
+
+  // On mount: check if onboarding param is set and tour hasn't been completed
+  useEffect(() => {
+    const isOnboarding = searchParams.get("onboarding") === "true"
+    const isComplete = localStorage.getItem("coldhook_tour_complete") === "true"
+    if (isOnboarding && !isComplete) {
+      setTourActive(true)
+      // Pre-fill fictional example prospect
+      setFirstName("Alex")
+      setLastName("Rivera")
+      setTitle("VP of Sales")
+      setCompany("Northstar")
+      setTrigger("Just promoted internally from Senior Account Executive to VP of Sales at Northstar, announced on LinkedIn two days ago")
+    }
+  }, [])
+
+  // Auto-advance tour to pipeline step after generation
+  useEffect(() => {
+    if (tourActive && generated && tourStep === 3) {
+      // Step 3 is "generate button" — auto-advance to pipeline panel after generation
+      setTimeout(() => setTourStep(4), 800)
+    }
+  }, [generated, tourActive, tourStep])
+
+  // Auto-advance tour to sequence step after pipeline step
+  // (sequence step fires from handleTourNext when on step 4)
+
+  const handleTourNext = () => {
+    if (tourStep === 4) {
+      // Advance to sequence step
+      setTourStep(5)
+      return
+    }
+    if (tourStep >= 5) {
+      // Tour complete
+      handleTourComplete()
+      return
+    }
+    setTourStep((s) => s + 1)
+  }
+
+  const handleTourComplete = () => {
+    localStorage.setItem("coldhook_tour_complete", "true")
+    setTourActive(false)
+  }
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 4 — Define tour steps
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add the steps array after the state declarations (before the return statement):
+
+  const tourSteps: TourStep[] = [
+    {
+      tourId: "trigger",
+      title: "Start with the trigger",
+      description: "What happened with this prospect recently? A promotion, funding round, podcast — this is what makes your email feel written for them, not sent to a list. We've pre-filled an example to get you started.",
+      nextLabel: "Got it →",
+    },
+    {
+      tourId: "valueprop",
+      title: "Your pitch in one line",
+      description: "What you sell and who it's for. Keep it to one sentence — ColdHook handles the personalization, not the pitch. Fill in your actual product here.",
+      nextLabel: "Got it →",
+    },
+    {
+      tourId: "settings",
+      title: "Email settings",
+      description: "Choose tone, length, and CTA style. Industry calibrates the formality automatically — a legal prospect gets a different register than a SaaS startup. Leave these as-is for your first email.",
+      nextLabel: "Ready — generate →",
+    },
+    {
+      tourId: "generate-btn",
+      title: "Run the pipeline",
+      description: "ColdHook runs 4 stages before your email appears: signal enrichment, insight generation, drafting, and a quality check. Takes about 10 seconds. Click Generate Email when you're ready.",
+      nextLabel: "I'll click it →",
+      position: "top",
+    },
+    {
+      tourId: "pipeline-panel",
+      title: "See how it was built",
+      description: "No other tool shows you this. Stage 1 enriched the signal. Stage 2 found the non-obvious insight. The email was built from that insight — not from a template. Expand it to see the reasoning.",
+      nextLabel: "Now the sequence →",
+    },
+    {
+      tourId: "sequence-section",
+      title: "Complete the sequence",
+      description: "Generate your Day 3 value-add and Day 7 breakup email. This is your full outreach sequence — ready to paste into any email tool. Click 'Generate full sequence' to finish.",
+      nextLabel: "Done — I'm in ✓",
+    },
+  ]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 5 — Add data-tour attributes to 6 elements
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find and add data-tour attributes to these existing elements. Do not change any other props or styles.
+
+TARGET 1 — Trigger textarea div wrapper
+  Find the div wrapping the trigger Textarea (label "Recent trigger / buying signal")
+  Add data-tour="trigger" to that wrapper div:
+    <div className="space-y-1.5" data-tour="trigger">
+
+TARGET 2 — Value prop textarea div wrapper
+  Find the div wrapping the value prop Textarea (label "Your pitch / value prop")
+  Add data-tour="valueprop" to that wrapper div:
+    <div className="space-y-1.5" data-tour="valueprop">
+
+TARGET 3 — Email settings Card
+  Find the Email Settings Card (the one with the green FileText icon)
+  Add data-tour="settings" to the Card component:
+    <Card data-tour="settings">
+
+TARGET 4 — Generate Email Button
+  Find the Generate Email Button (the one with Wand2 icon, calls handleGenerate)
+  Wrap it in a div with data-tour="generate-btn":
+    <div data-tour="generate-btn">
+      <Button ...existing button...>
+    </div>
+
+TARGET 5 — Pipeline panel Card ("How this was written")
+  Find the Card that contains the "How this was written" section
+  Add data-tour="pipeline-panel" to that Card:
+    <Card data-tour="pipeline-panel">
+
+TARGET 6 — Sequence section Card
+  Find the Card containing the Follow-up Sequence section
+  Add data-tour="sequence-section" to that Card:
+    <Card data-tour="sequence-section">
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 6 — Render OnboardingTour
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+At the very end of the return statement, just before the closing </div> of the outermost wrapper, add:
+
+  <OnboardingTour
+    steps={tourSteps}
+    currentStep={tourStep}
+    onNext={handleTourNext}
+    onSkip={handleTourComplete}
+    isActive={tourActive}
+  />
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 7 — Auto-complete tour when sequence generates
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find the handleGenerateSequence function. At the end of the try block (after setSequence(data)), add:
+
+  // Complete onboarding tour when user generates their first sequence
+  if (tourActive && tourStep === 5) {
+    setTimeout(() => handleTourComplete(), 1200)
+  }
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VERIFICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Run: npx tsc --noEmit — fix all errors
+2. Confirm the Suspense wrapper is in place for useSearchParams
+3. Confirm data-tour attributes are on exactly 6 elements
+4. Confirm the pre-fill sets: firstName="Alex", lastName="Rivera", title="VP of Sales", company="Northstar", trigger=[full string]
+5. Confirm localStorage key is "coldhook_tour_complete"
+6. Confirm OnboardingTour renders at the root level of the return (not inside a conditional, so it can always be present but uses isActive to show/hide)
+7. Confirm tourStep auto-advances from 3 to 4 when generated becomes true (via useEffect)</pre>
+    <button class="copy-btn" id="btn3" onclick="copyPrompt('p3', 'btn3', 'Copy Prompt 3')">Copy Prompt 3</button>
+  </div>
+</div>
+
+<script>
+function copyPrompt(preId, btnId, label) {
+  const el = document.getElementById(preId)
+  navigator.clipboard.writeText(el.innerText).then(() => {
+    const btn = document.getElementById(btnId)
+    btn.textContent = "✓ Copied!"
+    btn.classList.add("copied")
+    setTimeout(() => {
+      btn.textContent = label
+      btn.classList.remove("copied")
+    }, 2000)
+  })
+}
+</script>
+</body>
+</html>

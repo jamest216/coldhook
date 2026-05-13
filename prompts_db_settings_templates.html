@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ColdHook — DB: Settings + Templates</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #010102; color: #f7f8f8; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding: 32px 24px; min-height: 100vh; }
+  h1 { font-size: 20px; font-weight: 700; color: #f7f8f8; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #8a8f98; margin-bottom: 12px; }
+  .context-note { font-size: 12px; color: #62666d; margin-bottom: 32px; padding: 12px 16px; border: 1px solid #23252a; border-radius: 8px; background: #0f1011; line-height: 1.9; }
+  .context-note strong { color: #8a8f98; }
+  .context-note code { font-family: "SF Mono", "Fira Code", monospace; font-size: 11px; color: #828fff; background: rgba(94,106,210,0.1); padding: 1px 5px; border-radius: 3px; }
+  .section-label { font-size: 10px; font-weight: 700; color: #5e6ad2; letter-spacing: 0.1em; text-transform: uppercase; margin: 32px 0 12px; }
+  .prompt-card { background: #0f1011; border: 1px solid #23252a; border-radius: 12px; overflow: hidden; margin-bottom: 20px; }
+  .card-header { padding: 14px 20px; border-bottom: 1px solid #23252a; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .card-meta { display: flex; align-items: center; gap: 10px; }
+  .num { width: 24px; height: 24px; border-radius: 6px; background: rgba(94,106,210,0.15); border: 1px solid rgba(94,106,210,0.25); color: #828fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .card-title { font-size: 13px; font-weight: 600; color: #f7f8f8; }
+  .card-sub { font-size: 11px; color: #8a8f98; margin-top: 2px; }
+  .model-badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; flex-shrink: 0; background: rgba(255,128,31,0.12); border: 1px solid rgba(255,128,31,0.25); color: #ff801f; }
+  .card-body { padding: 16px 20px; }
+  .why { font-size: 12px; color: #8a8f98; line-height: 1.6; margin-bottom: 12px; }
+  pre { background: #0a0a0b; border: 1px solid #23252a; border-radius: 8px; padding: 16px; font-size: 11.5px; line-height: 1.65; color: #d0d6e0; white-space: pre-wrap; word-break: break-word; font-family: "SF Mono", "Fira Code", monospace; max-height: 900px; overflow-y: auto; }
+  .copy-btn { margin-top: 12px; width: 100%; padding: 9px 0; border-radius: 8px; border: 1px solid #34343a; background: #141516; color: #d0d6e0; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+  .copy-btn:hover { background: #1e1f22; border-color: #5e6ad2; color: #828fff; }
+  .copy-btn.copied { background: rgba(39,166,68,0.1); border-color: rgba(39,166,68,0.3); color: #27a644; }
+</style>
+</head>
+<body>
+
+<h1>ColdHook — DB: User Settings + Templates</h1>
+<p class="subtitle">6 prompts · run in order · each step builds on the previous</p>
+
+<p class="context-note">
+  <strong>What this implements end-to-end:</strong><br><br>
+  Two new DB tables: <code>user_settings</code> (one row per user, primary key = userId) and <code>templates</code>. Settings page saves and loads real data. Compose page pre-populates valueProp, tone, length, CTA style, and industry from saved settings on mount — wiring the sender identity directly into the generation pipeline. Templates become fully CRUD: create, edit, duplicate, delete, star, and use (pre-fills compose).<br><br>
+  <strong>Dependency order is strict — do not skip steps:</strong><br>
+  Schema → Settings API → Settings page → Compose pre-fill → Templates API → Templates page.
+</p>
+
+<!-- ─── PHASE 1: SCHEMA ─────────────────────────── -->
+<p class="section-label">Phase 1 — Schema</p>
+
+<div class="prompt-card">
+  <div class="card-header">
+    <div class="card-meta">
+      <div class="num">1</div>
+      <div>
+        <div class="card-title">Add user_settings and templates tables — push migration</div>
+        <div class="card-sub">src/lib/db/schema.ts + npx drizzle-kit push</div>
+      </div>
+    </div>
+    <span class="model-badge">Claude (terminal)</span>
+  </div>
+  <div class="card-body">
+    <p class="why">Foundation for everything. Run the migration immediately after editing the schema — subsequent prompts depend on the tables existing.</p>
+    <pre id="p1">You are working on ColdHook, a Next.js 16 App Router TypeScript project using
+Drizzle ORM with a Supabase PostgreSQL database.
+
+File to edit: src/lib/db/schema.ts
+
+Read the full file before making any changes.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 1 — Add boolean to the drizzle import
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find:
+  import { pgTable, text, integer, timestamp, uuid } from "drizzle-orm/pg-core"
+
+Replace with:
+  import { pgTable, text, integer, boolean, timestamp, uuid } from "drizzle-orm/pg-core"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 2 — Add userSettings table
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add the following table definition after the existing prospects table:
+
+export const userSettings = pgTable("user_settings", {
+  // Primary key is the Clerk userId — one row per user, no uuid needed
+  userId: text("user_id").primaryKey(),
+
+  // ── Sender identity (pre-fills compose + passed to generate API) ──────
+  senderValueProp:  text("sender_value_prop"),   // "I help [ICP] achieve [outcome]..."
+  senderTitle:      text("sender_title"),         // user's own job title
+  senderCompany:    text("sender_company"),       // user's own company
+  senderLinkedinUrl: text("sender_linkedin_url"),
+
+  // ── Email defaults (pre-fill compose selectors) ───────────────────────
+  defaultTone:      text("default_tone").default("conversational"),
+  defaultLength:    text("default_length").default("medium"),
+  defaultCtaStyle:  text("default_cta_style").default("soft"),
+  defaultIndustry:  text("default_industry").default("tech_saas"),
+
+  // ── AI feature toggles ────────────────────────────────────────────────
+  includeSocialProof:       boolean("include_social_proof").default(true),
+  emojiInSubjects:          boolean("emoji_in_subjects").default(true),
+  personalizationFromNews:  boolean("personalization_from_news").default(true),
+  spamScoreCheck:           boolean("spam_score_check").default(true),
+  autoAbSubjects:           boolean("auto_ab_subjects").default(false),
+
+  // ── Notification prefs ────────────────────────────────────────────────
+  notifyOnReply:       boolean("notify_on_reply").default(true),
+  notifyWeeklySummary: boolean("notify_weekly_summary").default(true),
+  notifyBuyingSignal:  boolean("notify_buying_signal").default(true),
+
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+})
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 3 — Add templates table
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add the following table definition after userSettings:
+
+export const templates = pgTable("templates", {
+  id:          uuid("id").primaryKey().defaultRandom(),
+  userId:      text("user_id").notNull(),
+  name:        text("name").notNull(),
+  category:    text("category").notNull().default("Custom"),
+  description: text("description"),
+  subject:     text("subject").notNull(),
+  body:        text("body").notNull(),
+  tone:        text("tone").default("conversational"),
+  tags:        text("tags").array().default([]),
+  starred:     boolean("starred").notNull().default(false),
+  uses:        integer("uses").notNull().default(0),
+  // replyRate left null until email tracking infrastructure exists
+  replyRate:   integer("reply_rate"),
+  createdAt:   timestamp("created_at").notNull().defaultNow(),
+  updatedAt:   timestamp("updated_at").notNull().defaultNow(),
+})
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 4 — Export inferred types
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+At the bottom of the file, alongside the existing Email/Prospect type exports, add:
+
+export type UserSettings    = typeof userSettings.$inferSelect
+export type NewUserSettings = typeof userSettings.$inferInsert
+export type Template        = typeof templates.$inferSelect
+export type NewTemplate     = typeof templates.$inferInsert
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+AFTER EDITING — run the migration
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Run:
+  npx drizzle-kit push
+
+Confirm both tables are created with no errors before proceeding.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VERIFICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. npx tsc --noEmit — fix all type errors
+2. Confirm boolean is in the drizzle import
+3. Confirm userSettings.userId is primaryKey (not defaultRandom)
+4. Confirm templates.tags is text array with .default([])
+5. Confirm migration ran successfully (no errors from drizzle-kit push)
+6. No other files modified</pre>
+    <button class="copy-btn" id="btn1" onclick="copyPrompt('p1','btn1')">Copy Prompt</button>
+  </div>
+</div>
+
+<!-- ─── PHASE 2: SETTINGS API ──────────────────── -->
+<p class="section-label">Phase 2 — Settings API</p>
+
+<div class="prompt-card">
+  <div class="card-header">
+    <div class="card-meta">
+      <div class="num">2</div>
+      <div>
+        <div class="card-title">Create /api/settings route — GET + POST upsert</div>
+        <div class="card-sub">src/app/api/settings/route.ts — new file</div>
+      </div>
+    </div>
+    <span class="model-badge">Claude (terminal)</span>
+  </div>
+  <div class="card-body">
+    <p class="why">GET returns the user's settings row or a defaults object if none exists. POST upserts (insert or update) the full settings row.</p>
+    <pre id="p2">You are working on ColdHook, a Next.js 16 App Router TypeScript project.
+
+Create a new file: src/app/api/settings/route.ts
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REQUIREMENTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+GET /api/settings
+  - Auth via Clerk auth() — return 401 if not signed in
+  - Query userSettings table for the current userId
+  - If no row exists, return a defaults object (all nulls for text fields,
+    all default booleans matching the schema defaults)
+  - Return 200 with the settings object
+
+POST /api/settings
+  - Auth via Clerk auth() — return 401 if not signed in
+  - Parse JSON body — accept any subset of fields (partial update)
+  - Upsert using drizzle's .onConflictDoUpdate({ target: userSettings.userId })
+  - Always set updatedAt: new Date() in the update set
+  - Return 200 with the updated settings row
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+IMPLEMENTATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+import { auth } from "@clerk/nextjs/server"
+import { NextResponse } from "next/server"
+import { db } from "@/lib/db"
+import { userSettings } from "@/lib/db/schema"
+import { eq } from "drizzle-orm"
+
+const DEFAULTS = {
+  senderValueProp:         null,
+  senderTitle:             null,
+  senderCompany:           null,
+  senderLinkedinUrl:       null,
+  defaultTone:             "conversational",
+  defaultLength:           "medium",
+  defaultCtaStyle:         "soft",
+  defaultIndustry:         "tech_saas",
+  includeSocialProof:      true,
+  emojiInSubjects:         true,
+  personalizationFromNews: true,
+  spamScoreCheck:          true,
+  autoAbSubjects:          false,
+  notifyOnReply:           true,
+  notifyWeeklySummary:     true,
+  notifyBuyingSignal:      true,
+}
+
+export async function GET() {
+  const { userId } = await auth()
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+  const rows = await db
+    .select()
+    .from(userSettings)
+    .where(eq(userSettings.userId, userId))
+    .limit(1)
+
+  return NextResponse.json(rows[0] ?? { userId, ...DEFAULTS })
+}
+
+export async function POST(req: Request) {
+  const { userId } = await auth()
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+  const body = await req.json()
+
+  // Strip unknown keys — only allow schema fields
+  const allowed = Object.keys(DEFAULTS) as Array<keyof typeof DEFAULTS>
+  const values: Record<string, unknown> = { userId, updatedAt: new Date() }
+  for (const key of allowed) {
+    if (key in body) values[key] = body[key]
+  }
+
+  const [updated] = await db
+    .insert(userSettings)
+    .values(values as typeof userSettings.$inferInsert)
+    .onConflictDoUpdate({
+      target: userSettings.userId,
+      set: { ...values, updatedAt: new Date() } as Partial<typeof userSettings.$inferInsert>,
+    })
+    .returning()
+
+  return NextResponse.json(updated)
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VERIFICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. npx tsc --noEmit — fix all errors
+2. Confirm GET returns DEFAULTS merged with userId when no row exists
+3. Confirm POST uses onConflictDoUpdate targeting userSettings.userId
+4. Confirm updatedAt: new Date() is set in both insert values and update set
+5. No other files modified</pre>
+    <button class="copy-btn" id="btn2" onclick="copyPrompt('p2','btn2')">Copy Prompt</button>
+  </div>
+</div>
+
+<!-- ─── PHASE 3: SETTINGS PAGE ─────────────────── -->
+<p class="section-label">Phase 3 — Settings Page</p>
+
+<div class="prompt-card">
+  <div class="card-header">
+    <div class="card-meta">
+      <div class="num">3</div>
+      <div>
+        <div class="card-title">Wire Settings page — load from API, save on button click</div>
+        <div class="card-sub">src/app/(app)/settings/page.tsx</div>
+      </div>
+    </div>
+    <span class="model-badge">Claude (terminal)</span>
+  </div>
+  <div class="card-body">
+    <p class="why">Turns the settings page from a static form into a real read/write UI. All fields load from GET /api/settings on mount. Both save buttons POST to /api/settings.</p>
+    <pre id="p3">You are working on ColdHook, a Next.js 16 App Router TypeScript project.
+
+File to edit: src/app/(app)/settings/page.tsx
+
+Read the full file before making any changes.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REQUIREMENTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The page is already a "use client" component. Convert it to fetch and persist
+settings using the /api/settings route created in the previous step.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 1 — Add state for all settings fields
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+At the top of the SettingsPage component, after the existing useUser() call,
+add the following state:
+
+  // Profile extras (not managed by Clerk)
+  const [jobTitle, setJobTitle]   = useState("")
+  const [company,  setCompany]    = useState("")
+
+  // Sender identity
+  const [senderValueProp,   setSenderValueProp]   = useState("")
+  const [senderLinkedinUrl, setSenderLinkedinUrl] = useState("")
+  const [defaultTone,       setDefaultTone]       = useState("conversational")
+
+  // AI toggles
+  const [includeSocialProof,      setIncludeSocialProof]      = useState(true)
+  const [emojiInSubjects,         setEmojiInSubjects]         = useState(true)
+  const [personalizationFromNews, setPersonalizationFromNews] = useState(true)
+  const [spamScoreCheck,          setSpamScoreCheck]          = useState(true)
+  const [autoAbSubjects,          setAutoAbSubjects]          = useState(false)
+
+  // Notification prefs
+  const [notifyOnReply,       setNotifyOnReply]       = useState(true)
+  const [notifyWeeklySummary, setNotifyWeeklySummary] = useState(true)
+  const [notifyBuyingSignal,  setNotifyBuyingSignal]  = useState(true)
+
+  // UI state
+  const [saving,  setSaving]  = useState(false)
+  const [saved,   setSaved]   = useState<string | null>(null)  // which section just saved
+  const [loading, setLoading] = useState(true)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 2 — Fetch settings on mount
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add a useEffect directly after the state declarations. Add "useEffect" to the
+React import if not already present.
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then(r => r.json())
+      .then(s => {
+        if (s.senderValueProp)   setSenderValueProp(s.senderValueProp)
+        if (s.senderLinkedinUrl) setSenderLinkedinUrl(s.senderLinkedinUrl)
+        if (s.defaultTone)       setDefaultTone(s.defaultTone)
+        if (s.senderTitle)       setJobTitle(s.senderTitle)
+        if (s.senderCompany)     setCompany(s.senderCompany)
+        setIncludeSocialProof(s.includeSocialProof ?? true)
+        setEmojiInSubjects(s.emojiInSubjects ?? true)
+        setPersonalizationFromNews(s.personalizationFromNews ?? true)
+        setSpamScoreCheck(s.spamScoreCheck ?? true)
+        setAutoAbSubjects(s.autoAbSubjects ?? false)
+        setNotifyOnReply(s.notifyOnReply ?? true)
+        setNotifyWeeklySummary(s.notifyWeeklySummary ?? true)
+        setNotifyBuyingSignal(s.notifyBuyingSignal ?? true)
+      })
+      .finally(() => setLoading(false))
+  }, [])
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 3 — Add a save helper function
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add this function after the useEffect:
+
+  const saveSettings = async (payload: Record<string, unknown>, section: string) => {
+    setSaving(true)
+    try {
+      await fetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+      setSaved(section)
+      setTimeout(() => setSaved(null), 2000)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 4 — Wire form fields to state
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+In the Profile tab:
+  - Job title Input: value={jobTitle} onChange={e => setJobTitle(e.target.value)}
+  - Company Input:   value={company}  onChange={e => setCompany(e.target.value)}
+  - "Save changes" Button onClick:
+      () => saveSettings({ senderTitle: jobTitle, senderCompany: company }, "profile")
+  - Show "Saved ✓" text instead of button label when saved === "profile"
+
+In the Sender Identity card:
+  - Value prop Input:  value={senderValueProp}   onChange={e => setSenderValueProp(e.target.value)}
+  - LinkedIn Input:    value={senderLinkedinUrl} onChange={e => setSenderLinkedinUrl(e.target.value)}
+  - Preferred tone Select: value={defaultTone} onValueChange={setDefaultTone}
+  - "Save identity" Button onClick:
+      () => saveSettings({ senderValueProp, senderLinkedinUrl, defaultTone }, "identity")
+  - Show "Saved ✓" when saved === "identity"
+
+In the AI Settings tab, replace the hardcoded Switch array with individual
+controlled Switches wired to state:
+  - Include social proof:          checked={includeSocialProof} onCheckedChange={v => { setIncludeSocialProof(v); saveSettings({ includeSocialProof: v }, "ai") }}
+  - Emoji in subject lines:        checked={emojiInSubjects} onCheckedChange={v => { setEmojiInSubjects(v); saveSettings({ emojiInSubjects: v }, "ai") }}
+  - Personalization from news:     checked={personalizationFromNews} onCheckedChange={v => { setPersonalizationFromNews(v); saveSettings({ personalizationFromNews: v }, "ai") }}
+  - Spam score check:              checked={spamScoreCheck} onCheckedChange={v => { setSpamScoreCheck(v); saveSettings({ spamScoreCheck: v }, "ai") }}
+  - Auto A/B subject lines:        checked={autoAbSubjects} onCheckedChange={v => { setAutoAbSubjects(v); saveSettings({ autoAbSubjects: v }, "ai") }}
+  (AI toggle switches auto-save immediately on change — no save button needed)
+
+In the Notifications tab, wire each Switch similarly:
+  - Prospect replies:         notifyOnReply
+  - Weekly performance:       notifyWeeklySummary
+  - New buying signal:        notifyBuyingSignal
+  (auto-save on toggle, same pattern as AI switches)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VERIFICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. npx tsc --noEmit — fix all errors
+2. Confirm useEffect fetches /api/settings on mount and populates all state
+3. Confirm "Save changes" and "Save identity" call saveSettings with correct payloads
+4. Confirm AI and notification switches auto-save on toggle
+5. Confirm "Saved ✓" feedback shows for 2 seconds after save
+6. No non-settings logic touched</pre>
+    <button class="copy-btn" id="btn3" onclick="copyPrompt('p3','btn3')">Copy Prompt</button>
+  </div>
+</div>
+
+<!-- ─── PHASE 4: COMPOSE PRE-FILL ──────────────── -->
+<p class="section-label">Phase 4 — Compose Pre-fill</p>
+
+<div class="prompt-card">
+  <div class="card-header">
+    <div class="card-meta">
+      <div class="num">4</div>
+      <div>
+        <div class="card-title">Pre-fill Compose from saved settings on mount</div>
+        <div class="card-sub">src/app/(app)/compose/page.tsx — targeted addition only</div>
+      </div>
+    </div>
+    <span class="model-badge">Claude (terminal)</span>
+  </div>
+  <div class="card-body">
+    <p class="why">The generate API already receives valueProp, tone, length, ctaStyle, and industry from compose's local state. Pre-populating those from saved settings on mount connects sender identity to the generation pipeline at zero additional cost.</p>
+    <pre id="p4">You are working on ColdHook, a Next.js 16 App Router TypeScript project.
+
+File to edit: src/app/(app)/compose/page.tsx
+
+Read the full file before making any changes.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CONTEXT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ComposePageInner initialises these state fields:
+  const [valueProp, setValueProp] = useState("")
+  const [tone,      setTone]      = useState("conversational")
+  const [length,    setLength]    = useState("medium")
+  const [ctaStyle,  setCtaStyle]  = useState("soft")
+  const [industry,  setIndustry]  = useState("tech_saas")
+
+The generate API already passes all five of these to Claude. If settings pre-fill
+them on mount, sender identity is live with no other changes needed.
+
+The tour pre-fills its own values via the onboarding useEffect — that must be
+preserved. The settings fetch should only apply when the tour is NOT active.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE — Add a settings pre-fill useEffect
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add the following useEffect inside ComposePageInner, after all the existing state
+declarations and before the onboarding useEffect. Add "useEffect" to imports if
+not already present (it is already imported in this file).
+
+  // Pre-fill from saved user settings on mount (skip during tour)
+  useEffect(() => {
+    if (tourActive) return
+    fetch("/api/settings")
+      .then(r => r.json())
+      .then(s => {
+        if (s.senderValueProp) setValueProp(s.senderValueProp)
+        if (s.defaultTone)     setTone(s.defaultTone)
+        if (s.defaultLength)   setLength(s.defaultLength)
+        if (s.defaultCtaStyle) setCtaStyle(s.defaultCtaStyle)
+        if (s.defaultIndustry) setIndustry(s.defaultIndustry)
+      })
+      .catch(() => {/* silently ignore — defaults already set in state */})
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // intentionally runs once on mount only
+
+Do not touch any tour logic, handleGenerate, handleTourNext, tourSteps,
+populateTourMockData, or any other existing logic.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VERIFICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. npx tsc --noEmit — fix all errors
+2. Confirm the new useEffect is the only change in the file
+3. Confirm it only sets a field when the API response value is truthy
+4. Confirm the dependency array is [] (runs once on mount)
+5. Confirm tour logic is completely untouched</pre>
+    <button class="copy-btn" id="btn4" onclick="copyPrompt('p4','btn4')">Copy Prompt</button>
+  </div>
+</div>
+
+<!-- ─── PHASE 5: TEMPLATES API ─────────────────── -->
+<p class="section-label">Phase 5 — Templates API</p>
+
+<div class="prompt-card">
+  <div class="card-header">
+    <div class="card-meta">
+      <div class="num">5</div>
+      <div>
+        <div class="card-title">Create templates API routes — CRUD + duplicate</div>
+        <div class="card-sub">src/app/api/templates/route.ts + src/app/api/templates/[id]/route.ts — new files</div>
+      </div>
+    </div>
+    <span class="model-badge">Claude (terminal)</span>
+  </div>
+  <div class="card-body">
+    <p class="why">List, create, update, delete, and duplicate. The duplicate endpoint copies a row with a new uuid and " (copy)" appended to the name.</p>
+    <pre id="p5">You are working on ColdHook, a Next.js 16 App Router TypeScript project.
+
+Create two new files:
+  src/app/api/templates/route.ts
+  src/app/api/templates/[id]/route.ts
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FILE 1: src/app/api/templates/route.ts
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+GET /api/templates
+  - Auth via Clerk — 401 if not signed in
+  - Return all templates for the current user ordered by createdAt desc
+
+POST /api/templates
+  - Auth via Clerk — 401 if not signed in
+  - Parse body: { name, category?, description?, subject, body, tone?, tags?, starred? }
+  - name, subject, body are required — return 400 if missing
+  - Insert row and return the created template
+
+import { auth } from "@clerk/nextjs/server"
+import { NextResponse } from "next/server"
+import { db } from "@/lib/db"
+import { templates } from "@/lib/db/schema"
+import { eq, desc } from "drizzle-orm"
+
+export async function GET() {
+  const { userId } = await auth()
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const rows = await db.select().from(templates)
+    .where(eq(templates.userId, userId))
+    .orderBy(desc(templates.createdAt))
+  return NextResponse.json(rows)
+}
+
+export async function POST(req: Request) {
+  const { userId } = await auth()
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const body = await req.json()
+  if (!body.name || !body.subject || !body.body) {
+    return NextResponse.json({ error: "name, subject, and body are required" }, { status: 400 })
+  }
+  const [row] = await db.insert(templates).values({
+    userId,
+    name:        body.name,
+    category:    body.category    ?? "Custom",
+    description: body.description ?? null,
+    subject:     body.subject,
+    body:        body.body,
+    tone:        body.tone        ?? "conversational",
+    tags:        body.tags        ?? [],
+    starred:     body.starred     ?? false,
+  }).returning()
+  return NextResponse.json(row, { status: 201 })
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FILE 2: src/app/api/templates/[id]/route.ts
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PUT /api/templates/[id]   — update any fields
+DELETE /api/templates/[id] — delete the template
+POST /api/templates/[id]  — duplicate (action determined by ?action=duplicate query param)
+
+import { auth } from "@clerk/nextjs/server"
+import { NextResponse } from "next/server"
+import { db } from "@/lib/db"
+import { templates } from "@/lib/db/schema"
+import { eq, and } from "drizzle-orm"
+
+type Ctx = { params: Promise<{ id: string }> }
+
+export async function PUT(req: Request, { params }: Ctx) {
+  const { userId } = await auth()
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const { id } = await params
+  const body = await req.json()
+  const [updated] = await db
+    .update(templates)
+    .set({ ...body, updatedAt: new Date() })
+    .where(and(eq(templates.id, id), eq(templates.userId, userId)))
+    .returning()
+  if (!updated) return NextResponse.json({ error: "Not found" }, { status: 404 })
+  return NextResponse.json(updated)
+}
+
+export async function DELETE(_req: Request, { params }: Ctx) {
+  const { userId } = await auth()
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const { id } = await params
+  await db.delete(templates)
+    .where(and(eq(templates.id, id), eq(templates.userId, userId)))
+  return NextResponse.json({ success: true })
+}
+
+export async function POST(req: Request, { params }: Ctx) {
+  const { userId } = await auth()
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const { id } = await params
+  const url = new URL(req.url)
+  if (url.searchParams.get("action") !== "duplicate") {
+    return NextResponse.json({ error: "Unknown action" }, { status: 400 })
+  }
+  const [original] = await db.select().from(templates)
+    .where(and(eq(templates.id, id), eq(templates.userId, userId)))
+    .limit(1)
+  if (!original) return NextResponse.json({ error: "Not found" }, { status: 404 })
+  const { id: _id, createdAt: _c, updatedAt: _u, uses: _uses, ...rest } = original
+  const [copy] = await db.insert(templates).values({
+    ...rest,
+    name: `${original.name} (copy)`,
+    uses: 0,
+  }).returning()
+  return NextResponse.json(copy, { status: 201 })
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VERIFICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. npx tsc --noEmit — fix all errors
+2. Confirm PUT uses and(...userId check...) to prevent cross-user edits
+3. Confirm DELETE uses the same guard
+4. Confirm duplicate strips id, createdAt, updatedAt, uses before reinserting
+5. Confirm duplicate appends " (copy)" to name
+6. No other files modified</pre>
+    <button class="copy-btn" id="btn5" onclick="copyPrompt('p5','btn5')">Copy Prompt</button>
+  </div>
+</div>
+
+<!-- ─── PHASE 6: TEMPLATES PAGE ────────────────── -->
+<p class="section-label">Phase 6 — Templates Page</p>
+
+<div class="prompt-card">
+  <div class="card-header">
+    <div class="card-meta">
+      <div class="num">6</div>
+      <div>
+        <div class="card-title">Rewrite templates page — DB-backed, full CRUD, working buttons</div>
+        <div class="card-sub">src/app/(app)/templates/page.tsx — full rewrite</div>
+      </div>
+    </div>
+    <span class="model-badge">Claude (terminal)</span>
+  </div>
+  <div class="card-body">
+    <p class="why">Replaces hardcoded mock data with real DB calls. Every button works: create opens a modal, edit opens a pre-filled modal, duplicate copies the card, delete removes it, star toggles with animation, and use navigates to compose with template fields pre-filled via URL params.</p>
+    <pre id="p6">You are working on ColdHook, a Next.js 16 App Router TypeScript project.
+
+File to rewrite: src/app/(app)/templates/page.tsx
+
+Read the full file before rewriting. Preserve the existing visual design language
+(dark theme, card layout, same component imports). Replace the hardcoded data and
+dead buttons with working logic.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REQUIREMENTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+DATA LOADING
+- On mount, fetch GET /api/templates and store in state
+- Show a loading skeleton while fetching
+- Show an empty state with a "Create your first template" CTA if the list is empty
+
+STAR / FAVORITE
+- Clicking the star on a card immediately toggles its filled/unfilled state
+  (optimistic update in local state)
+- Then PATCH/PUT /api/templates/[id] with { starred: !current }
+- Animate the star: scale from 1 → 1.4 → 1 on fill using a CSS keyframe or
+  Tailwind animate-bounce for one cycle
+
+"..." MENU (MoreHorizontal button)
+- Opens a small dropdown below the button with three options:
+    Edit — opens edit modal pre-filled with this template's data
+    Duplicate — calls POST /api/templates/[id]?action=duplicate, appends new card
+    Delete — confirms with window.confirm(), calls DELETE /api/templates/[id],
+             removes card from local state
+
+EDIT BUTTON (on card footer)
+- Same as "Edit" from the "..." menu — opens edit modal
+
+DUPLICATE BUTTON (on card footer)
+- Same as "Duplicate" from "..." menu
+
+USE BUTTON (on card footer)
+- Navigates to /compose with query params:
+    ?templateSubject=<encoded subject>&templateBody=<encoded body>&templateTone=<tone>
+- Use Next.js router.push() for this
+
+NEW TEMPLATE BUTTON (top right)
+- Opens the create modal
+
+CREATE / EDIT MODAL
+- A fixed overlay (backdrop: rgba(0,0,0,0.6)) with a centered card (max-w-lg)
+- Fields: Name (required), Category (select), Description, Subject (required),
+  Body textarea (required, rows=8), Tone (select)
+- Cancel and Save buttons
+- On save: POST /api/templates (create) or PUT /api/templates/[id] (edit)
+- On success: prepend new card / update existing card in local state, close modal
+
+REPLYRATE AND USES
+- Display uses count from DB (starts at 0 for new templates)
+- Display replyRate as "—" when null (no tracking yet) — do not show a fake number
+
+SEARCH / FILTER
+- The existing search input should filter the displayed cards client-side by
+  template name or category (case-insensitive substring match)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+COMPOSE PRE-FILL via URL params
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The compose page does not yet read these URL params — that is handled in a
+separate prompt. For now, navigate to the correct URL and the compose page will
+be updated separately to read them.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VERIFICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. npx tsc --noEmit — fix all errors
+2. Confirm no hardcoded template data remains
+3. Confirm star toggle is optimistic and calls PUT /api/templates/[id]
+4. Confirm "..." dropdown has Edit / Duplicate / Delete
+5. Confirm modal opens for both create and edit
+6. Confirm Use button navigates to /compose with encoded query params
+7. Confirm search filters by name/category client-side
+8. Confirm replyRate shows "—" when null</pre>
+    <button class="copy-btn" id="btn6" onclick="copyPrompt('p6','btn6')">Copy Prompt</button>
+  </div>
+</div>
+
+<script>
+function copyPrompt(preId, btnId) {
+  const el = document.getElementById(preId)
+  navigator.clipboard.writeText(el.innerText).then(() => {
+    const btn = document.getElementById(btnId)
+    btn.textContent = "✓ Copied!"
+    btn.classList.add("copied")
+    setTimeout(() => { btn.textContent = "Copy Prompt"; btn.classList.remove("copied") }, 2000)
+  })
+}
+</script>
+</body>
+</html>

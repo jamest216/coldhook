@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ColdHook — Hero Performance Fix</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #010102; color: #f7f8f8; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding: 32px 24px; min-height: 100vh; }
+  h1 { font-size: 20px; font-weight: 700; color: #f7f8f8; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #8a8f98; margin-bottom: 12px; }
+  .context-note { font-size: 12px; color: #62666d; margin-bottom: 32px; padding: 12px 16px; border: 1px solid #23252a; border-radius: 8px; background: #0f1011; line-height: 1.7; }
+  .context-note strong { color: #8a8f98; }
+
+  .prompt-card { background: #0f1011; border: 1px solid #23252a; border-radius: 12px; overflow: hidden; }
+  .card-header { padding: 16px 20px; border-bottom: 1px solid #23252a; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .card-meta { display: flex; align-items: center; gap: 10px; }
+  .num { width: 24px; height: 24px; border-radius: 6px; background: rgba(94,106,210,0.15); border: 1px solid rgba(94,106,210,0.25); color: #828fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .card-title { font-size: 14px; font-weight: 600; color: #f7f8f8; }
+  .card-sub { font-size: 12px; color: #8a8f98; margin-top: 2px; }
+  .model-badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+  .model-claude { background: rgba(255,128,31,0.12); border: 1px solid rgba(255,128,31,0.25); color: #ff801f; }
+
+  .card-body { padding: 16px 20px; }
+  .why { font-size: 12px; color: #8a8f98; line-height: 1.6; margin-bottom: 14px; }
+
+  pre { background: #0a0a0b; border: 1px solid #23252a; border-radius: 8px; padding: 16px; font-size: 12px; line-height: 1.65; color: #d0d6e0; white-space: pre-wrap; word-break: break-word; font-family: "SF Mono", "Fira Code", monospace; max-height: 560px; overflow-y: auto; }
+
+  .copy-btn { margin-top: 12px; width: 100%; padding: 9px 0; border-radius: 8px; border: 1px solid #34343a; background: #141516; color: #d0d6e0; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+  .copy-btn:hover { background: #1e1f22; border-color: #5e6ad2; color: #828fff; }
+  .copy-btn.copied { background: rgba(39,166,68,0.1); border-color: rgba(39,166,68,0.3); color: #27a644; }
+</style>
+</head>
+<body>
+
+<h1>ColdHook — Hero Performance Fix</h1>
+<p class="subtitle">1 prompt · Remove looping animations causing jank</p>
+<p class="context-note">
+  <strong>Problem:</strong> Four background orbs and the app preview "bob" are running <code>repeat: Infinity</code> Framer Motion animations on the JS thread. This causes jank on every frame even though the orbs aren't visually noticeable.<br><br>
+  <strong>What to keep:</strong> The staggered entrance animations (containerVariants / itemVariants), the "actually" brightness pulse (runs once, no repeat), and the <code>whileHover</code> tilt on the app preview (event-driven, not looping).<br><br>
+  <strong>What to remove:</strong> All four animated orb <code>motion.div</code> elements → replace with static <code>div</code>. The app preview bob → remove the outer <code>motion.div</code> wrapper, keep the inner <code>whileHover</code>.
+</p>
+
+<div class="prompt-card">
+  <div class="card-header">
+    <div class="card-meta">
+      <div class="num">1</div>
+      <div>
+        <div class="card-title">Hero Performance Fix</div>
+        <div class="card-sub">src/components/landing/hero.tsx — strip looping animations</div>
+      </div>
+    </div>
+    <span class="model-badge model-claude">Claude (terminal)</span>
+  </div>
+  <div class="card-body">
+    <p class="why">Surgical edit to an existing complex component — Claude handles this without breaking the entrance animations that should stay.</p>
+    <pre id="p1">You are working on ColdHook, a Next.js 16 App Router TypeScript project.
+
+File to edit: src/components/landing/hero.tsx
+
+The hero has performance issues caused by four Framer Motion background orbs and an app preview "bob" animation running as infinite loops on the JS thread. Remove the looping animations while preserving all entrance animations and the hover effect.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 1 — Replace all 4 animated orbs with static divs
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find the entire background glow block (the div with comment "Background glow" containing 4 motion.div elements). It starts at:
+  {/* Background glow */}
+  <div className="absolute inset-0 overflow-hidden pointer-events-none">
+
+Replace the entire contents of that div (all 4 motion.div orbs) with plain static divs. Keep the exact same classNames, just remove all animate/transition/motion props:
+
+  {/* Background glow */}
+  <div className="absolute inset-0 overflow-hidden pointer-events-none">
+    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-[radial-gradient(ellipse_at_top,rgba(94,106,210,0.15)_0%,transparent_70%)]" />
+    <div className="absolute top-32 left-1/4 w-64 h-64 bg-[radial-gradient(circle,rgba(94,106,210,0.08)_0%,transparent_70%)] blur-3xl" />
+    <div className="absolute top-48 right-1/4 w-48 h-48 bg-[radial-gradient(circle,rgba(255,128,31,0.06)_0%,transparent_70%)] blur-3xl" />
+  </div>
+
+Note: The ping ring motion.div is also removed — just the 3 static orbs remain.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 2 — Remove the app preview bob, keep the hover tilt
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find the app preview section. It currently has two nested motion.div wrappers:
+  <motion.div className="mt-16 relative" variants={itemVariants}>
+    <div className="absolute inset-0 ..." />
+    {/* Inner wrapper handles bob + perspective tilt independently of entrance variant */}
+    <motion.div
+      animate={{ y: [0, -8] }}
+      transition={{
+        delay: 1.5,
+        duration: 4,
+        ease: "easeInOut",
+        repeat: Infinity,
+        repeatType: "mirror",
+      }}
+      whileHover={{ rotateX: 2 }}
+      style={{ transformPerspective: 1200 }}
+    >
+      <AppPreview />
+    </motion.div>
+  </motion.div>
+
+Remove the inner motion.div wrapper (the one with the bob animate prop) but keep the whileHover. The result should be:
+  <motion.div className="mt-16 relative" variants={itemVariants}>
+    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,rgba(94,106,210,0.15)_0%,transparent_60%)] pointer-events-none" />
+    <motion.div
+      whileHover={{ rotateX: 2 }}
+      style={{ transformPerspective: 1200 }}
+    >
+      <AppPreview />
+    </motion.div>
+  </motion.div>
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DO NOT TOUCH:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- containerVariants and itemVariants (entrance stagger — runs once, no repeat)
+- The motion.span on "actually" with the brightness pulse (has no repeat)
+- All other motion.div/motion.h1/motion.p elements using variants={itemVariants}
+- The framer-motion import (still needed for entrance animations)
+- The whileHover on the app preview wrapper
+- Everything inside AppPreview()
+
+After making changes, run: npx tsc --noEmit
+Fix any TypeScript errors before finishing.</pre>
+    <button class="copy-btn" id="btn1" onclick="copyPrompt('p1', 'btn1', 'Copy Prompt')">Copy Prompt</button>
+  </div>
+</div>
+
+<script>
+function copyPrompt(preId, btnId, label) {
+  const el = document.getElementById(preId)
+  navigator.clipboard.writeText(el.innerText).then(() => {
+    const btn = document.getElementById(btnId)
+    btn.textContent = "✓ Copied!"
+    btn.classList.add("copied")
+    setTimeout(() => {
+      btn.textContent = label
+      btn.classList.remove("copied")
+    }, 2000)
+  })
+}
+</script>
+</body>
+</html>

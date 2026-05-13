@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ColdHook — Stage 1 Enrichment + Stage 4 Self-Critique</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #010102; color: #f7f8f8; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding: 32px 24px; min-height: 100vh; }
+  h1 { font-size: 20px; font-weight: 700; color: #f7f8f8; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #8a8f98; margin-bottom: 12px; }
+  .context-note { font-size: 12px; color: #62666d; margin-bottom: 32px; padding: 12px 16px; border: 1px solid #23252a; border-radius: 8px; background: #0f1011; line-height: 1.8; }
+  .context-note strong { color: #8a8f98; }
+  .context-note code { font-family: "SF Mono", "Fira Code", monospace; font-size: 11px; color: #828fff; background: rgba(94,106,210,0.1); padding: 1px 5px; border-radius: 3px; }
+  .order-note { font-size: 12px; color: #62666d; margin-bottom: 24px; padding: 10px 14px; border: 1px solid #23252a; border-radius: 8px; background: #0f1011; }
+  .order-note strong { color: #8a8f98; }
+
+  .prompt-card { background: #0f1011; border: 1px solid #23252a; border-radius: 12px; margin-bottom: 24px; overflow: hidden; }
+  .card-header { padding: 16px 20px; border-bottom: 1px solid #23252a; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .card-meta { display: flex; align-items: center; gap: 10px; }
+  .num { width: 24px; height: 24px; border-radius: 6px; background: rgba(94,106,210,0.15); border: 1px solid rgba(94,106,210,0.25); color: #828fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .card-title { font-size: 14px; font-weight: 600; color: #f7f8f8; }
+  .card-sub { font-size: 12px; color: #8a8f98; margin-top: 2px; }
+  .model-badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+  .model-claude { background: rgba(255,128,31,0.12); border: 1px solid rgba(255,128,31,0.25); color: #ff801f; }
+
+  .card-body { padding: 16px 20px; }
+  .why { font-size: 12px; color: #8a8f98; line-height: 1.6; margin-bottom: 14px; }
+  .change-list { margin-bottom: 16px; }
+  .change-item { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 6px; font-size: 12px; color: #8a8f98; line-height: 1.5; }
+  .change-dot { width: 5px; height: 5px; border-radius: 50%; background: #5e6ad2; flex-shrink: 0; margin-top: 5px; }
+  .change-item strong { color: #d0d6e0; }
+
+  pre { background: #0a0a0b; border: 1px solid #23252a; border-radius: 8px; padding: 16px; font-size: 12px; line-height: 1.65; color: #d0d6e0; white-space: pre-wrap; word-break: break-word; font-family: "SF Mono", "Fira Code", monospace; max-height: 660px; overflow-y: auto; }
+
+  .copy-btn { margin-top: 12px; width: 100%; padding: 9px 0; border-radius: 8px; border: 1px solid #34343a; background: #141516; color: #d0d6e0; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+  .copy-btn:hover { background: #1e1f22; border-color: #5e6ad2; color: #828fff; }
+  .copy-btn.copied { background: rgba(39,166,68,0.1); border-color: rgba(39,166,68,0.3); color: #27a644; }
+</style>
+</head>
+<body>
+
+<h1>ColdHook — Stage 1 + Stage 4 + Visible Pipeline</h1>
+<p class="subtitle">2 prompts · Run in order</p>
+
+<p class="context-note">
+  <strong>Prompt 1 (route.ts):</strong> Adds <code>enrichSignal()</code> (Stage 1 — Haiku extracts structured intelligence from the raw trigger before insight generation) and <code>selfCritique()</code> (Stage 4 — Haiku audits the draft and optionally rewrites it if it fails craft rules). Updates the POST handler pipeline and adds <code>insight</code>, <code>enrichedContext</code>, and <code>critiqueResult</code> to the response JSON for UI display. All existing scoring and DB write logic unchanged.<br><br>
+  <strong>Prompt 2 (compose/page.tsx):</strong> Adds rotating stage messages during loading ("Enriching signal...", "Generating insight...", etc.). After generation, adds a collapsible "How this was written" panel showing the enriched context, the insight that drove the email, and the quality check result. This is the visible pipeline — the UI moment that shows users exactly why ColdHook produces different output than every other tool.
+</p>
+<p class="order-note"><strong>Order matters:</strong> Run Prompt 1 (route) first, Prompt 2 (compose UI) second.</p>
+
+<!-- PROMPT 1 -->
+<div class="prompt-card">
+  <div class="card-header">
+    <div class="card-meta">
+      <div class="num">1</div>
+      <div>
+        <div class="card-title">Route — Stage 1 Enrichment + Stage 4 Self-Critique</div>
+        <div class="card-sub">src/app/api/generate/route.ts — additions to existing pipeline</div>
+      </div>
+    </div>
+    <span class="model-badge model-claude">Claude (terminal)</span>
+  </div>
+  <div class="card-body">
+    <div class="change-list">
+      <div class="change-item"><div class="change-dot"></div><div><strong>Add:</strong> enrichSignal() — Haiku call that structures raw trigger into rich intelligence paragraph</div></div>
+      <div class="change-item"><div class="change-dot"></div><div><strong>Add:</strong> selfCritique() — Haiku call that audits draft + optionally outputs corrected version</div></div>
+      <div class="change-item"><div class="change-dot"></div><div><strong>Update:</strong> generateInsight() — add enrichedContext parameter, include it in the prompt</div></div>
+      <div class="change-item"><div class="change-dot"></div><div><strong>Update:</strong> POST handler — wire Stage 1 before insight, Stage 4 after draft, use final email in scoring + DB</div></div>
+      <div class="change-item"><div class="change-dot"></div><div><strong>Update:</strong> Response JSON — add insight, enrichedContext, critiqueResult fields</div></div>
+    </div>
+    <pre id="p1">You are working on ColdHook, a Next.js 16 App Router TypeScript project.
+
+File to edit: src/app/api/generate/route.ts
+
+Read the entire spec before writing any code. This is an additive update — do NOT rewrite any existing functions unless specifically instructed. All existing imports, types, classifier functions, scoring calls, DB insert, and the core structure of generateInsight() and buildDraftPrompt() stay exactly as-is.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ADD 1 — enrichSignal() function
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add this new async function immediately before generateInsight(). This is Stage 1 of the pipeline — it structures the raw trigger into richer intelligence before the insight stage reasons from it.
+
+  async function enrichSignal(fields: {
+    firstName: string
+    title: string
+    company: string
+    trigger: string
+    triggerType: TriggerType
+  }): Promise<string> {
+    const extractionGuide: Record<TriggerType, string> = {
+      funding: `Extract: round amount, round stage (Seed/A/B/C/D), lead investor name, co-investors if mentioned, approximate timing. Then infer: what growth benchmarks this investor typically sets for portfolio companies at this stage, what this round implies about the company's near-term hiring and GTM priorities.`,
+      promotion: `Extract: the new role/title, the previous role and company if mentioned, when the transition happened. Then infer: what mandate this specific role transition typically carries, what the first 90 days usually require, what the person is now accountable for that they weren't before.`,
+      content: `Extract: the platform or publication (podcast name, show, article outlet), the specific argument or thesis they expressed, any notable quotes or positions taken. Then infer: what problem they're clearly wrestling with, what their public stance reveals about their current priorities.`,
+      job_change: `Extract: the new company and role, the previous company and role, how long ago the change happened. Then infer: what cultural or operational gap they're navigating between the two environments, what the first 60–90 days in this new seat typically demand.`,
+      other: `Extract: the key facts and timeline from the trigger event. Then infer: what's now changing or under pressure, what problem this surfaces that probably wasn't urgent 3 months ago, what the person is now thinking about that they weren't before.`,
+    }
+
+    const { text } = await generateText({
+      model: anthropic("claude-haiku-4-5-20251001"),
+      maxOutputTokens: 150,
+      prompt: `You are extracting signal intelligence from a sales trigger event to help a strategist reason about a prospect. Output a single concise paragraph (3–4 sentences) that surfaces the most useful context.
+
+PROSPECT:
+- Name: ${fields.firstName}
+- Title: ${fields.title || "unknown"}
+- Company: ${fields.company}
+- Raw trigger: ${fields.trigger}
+
+EXTRACTION TASK:
+${extractionGuide[fields.triggerType]}
+
+Rules:
+- Be specific with any names, amounts, or dates explicitly mentioned in the trigger
+- Where details are missing, infer what is typical for this trigger type and company stage — flag inferences with "typically" or "likely"
+- Do NOT write a cold email. Do NOT include a subject line. Output only the intelligence paragraph.`,
+    })
+
+    return text.trim()
+  }
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ADD 2 — selfCritique() function
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add this new async function immediately after buildDraftPrompt(). This is Stage 4 — it audits the draft and provides a corrected version if it fails.
+
+  async function selfCritique(fields: {
+    subject: string
+    email: string
+  }): Promise<{
+    passes: boolean
+    issues: string[]
+    revisedSubject?: string
+    revisedEmail?: string
+  }> {
+    const wordCount = fields.email.split(/\s+/).filter(Boolean).length
+
+    const { text } = await generateText({
+      model: anthropic("claude-haiku-4-5-20251001"),
+      maxOutputTokens: 450,
+      prompt: `You are a cold email quality auditor applying strict craft rules. Evaluate the email and output your result in the EXACT format specified below.
+
+SUBJECT: ${fields.subject}
+
+EMAIL BODY (${wordCount} words):
+${fields.email}
+
+CRITERIA — evaluate each:
+1. Opening line leads with an implication or insight, NOT a generic trigger restatement ("congrats on", "saw you raised", "I noticed") or prohibited opener ("I hope this", "just wanted to")
+2. Word count is 125 or fewer
+3. Exactly ONE call-to-action — not zero, not two or more
+4. Zero prohibited phrases: "I hope this", "just wanted to", "congratulations on", "best-in-class", "AI-powered", "synergy", "leverage", "robust", "cutting-edge", "seamless", "holistic"
+5. No URLs or hyperlinks in the body
+6. Ends with a low-pressure out ("Either way" or similar phrase)
+7. Subject line is 4 words or fewer
+
+If ALL criteria pass, output EXACTLY:
+PASSES: yes
+ISSUES: none
+
+If ANY criteria fail, output EXACTLY:
+PASSES: no
+ISSUES: [comma-separated list of the criteria numbers that failed, e.g. "1, 3"]
+REVISED_SUBJECT: [corrected subject, 4 words max]
+REVISED_EMAIL: [complete corrected email body that fixes all failing criteria — must be 125 words or fewer]`,
+    })
+
+    const passesMatch = text.match(/^PASSES:\s*(yes|no)/im)
+    const passes = passesMatch?.[1]?.toLowerCase() === "yes"
+
+    const issuesMatch = text.match(/^ISSUES:\s*(.+)/im)
+    const issuesRaw = issuesMatch?.[1]?.trim() ?? "none"
+    const issues = issuesRaw === "none" ? [] : issuesRaw.split(",").map((s) => s.trim())
+
+    if (passes) return { passes: true, issues: [] }
+
+    const revisedSubjectMatch = text.match(/^REVISED_SUBJECT:\s*(.+)/im)
+    const revisedEmailMatch = text.match(/^REVISED_EMAIL:\s*([\s\S]+)/im)
+
+    return {
+      passes: false,
+      issues,
+      revisedSubject: revisedSubjectMatch?.[1]?.trim(),
+      revisedEmail: revisedEmailMatch?.[1]?.trim(),
+    }
+  }
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+UPDATE 3 — generateInsight() signature and prompt
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find the generateInsight() function. Make two small changes:
+
+1. Add enrichedContext: string to its parameter type (alongside the existing fields):
+   enrichedContext: string
+
+2. In the prompt string inside the function, find the PROSPECT section that currently reads:
+   - Trigger: ${fields.trigger}
+
+   Replace it with:
+   - Trigger: ${fields.trigger}
+   - Enriched signal context: ${fields.enrichedContext}
+
+   This gives the insight stage the structured intelligence from Stage 1 to reason from.
+
+Do not change anything else in generateInsight().
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+UPDATE 4 — POST handler pipeline
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find the pipeline block inside the POST handler. It currently reads:
+
+  // Stage 1: classify the trigger type
+  const triggerType = classifyTrigger(fields.trigger)
+  const seniority = classifySeniority(fields.title)
+  const industryVertical = classifyIndustry(industryRaw)
+
+  // Stage 2: generate a non-obvious insight from the trigger before drafting
+  const insight = await generateInsight({
+    firstName: fields.firstName,
+    title: fields.title,
+    company: fields.company,
+    trigger: fields.trigger,
+    triggerType,
+    seniority,
+    industryVertical,
+  })
+
+  // Stage 3: draft the email using the insight + hard craft rules
+  const { text } = await generateText({
+    model: anthropic("claude-sonnet-4-6"),
+    maxOutputTokens: 400,
+    prompt: buildDraftPrompt({ ...fields, triggerType, insight, seniority, industryVertical }),
+  })
+
+Replace this entire block with:
+
+  // Classify
+  const triggerType = classifyTrigger(fields.trigger)
+  const seniority = classifySeniority(fields.title)
+  const industryVertical = classifyIndustry(industryRaw)
+
+  // Stage 1: enrich the signal into structured intelligence
+  const enrichedContext = await enrichSignal({
+    firstName: fields.firstName,
+    title: fields.title,
+    company: fields.company,
+    trigger: fields.trigger,
+    triggerType,
+  })
+
+  // Stage 2: generate a non-obvious insight from the enriched signal
+  const insight = await generateInsight({
+    firstName: fields.firstName,
+    title: fields.title,
+    company: fields.company,
+    trigger: fields.trigger,
+    triggerType,
+    seniority,
+    industryVertical,
+    enrichedContext,
+  })
+
+  // Stage 3: draft the email from the insight + hard craft rules
+  const { text } = await generateText({
+    model: anthropic("claude-sonnet-4-6"),
+    maxOutputTokens: 400,
+    prompt: buildDraftPrompt({ ...fields, triggerType, insight, seniority, industryVertical }),
+  })
+
+Then find the subject/email parsing block:
+
+  const subjectMatch = text.match(/^Subject:\s*(.+)/m)
+  const subject = subjectMatch ? subjectMatch[1].trim() : ""
+  const email = text
+    .replace(/^Subject:\s*.+\n*/m, "")
+    .trim()
+
+After this block, add Stage 4:
+
+  // Stage 4: self-critique — audit the draft and correct if needed
+  const critiqueResult = await selfCritique({ subject, email })
+  const finalSubject = critiqueResult.passes ? subject : (critiqueResult.revisedSubject ?? subject)
+  const finalEmail = critiqueResult.passes ? email : (critiqueResult.revisedEmail ?? email)
+
+Then find the computePersonalizationScore call. Update it (and the computeSpamScore call below it) to use finalEmail and finalSubject instead of email and subject:
+
+  const persResult = computePersonalizationScore({
+    body: finalEmail,
+    subject: finalSubject,
+    firstName: fields.firstName,
+    company: fields.company,
+    trigger: fields.trigger,
+  })
+
+  const spamResult = computeSpamScore({ subject: finalSubject, body: finalEmail })
+
+Find the db.insert() call. Update it to use finalEmail and finalSubject:
+
+  body: finalEmail,
+  subject: finalSubject,
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+UPDATE 5 — Response JSON
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find the final return Response.json() call. It currently returns:
+  { subject, email, score, scoreBreakdown, spamScore, spamFlags, spamIsClean }
+
+Replace it with:
+  return Response.json({
+    subject: finalSubject,
+    email: finalEmail,
+    score: persResult.score,
+    scoreBreakdown: persResult.breakdown,
+    spamScore: spamResult.score,
+    spamFlags: spamResult.flags,
+    spamIsClean: spamResult.isClean,
+    insight,
+    enrichedContext,
+    critiqueResult: {
+      passed: critiqueResult.passes,
+      issues: critiqueResult.issues,
+    },
+  })
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VERIFICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Run: npx tsc --noEmit — fix all TypeScript errors
+2. Confirm enrichSignal uses model: anthropic("claude-haiku-4-5-20251001") and maxOutputTokens: 200
+3. Confirm selfCritique uses model: anthropic("claude-haiku-4-5-20251001") and maxOutputTokens: 450
+4. Confirm the response now includes insight and enrichedContext (string) and critiqueResult ({ passed: boolean, issues: string[] })
+5. Confirm finalEmail and finalSubject are used in scoring, DB insert, and response
+6. AI SDK v6: use maxOutputTokens — NOT maxTokens</pre>
+    <button class="copy-btn" id="btn1" onclick="copyPrompt('p1', 'btn1', 'Copy Prompt 1')">Copy Prompt 1</button>
+  </div>
+</div>
+
+<!-- PROMPT 2 -->
+<div class="prompt-card">
+  <div class="card-header">
+    <div class="card-meta">
+      <div class="num">2</div>
+      <div>
+        <div class="card-title">Compose UI — Visible Pipeline</div>
+        <div class="card-sub">src/app/(app)/compose/page.tsx — loading stages + pipeline panel</div>
+      </div>
+    </div>
+    <span class="model-badge model-claude">Claude (terminal)</span>
+  </div>
+  <div class="card-body">
+    <div class="change-list">
+      <div class="change-item"><div class="change-dot"></div><div><strong>Add:</strong> insight, enrichedContext, critiqueResult state + loadingStage state for rotating messages</div></div>
+      <div class="change-item"><div class="change-dot"></div><div><strong>Add:</strong> useEffect that cycles loading stage text while isGenerating is true</div></div>
+      <div class="change-item"><div class="change-dot"></div><div><strong>Update:</strong> handleGenerate — read insight, enrichedContext, critiqueResult from response and set state</div></div>
+      <div class="change-item"><div class="change-dot"></div><div><strong>Update:</strong> Loading skeleton — replace static "Claude is personalizing..." text with rotating stage message</div></div>
+      <div class="change-item"><div class="change-dot"></div><div><strong>Add:</strong> "How this was written" collapsible panel in the output column, shown after generation</div></div>
+    </div>
+    <pre id="p2">You are working on ColdHook, a Next.js 16 App Router TypeScript project.
+
+File to edit: src/app/(app)/compose/page.tsx
+
+Make only the changes described. Do not rewrite the file. All existing state, handlers, cards, and layout stay exactly as-is unless explicitly modified below.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 1 — Add new state variables
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find the block of useState declarations at the top of ComposePage. After the existing state declarations (after the expandedStep state), add:
+
+  // Pipeline visibility state
+  const [insight, setInsight] = useState("")
+  const [enrichedContext, setEnrichedContext] = useState("")
+  const [critiqueResult, setCritiqueResult] = useState<{ passed: boolean; issues: string[] } | null>(null)
+  const [pipelineOpen, setPipelineOpen] = useState(false)
+
+  // Loading stage cycling
+  const [loadingStage, setLoadingStage] = useState(0)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 2 — Add useEffect for loading stage cycling
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add the useEffect import to the existing React import line:
+  import { useState, useEffect } from "react"
+
+Then add this useEffect immediately after the state declarations block (before handleGenerate):
+
+  const loadingStages = [
+    "Enriching signal...",
+    "Generating insight...",
+    "Drafting email...",
+    "Running quality check...",
+  ]
+
+  useEffect(() => {
+    if (!isGenerating) {
+      setLoadingStage(0)
+      return
+    }
+    const interval = setInterval(() => {
+      setLoadingStage((s) => (s + 1) % loadingStages.length)
+    }, 1800)
+    return () => clearInterval(interval)
+  }, [isGenerating])
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 3 — Reset pipeline state on new generation
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find handleGenerate. At the top of the function where existing state is reset (setGenerated(false), setGeneratedSubject(""), etc.), add:
+
+  setInsight("")
+  setEnrichedContext("")
+  setCritiqueResult(null)
+  setPipelineOpen(false)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 4 — Read pipeline data from API response
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find the block inside handleGenerate's try block where response data is read (after const data = await res.json()). Currently it sets: generatedSubject, generatedEmail, score, spamScore, spamFlags.
+
+After the existing setters, add:
+
+  setInsight(data.insight ?? "")
+  setEnrichedContext(data.enrichedContext ?? "")
+  setCritiqueResult(data.critiqueResult ?? null)
+  if (data.insight || data.enrichedContext) {
+    setPipelineOpen(true)
+  }
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 5 — Update loading skeleton text
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find the isGenerating loading skeleton block. It currently contains:
+  <div className="flex items-center gap-2 mt-4 text-xs text-[#5e6ad2]">
+    <Sparkles className="size-3 animate-pulse" />
+    <span>Claude is personalizing your email...</span>
+  </div>
+
+Replace just the inner span text and add a fade transition between stages:
+  <div className="flex items-center gap-2 mt-4 text-xs text-[#5e6ad2]">
+    <Sparkles className="size-3 animate-pulse" />
+    <span key={loadingStage} className="transition-opacity duration-300">
+      {loadingStages[loadingStage]}
+    </span>
+  </div>
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 6 — Add "How this was written" pipeline panel
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find the output column (right side). After the Generated Email Card and before the error message div, add this new Card. It should only render when generated is true AND (insight or enrichedContext exist):
+
+  {generated && (insight || enrichedContext) && (
+    <Card>
+      <CardContent className="pt-4 pb-4">
+        <button
+          className="w-full flex items-center justify-between text-sm font-medium text-[#d0d6e0] mb-0"
+          onClick={() => setPipelineOpen((o) => !o)}
+        >
+          <div className="flex items-center gap-2">
+            <div className="size-5 rounded bg-[rgba(94,106,210,0.12)] border border-[rgba(94,106,210,0.2)] flex items-center justify-center">
+              <Sparkles className="size-3 text-[#5e6ad2]" />
+            </div>
+            How this was written
+          </div>
+          <span className="text-[10px] text-[#5e6ad2]">{pipelineOpen ? "▲ hide" : "▼ show"}</span>
+        </button>
+
+        {pipelineOpen && (
+          <div className="mt-4 space-y-4">
+
+            {/* Stage 1 — Signal */}
+            {enrichedContext && (
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="size-4 rounded-full bg-[rgba(94,106,210,0.15)] border border-[rgba(94,106,210,0.25)] flex items-center justify-center text-[9px] font-bold text-[#828fff]">1</div>
+                  <p className="text-[11px] font-semibold text-[#8a8f98] uppercase tracking-wider">Signal enrichment</p>
+                </div>
+                <p className="text-xs text-[#62666d] leading-relaxed bg-[#0a0a0b] rounded-lg border border-[#23252a] p-3">
+                  {enrichedContext}
+                </p>
+              </div>
+            )}
+
+            {/* Stage 2 — Insight */}
+            {insight && (
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="size-4 rounded-full bg-[rgba(94,106,210,0.15)] border border-[rgba(94,106,210,0.25)] flex items-center justify-center text-[9px] font-bold text-[#828fff]">2</div>
+                  <p className="text-[11px] font-semibold text-[#8a8f98] uppercase tracking-wider">Key insight</p>
+                </div>
+                <p className="text-xs text-[#d0d6e0] leading-relaxed bg-[#0a0a0b] rounded-lg border border-[rgba(94,106,210,0.15)] p-3">
+                  {insight}
+                </p>
+              </div>
+            )}
+
+            {/* Stage 4 — Quality check */}
+            {critiqueResult && (
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="size-4 rounded-full bg-[rgba(94,106,210,0.15)] border border-[rgba(94,106,210,0.25)] flex items-center justify-center text-[9px] font-bold text-[#828fff]">4</div>
+                  <p className="text-[11px] font-semibold text-[#8a8f98] uppercase tracking-wider">Quality check</p>
+                </div>
+                <div className={`text-xs rounded-lg border p-3 flex items-start gap-2 ${
+                  critiqueResult.passed
+                    ? "bg-[rgba(39,166,68,0.05)] border-[rgba(39,166,68,0.2)] text-[#27a644]"
+                    : "bg-[rgba(255,128,31,0.05)] border-[rgba(255,128,31,0.2)] text-[#ff801f]"
+                }`}>
+                  <CheckCircle2 className="size-3 shrink-0 mt-0.5" />
+                  <span>
+                    {critiqueResult.passed
+                      ? "Passed all craft checks — email sent as generated."
+                      : `Revised after catching: ${critiqueResult.issues.join(", ")}`
+                    }
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VERIFICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Run: npx tsc --noEmit — fix all TypeScript errors
+2. Confirm useEffect is imported from react
+3. Confirm loadingStages array has exactly 4 items
+4. Confirm the pipeline panel only renders when generated is true AND data exists
+5. Confirm the panel auto-opens after generation (setPipelineOpen(true) in Change 4)
+6. Confirm CheckCircle2 is already imported (it is — from lucide-react)</pre>
+    <button class="copy-btn" id="btn2" onclick="copyPrompt('p2', 'btn2', 'Copy Prompt 2')">Copy Prompt 2</button>
+  </div>
+</div>
+
+<script>
+function copyPrompt(preId, btnId, label) {
+  const el = document.getElementById(preId)
+  navigator.clipboard.writeText(el.innerText).then(() => {
+    const btn = document.getElementById(btnId)
+    btn.textContent = "✓ Copied!"
+    btn.classList.add("copied")
+    setTimeout(() => {
+      btn.textContent = label
+      btn.classList.remove("copied")
+    }, 2000)
+  })
+}
+</script>
+</body>
+</html>

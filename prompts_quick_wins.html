@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ColdHook — Quick Wins Prompts</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #010102; color: #f7f8f8; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding: 32px 24px; min-height: 100vh; }
+  h1 { font-size: 20px; font-weight: 700; color: #f7f8f8; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #8a8f98; margin-bottom: 36px; }
+
+  .prompt-card { background: #0f1011; border: 1px solid #23252a; border-radius: 12px; margin-bottom: 24px; overflow: hidden; }
+  .card-header { padding: 16px 20px; border-bottom: 1px solid #23252a; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .card-meta { display: flex; align-items: center; gap: 10px; }
+  .num { width: 24px; height: 24px; border-radius: 6px; background: rgba(94,106,210,0.15); border: 1px solid rgba(94,106,210,0.25); color: #828fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .card-title { font-size: 14px; font-weight: 600; color: #f7f8f8; }
+  .card-sub { font-size: 12px; color: #8a8f98; margin-top: 2px; }
+  .model-badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+  .model-claude { background: rgba(255,128,31,0.12); border: 1px solid rgba(255,128,31,0.25); color: #ff801f; }
+  .model-deepseek { background: rgba(94,106,210,0.12); border: 1px solid rgba(94,106,210,0.25); color: #828fff; }
+
+  .card-body { padding: 16px 20px; }
+  .why { font-size: 12px; color: #8a8f98; line-height: 1.6; margin-bottom: 14px; }
+  .why strong { color: #d0d6e0; }
+
+  pre { background: #0a0a0b; border: 1px solid #23252a; border-radius: 8px; padding: 16px; font-size: 12px; line-height: 1.65; color: #d0d6e0; white-space: pre-wrap; word-break: break-word; font-family: "SF Mono", "Fira Code", monospace; max-height: 420px; overflow-y: auto; }
+
+  .copy-btn { margin-top: 12px; width: 100%; padding: 9px 0; border-radius: 8px; border: 1px solid #34343a; background: #141516; color: #d0d6e0; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+  .copy-btn:hover { background: #1e1f22; border-color: #5e6ad2; color: #828fff; }
+  .copy-btn.copied { background: rgba(39,166,68,0.1); border-color: rgba(39,166,68,0.3); color: #27a644; }
+</style>
+</head>
+<body>
+
+<h1>ColdHook — Quick Wins Prompts</h1>
+<p class="subtitle">3 handover prompts · Dashboard stats · Sequence API · Compose wiring</p>
+
+<!-- PROMPT 1: Dashboard real stats -->
+<div class="prompt-card">
+  <div class="card-header">
+    <div class="card-meta">
+      <div class="num">1</div>
+      <div>
+        <div class="card-title">Dashboard — Real Stats</div>
+        <div class="card-sub">Replace fake Reply Rate / Prospects counts with live DB queries</div>
+      </div>
+    </div>
+    <span class="model-badge model-claude">Claude (terminal)</span>
+  </div>
+  <div class="card-body">
+    <p class="why">Modifying a complex existing server component with multiple DB queries — Claude handles the existing code context better than DeepSeek.</p>
+    <pre id="p1">You are working on ColdHook, a Next.js 16 App Router TypeScript project. The stack is: Next.js 16, TypeScript, Tailwind CSS v4, Drizzle ORM, Supabase (Postgres), Clerk v5.
+
+File to edit: src/app/(app)/dashboard/page.tsx
+
+This is an async server component that already queries the emails table. You need to add real data for two currently-hardcoded stats: Reply Rate and Prospects Added (this month).
+
+STEP 1 — Update the import line at the top of the file:
+Change:
+  import { emails } from "@/lib/db/schema"
+To:
+  import { emails, prospects } from "@/lib/db/schema"
+
+Also change:
+  import { eq, desc, count, gte, and } from "drizzle-orm"
+To:
+  import { eq, desc, count, gte, and } from "drizzle-orm"
+(no change needed here — just confirm it already includes these)
+
+STEP 2 — Update the Promise.all block. Currently it has 3 queries. Expand it to 5:
+
+  const [recentEmailRows, totalCountRows, thisMonthCountRows, repliedCountRows, prospectsThisMonthRows] = await Promise.all([
+    db.select().from(emails)
+      .where(eq(emails.userId, userId!))
+      .orderBy(desc(emails.createdAt))
+      .limit(5),
+    db.select({ count: count() }).from(emails)
+      .where(eq(emails.userId, userId!)),
+    db.select({ count: count() }).from(emails)
+      .where(and(eq(emails.userId, userId!), gte(emails.createdAt, thisMonthStart))),
+    db.select({ count: count() }).from(emails)
+      .where(and(eq(emails.userId, userId!), eq(emails.status, "replied"))),
+    db.select({ count: count() }).from(prospects)
+      .where(and(eq(prospects.userId, userId!), gte(prospects.createdAt, thisMonthStart))),
+  ])
+
+STEP 3 — After the existing const declarations, add:
+  const repliedCount = repliedCountRows[0]?.count ?? 0
+  const replyRate = totalEmails > 0 ? ((repliedCount / totalEmails) * 100).toFixed(1) : null
+  const prospectsThisMonth = prospectsThisMonthRows[0]?.count ?? 0
+
+STEP 4 — Replace the Reply Rate card JSX with:
+  <Card>
+    <CardContent className="pt-5">
+      <div className="flex items-start justify-between mb-3">
+        <div className="size-9 rounded-lg flex items-center justify-center" style={{ background: "rgba(39,166,68,0.12)" }}>
+          <TrendingUp className="size-4" style={{ color: "#27a644" }} />
+        </div>
+        {replyRate !== null ? (
+          <div className="flex items-center gap-0.5 text-xs font-medium text-[#27a644]">
+            <ArrowUpRight className="size-3" />
+            vs 8% avg
+          </div>
+        ) : (
+          <div className="text-xs text-[#62666d]">no data yet</div>
+        )}
+      </div>
+      <div className="text-2xl font-bold tracking-tight text-[#f7f8f8] mb-0.5">
+        {replyRate !== null ? `${replyRate}%` : "—"}
+      </div>
+      <div className="text-xs text-[#62666d]">Reply Rate</div>
+      <div className="text-[10px] text-[#62666d] mt-0.5">
+        {replyRate !== null ? `${repliedCount} of ${totalEmails} replied` : "send emails to track"}
+      </div>
+    </CardContent>
+  </Card>
+
+STEP 5 — Replace the Prospects Enriched card JSX with:
+  <Card>
+    <CardContent className="pt-5">
+      <div className="flex items-start justify-between mb-3">
+        <div className="size-9 rounded-lg flex items-center justify-center" style={{ background: "rgba(255,128,31,0.12)" }}>
+          <Users className="size-4" style={{ color: "#ff801f" }} />
+        </div>
+        {prospectsThisMonth > 0 ? (
+          <div className="flex items-center gap-0.5 text-xs font-medium text-[#27a644]">
+            <ArrowUpRight className="size-3" />
+            +{prospectsThisMonth} this month
+          </div>
+        ) : (
+          <div className="text-xs text-[#62666d]">no data yet</div>
+        )}
+      </div>
+      <div className="text-2xl font-bold tracking-tight text-[#f7f8f8] mb-0.5">{prospectsThisMonth}</div>
+      <div className="text-xs text-[#62666d]">Prospects Added</div>
+      <div className="text-[10px] text-[#62666d] mt-0.5">this month</div>
+    </CardContent>
+  </Card>
+
+STEP 6 — Replace the Meetings Booked card with an honest placeholder:
+  <Card>
+    <CardContent className="pt-5">
+      <div className="flex items-start justify-between mb-3">
+        <div className="size-9 rounded-lg flex items-center justify-center" style={{ background: "rgba(167,139,250,0.12)" }}>
+          <Calendar className="size-4" style={{ color: "#a78bfa" }} />
+        </div>
+        <div className="text-xs text-[#62666d]">coming soon</div>
+      </div>
+      <div className="text-2xl font-bold tracking-tight text-[#f7f8f8] mb-0.5">—</div>
+      <div className="text-xs text-[#62666d]">Meetings Booked</div>
+      <div className="text-[10px] text-[#62666d] mt-0.5">calendar sync needed</div>
+    </CardContent>
+  </Card>
+
+After making all changes, run: npx tsc --noEmit
+Fix any TypeScript errors before finishing.</pre>
+    <button class="copy-btn" onclick="copyPrompt('p1', this)">Copy Prompt 1</button>
+  </div>
+</div>
+
+<!-- PROMPT 2: Sequence API -->
+<div class="prompt-card">
+  <div class="card-header">
+    <div class="card-meta">
+      <div class="num">2</div>
+      <div>
+        <div class="card-title">Generate Sequence API Route</div>
+        <div class="card-sub">New file: /app/api/generate-sequence/route.ts</div>
+      </div>
+    </div>
+    <span class="model-badge model-deepseek">DeepSeek</span>
+  </div>
+  <div class="card-body">
+    <p class="why">Brand new backend file with no existing code to preserve — DeepSeek is faster and cheaper for greenfield API routes.</p>
+    <pre id="p2">You are working on ColdHook, a Next.js 16 App Router TypeScript project. The stack is: Next.js 16, TypeScript, @ai-sdk/anthropic (createAnthropic), ai (Vercel AI SDK v6 — use maxOutputTokens not maxTokens).
+
+Create a new file: src/app/api/generate-sequence/route.ts
+
+This route generates a 2-email follow-up sequence (Day 3 value-add + Day 7 breakup) given an initial cold email that was already sent.
+
+Requirements:
+- POST handler only
+- Request body: { firstName, lastName?, title?, company, trigger?, valueProp?, tone, ctaStyle, initialEmail, initialSubject }
+- Validate: return 400 if firstName, company, or initialEmail are missing
+- Use createAnthropic with process.env.ANTHROPIC_API_KEY
+- Model: claude-haiku-4-5-20251001 (cheap/fast, these are short emails)
+- Run BOTH Haiku calls in parallel with Promise.all
+- maxOutputTokens: 400 per call (IMPORTANT: use maxOutputTokens, NOT maxTokens — this is AI SDK v6)
+
+Tone map:
+  conversational → "warm and conversational"
+  professional → "polished and professional"
+  bold → "bold and direct"
+  curious → "curious and inquisitive"
+
+CTA map:
+  soft → "a soft ask like '15 minutes?'"
+  calendar → "a calendar link offer"
+  question → "an open-ended question"
+  bold → "a bold direct ask like 'demo this week?'"
+
+System prompt for both calls:
+  "You are an elite B2B sales copywriter. You write follow-up cold emails that feel genuinely human, not automated. Your emails are short, add real value, and never feel pushy. You already sent an initial email — now you're writing the follow-ups in a 3-email sequence."
+
+Context block (used in both prompts):
+  PROSPECT: {firstName} {lastName}, {title} at {company}
+  TRIGGER / BUYING SIGNAL: {trigger}
+  VALUE PROP: {valueProp}
+  TONE: {mapped tone}
+  CTA STYLE: {mapped cta}
+
+  INITIAL EMAIL ALREADY SENT:
+  Subject: {initialSubject}
+  {initialEmail}
+
+Day 3 user prompt:
+  "{contextBlock}
+
+  Write a Day 3 follow-up email. This is a value-add follow-up — provide something genuinely useful (a stat, a brief insight, a relevant resource reference, or a quick observation) that builds on why you reached out. Don't just 'bump' the first email. Be brief (under 60 words). End with {mapped cta}.
+
+  Return ONLY valid JSON in this exact format, no markdown, no explanation:
+  {\"subject\": \"...\", \"email\": \"...\"}"
+
+Day 7 user prompt:
+  "{contextBlock}
+
+  Write a Day 7 breakup email. This is the final email in the sequence. Keep it under 50 words. Be honest that this is your last follow-up. Give {firstName} a graceful out while leaving the door open. No guilt-tripping — just class.
+
+  Return ONLY valid JSON in this exact format, no markdown, no explanation:
+  {\"subject\": \"...\", \"email\": \"...\"}"
+
+Parse each result:
+  Strip ```json and ``` wrappers before JSON.parse
+  Type each as { subject: string; email: string }
+
+Return: NextResponse.json({ day3, day7 })
+
+Error handling: wrap everything in try/catch, log with console.error("[generate-sequence] error:", err), return 500 with { error: "Failed to generate sequence." }
+
+After creating the file, run: npx tsc --noEmit
+Fix any TypeScript errors before finishing.</pre>
+    <button class="copy-btn" onclick="copyPrompt('p2', this)">Copy Prompt 2</button>
+  </div>
+</div>
+
+<!-- PROMPT 3: Compose wiring -->
+<div class="prompt-card">
+  <div class="card-header">
+    <div class="card-meta">
+      <div class="num">3</div>
+      <div>
+        <div class="card-title">Compose — Wire Generate Sequence Button</div>
+        <div class="card-sub">Modify src/app/(app)/compose/page.tsx</div>
+      </div>
+    </div>
+    <span class="model-badge model-claude">Claude (terminal)</span>
+  </div>
+  <div class="card-body">
+    <p class="why">Complex existing client component with 400+ lines of state and JSX — Claude is better at modifying large files without breaking surrounding code.</p>
+    <pre id="p3">You are working on ColdHook, a Next.js 16 App Router TypeScript project. The stack is: Next.js 16, TypeScript, Tailwind CSS v4, Radix UI, shadcn/ui-style components.
+
+File to edit: src/app/(app)/compose/page.tsx
+
+This is a "use client" component. The "Generate full sequence" button currently does nothing. Wire it to call the sequence API and display the results inline.
+
+PREREQUISITE: The route /api/generate-sequence must already exist (POST handler that returns { day3: { subject, email }, day7: { subject, email } }).
+
+STEP 1 — Add new state variables after the existing `const [copied, setCopied] = useState(false)` line:
+
+  type SequenceEmail = { subject: string; email: string }
+  const [sequence, setSequence] = useState<{ day3: SequenceEmail; day7: SequenceEmail } | null>(null)
+  const [isGeneratingSequence, setIsGeneratingSequence] = useState(false)
+  const [sequenceError, setSequenceError] = useState("")
+  const [expandedStep, setExpandedStep] = useState<"day3" | "day7" | null>(null)
+
+STEP 2 — Add the handleGenerateSequence function immediately after the existing handleCopy function:
+
+  const handleGenerateSequence = async () => {
+    setIsGeneratingSequence(true)
+    setSequenceError("")
+    setSequence(null)
+    setExpandedStep(null)
+    try {
+      const res = await fetch("/api/generate-sequence", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          firstName, lastName, title, company, trigger, valueProp, tone, ctaStyle,
+          initialEmail: generatedEmail,
+          initialSubject: generatedSubject,
+        }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || "Failed to generate sequence.")
+      }
+      const data = await res.json()
+      setSequence(data)
+    } catch (e) {
+      setSequenceError(e instanceof Error ? e.message : "Something went wrong.")
+    } finally {
+      setIsGeneratingSequence(false)
+    }
+  }
+
+STEP 3 — Replace the entire "Follow-up sequence teaser" Card (the one that contains "Follow-up Sequence", the 3 timeline steps, and the "Generate full sequence" Button) with this new version:
+
+  {/* Follow-up sequence */}
+  {generated && (
+    &lt;Card&gt;
+      &lt;CardContent className="pt-4 pb-4"&gt;
+        &lt;div className="flex items-center justify-between mb-3"&gt;
+          &lt;div className="text-sm font-medium text-[#d0d6e0]"&gt;Follow-up Sequence&lt;/div&gt;
+          &lt;Badge variant="secondary" className="text-[10px]"&gt;3 emails&lt;/Badge&gt;
+        &lt;/div&gt;
+        &lt;div className="space-y-2"&gt;
+
+          {/* Day 1 — always done */}
+          &lt;div className="flex items-center gap-2.5 text-xs"&gt;
+            &lt;div className="size-5 rounded-full flex items-center justify-center text-[10px] font-medium bg-[#5e6ad2] text-white"&gt;✓&lt;/div&gt;
+            &lt;span className="text-[#62666d] w-10 shrink-0"&gt;Day 1&lt;/span&gt;
+            &lt;span className="text-[#d0d6e0]"&gt;Initial email (this one)&lt;/span&gt;
+          &lt;/div&gt;
+
+          {/* Day 3 */}
+          &lt;div className="space-y-1.5"&gt;
+            &lt;div
+              className="flex items-center gap-2.5 text-xs cursor-pointer"
+              onClick={() =&gt; sequence &amp;&amp; setExpandedStep(expandedStep === "day3" ? null : "day3")}
+            &gt;
+              &lt;div className={`size-5 rounded-full flex items-center justify-center text-[10px] font-medium ${sequence ? "bg-[#5e6ad2] text-white" : "bg-[#141516] border border-[#23252a] text-[#62666d]"}`}&gt;
+                {sequence ? "✓" : ""}
+              &lt;/div&gt;
+              &lt;span className="text-[#62666d] w-10 shrink-0"&gt;Day 3&lt;/span&gt;
+              &lt;span className={sequence ? "text-[#d0d6e0]" : "text-[#8a8f98]"}&gt;
+                {sequence ? sequence.day3.subject : "Value-add follow-up"}
+              &lt;/span&gt;
+              {sequence &amp;&amp; (
+                &lt;span className="ml-auto text-[#5e6ad2] text-[10px]"&gt;{expandedStep === "day3" ? "▲" : "▼"}&lt;/span&gt;
+              )}
+            &lt;/div&gt;
+            {expandedStep === "day3" &amp;&amp; sequence &amp;&amp; (
+              &lt;div className="ml-7 rounded-md bg-[#141516] border border-[#23252a] p-2.5 space-y-2"&gt;
+                &lt;p className="text-[10px] text-[#62666d] uppercase tracking-wider"&gt;Subject&lt;/p&gt;
+                &lt;p className="text-xs text-[#f7f8f8] font-medium"&gt;{sequence.day3.subject}&lt;/p&gt;
+                &lt;p className="text-xs text-[#d0d6e0] whitespace-pre-wrap leading-relaxed"&gt;{sequence.day3.email}&lt;/p&gt;
+              &lt;/div&gt;
+            )}
+          &lt;/div&gt;
+
+          {/* Day 7 */}
+          &lt;div className="space-y-1.5"&gt;
+            &lt;div
+              className="flex items-center gap-2.5 text-xs cursor-pointer"
+              onClick={() =&gt; sequence &amp;&amp; setExpandedStep(expandedStep === "day7" ? null : "day7")}
+            &gt;
+              &lt;div className={`size-5 rounded-full flex items-center justify-center text-[10px] font-medium ${sequence ? "bg-[#5e6ad2] text-white" : "bg-[#141516] border border-[#23252a] text-[#62666d]"}`}&gt;
+                {sequence ? "✓" : ""}
+              &lt;/div&gt;
+              &lt;span className="text-[#62666d] w-10 shrink-0"&gt;Day 7&lt;/span&gt;
+              &lt;span className={sequence ? "text-[#d0d6e0]" : "text-[#8a8f98]"}&gt;
+                {sequence ? sequence.day7.subject : "Breakup email"}
+              &lt;/span&gt;
+              {sequence &amp;&amp; (
+                &lt;span className="ml-auto text-[#5e6ad2] text-[10px]"&gt;{expandedStep === "day7" ? "▲" : "▼"}&lt;/span&gt;
+              )}
+            &lt;/div&gt;
+            {expandedStep === "day7" &amp;&amp; sequence &amp;&amp; (
+              &lt;div className="ml-7 rounded-md bg-[#141516] border border-[#23252a] p-2.5 space-y-2"&gt;
+                &lt;p className="text-[10px] text-[#62666d] uppercase tracking-wider"&gt;Subject&lt;/p&gt;
+                &lt;p className="text-xs text-[#f7f8f8] font-medium"&gt;{sequence.day7.subject}&lt;/p&gt;
+                &lt;p className="text-xs text-[#d0d6e0] whitespace-pre-wrap leading-relaxed"&gt;{sequence.day7.email}&lt;/p&gt;
+              &lt;/div&gt;
+            )}
+          &lt;/div&gt;
+
+        &lt;/div&gt;
+
+        {sequenceError &amp;&amp; (
+          &lt;div className="mt-3 rounded-md bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.25)] p-2"&gt;
+            &lt;p className="text-xs text-[#ef4444]"&gt;{sequenceError}&lt;/p&gt;
+          &lt;/div&gt;
+        )}
+
+        {!sequence &amp;&amp; (
+          &lt;Button
+            variant="outline"
+            className="w-full mt-3 h-8 text-xs gap-1.5"
+            onClick={handleGenerateSequence}
+            disabled={isGeneratingSequence}
+          &gt;
+            {isGeneratingSequence ? (
+              &lt;&gt;
+                &lt;RefreshCw className="size-3 animate-spin" /&gt;
+                Generating sequence...
+              &lt;/&gt;
+            ) : (
+              &lt;&gt;
+                &lt;Plus className="size-3" /&gt;
+                Generate full sequence
+              &lt;/&gt;
+            )}
+          &lt;/Button&gt;
+        )}
+      &lt;/CardContent&gt;
+    &lt;/Card&gt;
+  )}
+
+IMPORTANT NOTES:
+- The JSX above uses HTML-encoded characters (&lt; &gt; &amp;) for display purposes only. When you write the actual file, use real JSX syntax with < > & as normal.
+- Do not touch any other part of the file — only add the state, add the handler, and replace the sequence card.
+- After making all changes, run: npx tsc --noEmit and fix any TypeScript errors.</pre>
+    <button class="copy-btn" onclick="copyPrompt('p3', this)">Copy Prompt 3</button>
+  </div>
+</div>
+
+<script>
+function copyPrompt(id, btn) {
+  const el = document.getElementById(id)
+  // Get raw text content (strips HTML entities back to actual chars for prompts 1 and 2)
+  const text = el.innerText
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = "✓ Copied!"
+    btn.classList.add("copied")
+    setTimeout(() => {
+      btn.textContent = btn.textContent.includes("1") ? "Copy Prompt 1" :
+                         btn.textContent.includes("2") ? "Copy Prompt 2" : "Copy Prompt 3"
+      // restore original label
+      const labels = ["Copy Prompt 1","Copy Prompt 2","Copy Prompt 3"]
+      const num = parseInt(id.replace("p","")) - 1
+      btn.textContent = labels[num]
+      btn.classList.remove("copied")
+    }, 2000)
+  })
+}
+</script>
+</body>
+</html>

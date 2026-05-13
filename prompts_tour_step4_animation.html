@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ColdHook — Tour Step 4 Animation</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #010102; color: #f7f8f8; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding: 32px 24px; min-height: 100vh; }
+  h1 { font-size: 20px; font-weight: 700; color: #f7f8f8; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #8a8f98; margin-bottom: 12px; }
+  .context-note { font-size: 12px; color: #62666d; margin-bottom: 32px; padding: 12px 16px; border: 1px solid #23252a; border-radius: 8px; background: #0f1011; line-height: 1.9; }
+  .context-note strong { color: #8a8f98; }
+  .context-note code { font-family: "SF Mono", "Fira Code", monospace; font-size: 11px; color: #828fff; background: rgba(94,106,210,0.1); padding: 1px 5px; border-radius: 3px; }
+  .prompt-card { background: #0f1011; border: 1px solid #23252a; border-radius: 12px; overflow: hidden; }
+  .card-header { padding: 16px 20px; border-bottom: 1px solid #23252a; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .card-meta { display: flex; align-items: center; gap: 10px; }
+  .num { width: 24px; height: 24px; border-radius: 6px; background: rgba(94,106,210,0.15); border: 1px solid rgba(94,106,210,0.25); color: #828fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .card-title { font-size: 14px; font-weight: 600; color: #f7f8f8; }
+  .card-sub { font-size: 12px; color: #8a8f98; margin-top: 2px; }
+  .model-badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; flex-shrink: 0; background: rgba(255,128,31,0.12); border: 1px solid rgba(255,128,31,0.25); color: #ff801f; }
+  .card-body { padding: 16px 20px; }
+  .why { font-size: 12px; color: #8a8f98; line-height: 1.6; margin-bottom: 14px; }
+  pre { background: #0a0a0b; border: 1px solid #23252a; border-radius: 8px; padding: 16px; font-size: 12px; line-height: 1.65; color: #d0d6e0; white-space: pre-wrap; word-break: break-word; font-family: "SF Mono", "Fira Code", monospace; max-height: 740px; overflow-y: auto; }
+  .copy-btn { margin-top: 12px; width: 100%; padding: 9px 0; border-radius: 8px; border: 1px solid #34343a; background: #141516; color: #d0d6e0; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+  .copy-btn:hover { background: #1e1f22; border-color: #5e6ad2; color: #828fff; }
+  .copy-btn.copied { background: rgba(39,166,68,0.1); border-color: rgba(39,166,68,0.3); color: #27a644; }
+</style>
+</head>
+<body>
+
+<h1>ColdHook — Tour Step 4 Animation</h1>
+<p class="subtitle">1 prompt · src/app/(app)/compose/page.tsx</p>
+
+<p class="context-note">
+  <strong>What this builds:</strong><br><br>
+  Currently step 4 spotlights the Generate button and "See it in action →" immediately injects mock data and jumps to the pipeline panel. The user wants to actually see the email being built.<br><br>
+  <strong>New flow:</strong><br>
+  Step 4 (generate-btn) → user clicks "See it in action →" → spotlight shifts to the Generated Email panel on the right → <code>isGenerating = true</code> fires the existing loading stage animation (Enriching signal → Generating insight → Drafting email → Running quality check) → after ~5.4 seconds all stages complete → mock data injected → <code>isGenerating = false</code>, email appears → tour auto-advances to step 5 (pipeline panel).<br><br>
+  <strong>Also:</strong> The real Generate Email button must be blocked while the tour is active so the user cannot call the real API. Only "Skip tour" and "See it in action →" should work on step 4.<br><br>
+  <strong>Step index shift:</strong> A new intermediate step (index 4, <code>tourId: "email-output"</code>) is inserted between generate-btn and pipeline-panel. Total steps become 7. All existing index references to pipeline-panel (was 4, now 5) and sequence-section (was 5, now 6) must be updated.
+</p>
+
+<div class="prompt-card">
+  <div class="card-header">
+    <div class="card-meta">
+      <div class="num">1</div>
+      <div>
+        <div class="card-title">Tour step 4 animation — spotlight Generated Email panel, animate loading stages</div>
+        <div class="card-sub">src/app/(app)/compose/page.tsx — read the full file first</div>
+      </div>
+    </div>
+    <span class="model-badge">Claude (terminal)</span>
+  </div>
+  <div class="card-body">
+    <p class="why">Read the full file before making any changes. Make only the changes described. Do not touch any non-tour logic.</p>
+    <pre id="p1">You are working on ColdHook, a Next.js 16 App Router TypeScript project.
+
+File to edit: src/app/(app)/compose/page.tsx
+
+Read the full file before making any changes.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CONTEXT — current tour step structure (0-indexed)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  0: trigger
+  1: valueprop
+  2: settings
+  3: generate-btn
+  4: pipeline-panel
+  5: sequence-section
+
+After this change the structure becomes:
+
+  0: trigger
+  1: valueprop
+  2: settings
+  3: generate-btn         ← user clicks "See it in action →", loading starts
+  4: email-output (NEW)   ← spotlight on Generated Email panel, loading animation plays, auto-advances
+  5: pipeline-panel
+  6: sequence-section
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 1 — Add data-tour="email-output" to the Generated Email card
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find the Generated Email card in the right output panel. It currently starts with:
+
+  <Card className="flex-1">
+    <CardHeader className="pb-3">
+      <div className="flex items-center justify-between">
+        <CardTitle className="text-sm">Generated Email</CardTitle>
+
+Change it to:
+
+  <Card className="flex-1" data-tour="email-output">
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 2 — Block handleGenerate during tour
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find the handleGenerate function. At the very top of the function body, before any other logic, add:
+
+  // Block real API calls during the onboarding tour
+  if (tourActive) return
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 3 — Insert the new email-output step into tourSteps
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find the tourSteps useMemo array. It currently has 6 steps. After the generate-btn step (index 3) and before the pipeline-panel step, insert a new step:
+
+  {
+    tourId: "email-output",
+    title: "Watch the pipeline work",
+    description: "ColdHook enriches the signal, builds a key insight, drafts the email, then runs a quality check — all before you see a word.",
+    nextLabel: "Next →",
+    disableNext: true,   // auto-advances, user cannot click Next manually
+  },
+
+The pipeline-panel step is now at index 5. The sequence-section step is now at index 6. Total steps: 7.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 4 — Update handleTourNext for step 3 (generate-btn)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find the handleTourNext function. Find the block that handles tourStep === 3:
+
+  if (tourStep === 3 && tourActive) {
+    populateTourMockData()
+    setTourStep(4)
+    return
+  }
+
+Replace it with:
+
+  if (tourStep === 3 && tourActive) {
+    // Step 4 (email-output): start loading animation, spotlight shifts to Generated Email panel
+    setIsGenerating(true)
+    setTourStep(4)
+
+    // The existing loadingStages useEffect cycles every 1800ms.
+    // 4 stages × 1800ms = 7200ms total, but add a small buffer.
+    // After animation completes: inject mock data and auto-advance to step 5.
+    setTimeout(() => {
+      setIsGenerating(false)
+      populateTourMockData()
+      setTourStep(5)
+    }, 7600)
+    return
+  }
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 5 — Update all step index references from old 4/5 to new 5/6
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Search the file for every place that references the pipeline-panel step by index (4) or sequence-section step by index (5) in tour-related logic. Update each one:
+
+a) Find the useEffect that opens the pipeline panel when the tour reaches it:
+
+  useEffect(() => {
+    if (!tourActive) return
+    // Index 4 = pipeline-panel step
+    if (tourStep === 4 && generated) {
+      setPipelineOpen(true)
+    }
+  }, [tourStep, tourActive, generated])
+
+Change the index check from 4 to 5:
+
+  useEffect(() => {
+    if (!tourActive) return
+    // Index 5 = pipeline-panel step (index 4 is now email-output animation step)
+    if (tourStep === 5 && generated) {
+      setPipelineOpen(true)
+    }
+  }, [tourStep, tourActive, generated])
+
+b) Find the onStepChange callback passed to OnboardingTour. It currently checks stepIndex === 4. Update to stepIndex === 5:
+
+  onStepChange={(stepIndex) => {
+    // When tour reaches pipeline-panel step (index 5), ensure panel is open
+    if (stepIndex === 5 && generated) {
+      setPipelineOpen(true)
+    }
+  }}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VERIFICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Run: npx tsc --noEmit — fix all errors
+2. Confirm tourSteps has 7 entries
+3. Confirm the email-output step is at index 4 with disableNext: true
+4. Confirm handleGenerate returns early when tourActive is true
+5. Confirm the setTimeout in handleTourNext at step 3 fires after 7600ms and calls setTourStep(5) — NOT setTourStep(4)
+6. Confirm the pipeline-panel open logic checks tourStep === 5 in both the useEffect and onStepChange callback
+7. Confirm data-tour="email-output" is on the Generated Email card</pre>
+    <button class="copy-btn" id="btn1" onclick="copyPrompt('p1', 'btn1')">Copy Prompt</button>
+  </div>
+</div>
+
+<script>
+function copyPrompt(preId, btnId) {
+  const el = document.getElementById(preId)
+  navigator.clipboard.writeText(el.innerText).then(() => {
+    const btn = document.getElementById(btnId)
+    btn.textContent = "✓ Copied!"
+    btn.classList.add("copied")
+    setTimeout(() => { btn.textContent = "Copy Prompt"; btn.classList.remove("copied") }, 2000)
+  })
+}
+</script>
+</body>
+</html>

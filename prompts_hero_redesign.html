@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ColdHook — Hero Redesign Prompt</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #010102; color: #f7f8f8; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding: 32px 24px; min-height: 100vh; }
+  h1 { font-size: 20px; font-weight: 700; color: #f7f8f8; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #8a8f98; margin-bottom: 12px; }
+  .context-note { font-size: 12px; color: #62666d; margin-bottom: 32px; padding: 12px 16px; border: 1px solid #23252a; border-radius: 8px; background: #0f1011; line-height: 1.7; }
+  .context-note strong { color: #8a8f98; }
+
+  .prompt-card { background: #0f1011; border: 1px solid #23252a; border-radius: 12px; overflow: hidden; }
+  .card-header { padding: 16px 20px; border-bottom: 1px solid #23252a; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .card-meta { display: flex; align-items: center; gap: 10px; }
+  .num { width: 24px; height: 24px; border-radius: 6px; background: rgba(94,106,210,0.15); border: 1px solid rgba(94,106,210,0.25); color: #828fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .card-title { font-size: 14px; font-weight: 600; color: #f7f8f8; }
+  .card-sub { font-size: 12px; color: #8a8f98; margin-top: 2px; }
+  .model-badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+  .model-claude { background: rgba(255,128,31,0.12); border: 1px solid rgba(255,128,31,0.25); color: #ff801f; }
+
+  .card-body { padding: 16px 20px; }
+  .why { font-size: 12px; color: #8a8f98; line-height: 1.6; margin-bottom: 14px; }
+
+  pre { background: #0a0a0b; border: 1px solid #23252a; border-radius: 8px; padding: 16px; font-size: 12px; line-height: 1.65; color: #d0d6e0; white-space: pre-wrap; word-break: break-word; font-family: "SF Mono", "Fira Code", monospace; max-height: 600px; overflow-y: auto; }
+
+  .copy-btn { margin-top: 12px; width: 100%; padding: 9px 0; border-radius: 8px; border: 1px solid #34343a; background: #141516; color: #d0d6e0; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+  .copy-btn:hover { background: #1e1f22; border-color: #5e6ad2; color: #828fff; }
+  .copy-btn.copied { background: rgba(39,166,68,0.1); border-color: rgba(39,166,68,0.3); color: #27a644; }
+</style>
+</head>
+<body>
+
+<h1>ColdHook — Hero Redesign</h1>
+<p class="subtitle">1 prompt · Full hero overhaul</p>
+<p class="context-note">
+  <strong>What's changing:</strong> New headline ("Research they feel. Time you get back."), asymmetric two-column layout breaking the dead-center symmetry, new background gradient + grain overlay, weight-contrast headline typography, single dominant CTA, rewritten subheadline, removed generic badge pill.<br><br>
+  <strong>What's staying:</strong> Framer Motion entrance animations (containerVariants / itemVariants), the hover tilt on the app preview, the beta badge at the bottom, the AppPreview component itself (placeholder until interactive demo is built).<br><br>
+  <strong>Model:</strong> Claude terminal — this is a full rewrite of a complex existing component.
+</p>
+
+<div class="prompt-card">
+  <div class="card-header">
+    <div class="card-meta">
+      <div class="num">1</div>
+      <div>
+        <div class="card-title">Hero Redesign</div>
+        <div class="card-sub">src/components/landing/hero.tsx — full overhaul</div>
+      </div>
+    </div>
+    <span class="model-badge model-claude">Claude (terminal)</span>
+  </div>
+  <div class="card-body">
+    <p class="why">Full rewrite of a complex existing component with Framer Motion, Clerk hooks, and custom design tokens. Claude handles this without breaking what should stay.</p>
+    <pre id="p1">You are working on ColdHook, a Next.js 16 App Router TypeScript project. Stack: Next.js 16, TypeScript, Tailwind CSS v4, Framer Motion, Clerk v5.
+
+File to fully rewrite: src/components/landing/hero.tsx
+
+This is a complete hero redesign. Read the full spec before writing any code.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DESIGN TOKENS (use these, never hardcode hex values)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+--color-canvas: #010102
+--color-surface-1: #0f1011
+--color-surface-2: #141516
+--color-accent: #5e6ad2
+--color-accent-hover: #828fff
+--color-ink: #f7f8f8
+--color-ink-muted: #d0d6e0
+--color-ink-subtle: #8a8f98
+--color-ink-tertiary: #62666d
+--color-hairline: #23252a
+--color-success: #27a644
+
+Gradient text utility already defined in globals.css:
+  .gradient-text-accent { background: linear-gradient(135deg, #828fff 0%, #5e6ad2 60%, #a78bfa 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WHAT TO KEEP EXACTLY AS-IS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- The containerVariants and itemVariants objects (staggered entrance, no changes)
+- The framer-motion import
+- The useAuth import from @clerk/nextjs
+- The AppPreview() function at the bottom (do not touch a single line)
+- The whileHover={{ rotateX: 2 }} with style={{ transformPerspective: 1200 }} on the preview wrapper
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BACKGROUND
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Replace the old radial gradient background with this one (from the user):
+  background: radial-gradient(125% 125% at 50% 10%, #000 40%, #6633ee 100%)
+
+Apply it as an inline style on the section element.
+
+On top of that gradient, add a grain/noise overlay as an absolutely positioned pseudo-element using a sibling div (not a CSS pseudo-element since Tailwind can't do ::after easily). Place this div directly inside the section, pointer-events-none, absolute inset-0, z-0:
+
+  <div
+    className="absolute inset-0 z-0 pointer-events-none opacity-[0.035]"
+    style={{
+      backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+      backgroundRepeat: "repeat",
+      backgroundSize: "128px 128px",
+    }}
+  />
+
+Also keep the subtle grid pattern div (the linear-gradient grid lines) — place it after the grain div, also z-0.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LAYOUT — Asymmetric two-column
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Break the dead-center layout. Use a two-column grid on desktop, stacked on mobile.
+
+Section: relative, overflow-hidden, pt-24 pb-20 px-6, min-h-[90vh], flex items-center
+Apply the background gradient via inline style on the section.
+
+Inner container: max-w-6xl mx-auto w-full
+Use a grid: grid-cols-1 lg:grid-cols-[1fr_1.1fr] gap-12 lg:gap-16 items-center
+
+Left column — text content (all left-aligned on desktop, centered on mobile):
+  text-center lg:text-left
+
+Right column — app preview:
+  The AppPreview wrapped in its motion.div hover wrapper, same as before.
+  On mobile this stacks below the text (order-2 lg:order-none or just natural flow).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+HEADLINE TYPOGRAPHY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+The headline is two lines with different weight treatments to create visual tension:
+
+  <motion.h1 variants={itemVariants}>
+    <span className="block text-5xl sm:text-6xl lg:text-7xl font-black tracking-[-2.5px] leading-[0.95] text-[#f7f8f8]">
+      Research they feel.
+    </span>
+    <span className="block text-5xl sm:text-6xl lg:text-7xl font-light tracking-[-2px] leading-[1.05] gradient-text-accent mt-1">
+      Time you get back.
+    </span>
+  </motion.h1>
+
+"Research they feel." — font-black (900), tight tracking, pure white, slightly tighter line height
+"Time you get back." — font-light (300), gradient-text-accent class, slightly looser, sits below
+
+DO NOT wrap either line in an additional motion element — the parent motion.h1 with itemVariants handles the entrance.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SUBHEADLINE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Replace the old subheadline with:
+  "ColdHook researches your prospect — their promotion, funding round, latest post — and writes a cold email that reads like you actually know them. In seconds."
+
+Style: text-base lg:text-lg, color ink-subtle, max-w-md (constrained so it doesn't stretch too wide), leading-relaxed, mt-6
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REMOVE THE BADGE PILL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Remove the "Powered by Claude AI" announcement pill entirely. Do not replace it with anything — the headline stands alone with more breathing room.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CTAs
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+One dominant primary button. "Watch demo" becomes a plain text link below it — not a Button component, just a styled anchor.
+
+  <motion.div className="flex flex-col items-start gap-3 mt-8" variants={itemVariants}>
+    (note: items-center on mobile, items-start on lg — use: className="flex flex-col sm:flex-row lg:flex-col items-center lg:items-start gap-3 mt-8")
+
+    Primary button: "Start for free →" — use existing Button size="lg", full accent style, h-12 px-8
+    href: isSignedIn ? "/dashboard" : "/sign-up"
+
+    Text link below:
+    <Link
+      href="#demo"
+      className="text-sm text-[#62666d] hover:text-[#8a8f98] transition-colors underline underline-offset-4"
+    >
+      Watch a demo
+    </Link>
+  </motion.div>
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BETA BADGE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Keep the "Now in beta — free early access" badge but move it above the headline — small, left-aligned on desktop. It works as a trust signal before the headline lands.
+
+Style: same as before (green border, green text, pulse dot), but use a regular span with inline-flex, mb-4, and left-aligned.
+
+Swap the Zap icon for a pulsing dot:
+  <span className="size-1.5 rounded-full bg-[#27a644] animate-pulse" />
+  Now in beta — free early access
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ENTRANCE ANIMATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Wrap the entire left column content in:
+  <motion.div variants={containerVariants} initial="hidden" animate="visible" className="...">
+
+Each child element (beta badge, h1, subheadline, CTA div) gets variants={itemVariants} as before.
+
+The right column (app preview) gets its own motion.div with:
+  initial={{ opacity: 0, x: 40 }}
+  animate={{ opacity: 1, x: 0 }}
+  transition={{ duration: 0.7, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
+
+This makes the preview slide in from the right slightly after the text — reinforcing the asymmetric feel.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RELATIVE Z-INDEX
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+The grain div and grid pattern div are z-0.
+The main content grid should be relative z-10 so it sits above the background layers.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+IMPORTS NEEDED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Keep: Link, useAuth, ArrowRight, Sparkles, Mail, Zap, Button, Badge, motion
+Remove: Star, TrendingUp (no longer used after removing social proof)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+After the rewrite, run: npx tsc --noEmit
+Fix any TypeScript errors before finishing.</pre>
+    <button class="copy-btn" id="btn1" onclick="copyPrompt('p1', 'btn1', 'Copy Prompt')">Copy Prompt</button>
+  </div>
+</div>
+
+<script>
+function copyPrompt(preId, btnId, label) {
+  const el = document.getElementById(preId)
+  navigator.clipboard.writeText(el.innerText).then(() => {
+    const btn = document.getElementById(btnId)
+    btn.textContent = "✓ Copied!"
+    btn.classList.add("copied")
+    setTimeout(() => {
+      btn.textContent = label
+      btn.classList.remove("copied")
+    }, 2000)
+  })
+}
+</script>
+</body>
+</html>

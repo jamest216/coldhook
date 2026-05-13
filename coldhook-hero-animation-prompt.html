@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>ColdHook Hero — Framer Motion Animation Handoff</title>
+<style>
+  :root {
+    --bg-0: #0b0d12;
+    --bg-1: #11141b;
+    --bg-2: #161a23;
+    --border: rgba(255,255,255,0.08);
+    --border-strong: rgba(255,255,255,0.14);
+    --text: #e7eaf0;
+    --text-muted: #9aa3b2;
+    --text-faint: #6b7383;
+    --accent: #e8a87c;
+    --accent-2: #f3c4a3;
+    --accent-soft: rgba(232,168,124,0.18);
+    --code-bg: #0e1119;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 30px rgba(0,0,0,0.35);
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background:
+      radial-gradient(900px 600px at 12% -10%, rgba(232,168,124,0.08), transparent 60%),
+      radial-gradient(800px 600px at 100% 10%, rgba(124,168,232,0.06), transparent 60%),
+      var(--bg-0);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.55;
+    min-height: 100vh;
+  }
+  .wrap {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 56px 28px 80px;
+  }
+  header.top {
+    margin-bottom: 28px;
+  }
+  .eyebrow {
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 10px;
+  }
+  h1 {
+    font-size: 30px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin: 0 0 10px;
+  }
+  .summary {
+    color: var(--text-muted);
+    font-size: 16px;
+    margin: 0;
+    max-width: 64ch;
+  }
+
+  .chips {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    margin-top: 18px;
+  }
+  .chip {
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--accent-2);
+    background: rgba(232,168,124,0.08);
+    border: 1px solid rgba(232,168,124,0.22);
+    padding: 4px 10px;
+    border-radius: 999px;
+  }
+
+  .card {
+    background: var(--bg-1);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    margin-top: 24px;
+    overflow: hidden;
+  }
+  .card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-2);
+    gap: 10px;
+  }
+  .card-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    letter-spacing: 0.02em;
+  }
+  .card-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn {
+    appearance: none;
+    border: 1px solid var(--border-strong);
+    background: linear-gradient(180deg, #20242e 0%, #181c25 100%);
+    color: var(--text);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 7px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.06s ease, border-color 0.15s ease, background 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn:hover { border-color: rgba(232,168,124,0.55); }
+  .btn:active { transform: translateY(1px); }
+  .btn.ghost {
+    background: transparent;
+    border-color: var(--border);
+    color: var(--text-muted);
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+  .btn.ghost:hover { color: var(--text); border-color: var(--border-strong); }
+  .btn.copied {
+    border-color: rgba(124, 224, 162, 0.55);
+    color: #b5f0c8;
+  }
+  .btn svg {
+    width: 14px; height: 14px;
+    stroke: currentColor; fill: none;
+    stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;
+  }
+
+  /* Variable inputs */
+  .vars-body {
+    padding: 8px 0 4px;
+  }
+  .var-field {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+  }
+  .var-field:last-child { border-bottom: 0; }
+  .var-field-head {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .var-name-tag {
+    font-family: ui-monospace, "SF Mono", "JetBrains Mono", monospace;
+    color: var(--accent-2);
+    background: rgba(232,168,124,0.10);
+    border: 1px solid rgba(232,168,124,0.22);
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  .var-desc {
+    color: var(--text-muted);
+    font-size: 13px;
+    flex: 1 1 auto;
+    min-width: 200px;
+  }
+  textarea.var-input {
+    width: 100%;
+    background: var(--code-bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-family: ui-monospace, "SF Mono", "JetBrains Mono", monospace;
+    font-size: 13px;
+    line-height: 1.55;
+    resize: vertical;
+    min-height: 38px;
+    transition: border-color 0.15s ease;
+  }
+  textarea.var-input:focus {
+    outline: none;
+    border-color: rgba(232,168,124,0.55);
+  }
+  textarea.var-input::placeholder {
+    color: var(--text-faint);
+    opacity: 0.7;
+  }
+
+  pre.prompt {
+    margin: 0;
+    padding: 22px;
+    background: var(--code-bg);
+    color: var(--text);
+    font-family: ui-monospace, "SF Mono", "JetBrains Mono", "Menlo", monospace;
+    font-size: 13.5px;
+    line-height: 1.62;
+    white-space: pre-wrap;
+    word-break: normal;
+    overflow-wrap: anywhere;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+  /* Highlighted unfilled placeholder */
+  pre.prompt .placeholder {
+    background: var(--accent-soft);
+    color: var(--accent-2);
+    border: 1px solid rgba(232,168,124,0.32);
+    border-radius: 4px;
+    padding: 0 4px;
+    font-weight: 500;
+  }
+  /* Filled-in value, subtle highlight */
+  pre.prompt .filled {
+    background: rgba(124, 224, 162, 0.10);
+    border-radius: 3px;
+    padding: 0 2px;
+  }
+
+  details.rationale {
+    margin-top: 28px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg-1);
+    padding: 0;
+    overflow: hidden;
+  }
+  details.rationale > summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 14px 18px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    user-select: none;
+  }
+  details.rationale > summary::-webkit-details-marker { display: none; }
+  details.rationale > summary::before {
+    content: "";
+    width: 7px; height: 7px;
+    border-right: 1.6px solid var(--text-muted);
+    border-bottom: 1.6px solid var(--text-muted);
+    transform: rotate(-45deg);
+    transition: transform 0.15s ease;
+    display: inline-block;
+  }
+  details.rationale[open] > summary::before {
+    transform: rotate(45deg);
+  }
+  .rationale-body {
+    padding: 4px 22px 22px;
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 1.7;
+    border-top: 1px solid var(--border);
+  }
+  .rationale-body p { margin: 14px 0; }
+  .rationale-body code {
+    background: var(--code-bg);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 12.5px;
+    color: var(--accent-2);
+  }
+
+  footer.foot {
+    margin-top: 36px;
+    color: var(--text-faint);
+    font-size: 12px;
+    text-align: center;
+  }
+
+  @media (max-width: 600px) {
+    .wrap { padding: 32px 16px 56px; }
+    h1 { font-size: 24px; }
+    .card-head { padding: 12px; }
+    pre.prompt { padding: 16px; font-size: 13px; }
+    .var-field { padding: 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="eyebrow">Claude Prompt</div>
+    <h1>ColdHook Hero — Framer Motion Animation Handoff</h1>
+    <p class="summary">Full implementation spec for animating the ColdHook landing page hero section using Framer Motion v12. Ready to paste into a Claude CLI session.</p>
+    <div class="chips"><span class="chip">Role</span><span class="chip">XML tags</span><span class="chip">Full code context embedded</span><span class="chip">Output format contract</span><span class="chip">Hard constraints block</span><span class="chip">Chain-of-thought prevention (no explanation wanted)</span></div>
+  </header>
+
+  
+
+  <section class="card" aria-label="Prompt">
+    <div class="card-head">
+      <span class="card-title">Prompt</span>
+      <div class="card-actions">
+        
+        <button class="btn" id="copyBtn" type="button" aria-label="Copy prompt to clipboard">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="9" y="9" width="11" height="11" rx="2"/>
+            <path d="M5 15V6a2 2 0 0 1 2-2h9"/>
+          </svg>
+          <span id="copyLabel">Copy prompt</span>
+        </button>
+      </div>
+    </div>
+    <pre class="prompt" id="promptPane"></pre>
+  </section>
+
+  <details class="rationale"><summary>Why this structure</summary><div class="rationale-body"><p>The prompt is structured as a coding handoff rather than an open-ended request, so it skips variables (the file path and code are hardcoded) and goes straight to a complete output contract.</p><p>The current <code>hero.tsx</code> source is embedded verbatim so the CLI instance has full context without needing filesystem access.</p><p>The &quot;Signal Pulse&quot; orb concept was chosen specifically to match the product ethos: ColdHook is about sending outreach and getting responses — concentric rings pulsing outward from glowing orbs directly evokes that &quot;signal going out&quot; metaphor without being heavy-handed.</p><p>The stagger timing (0.12s between children, [0.22, 1, 0.36, 1] cubic bezier) follows the Vercel/Linear school of easing — that custom bezier is a snappy deceleration curve that feels fresh and modern without being overdone, which matches the &quot;professional but push the curve a little&quot; brief.</p><p>The constraint to use only <code>transform</code> and <code>opacity</code> is explicit because those are the only GPU-composited properties — anything else (height, padding, color outside of filter) would cause layout recalculation and jank.</p><p>The framer-motion v12 import note is included because v12 changed some APIs vs v10/v11, and CLI Claude may default to older patterns without the reminder.</p></div></details>
+
+  <footer class="foot">Generated 2026-05-06 20:56 by the prompt-builder skill.</footer>
+</div>
+
+<script>
+(function() {
+  // ---- Data injected from Python ----
+  const RAW_PROMPT = "You are an expert React/Next.js frontend engineer who specializes in Framer Motion animations and polished SaaS landing pages. You write clean, performant code that uses only GPU-composited properties (transform, opacity) and never changes layout, copy, or functionality.\n\n<project_context>\nThis is a Next.js 16 app (App Router) using Tailwind CSS v4, React 19, and Clerk for auth.\n\nKey details:\n- framer-motion v12 is ALREADY installed. Do NOT run npm install.\n- The file to edit is: src/components/landing/hero.tsx\n- It is already a \"use client\" component.\n- Brand colors: indigo #5e6ad2, orange #ff801f, dark bg #010102\n- Do NOT change any text/copy, layout structure, Clerk auth logic, or import order for non-framer imports.\n</project_context>\n\n<current_hero_tsx>\n\"use client\"\n\nimport Link from \"next/link\"\nimport { useAuth } from \"@clerk/nextjs\"\nimport { ArrowRight, Sparkles, Mail, Zap } from \"lucide-react\"\nimport { Button } from \"@/components/ui/button\"\nimport { Badge } from \"@/components/ui/badge\"\n\nexport function Hero() {\n  const { isSignedIn } = useAuth()\n  return (\n    <section className=\"relative overflow-hidden pt-24 pb-20 px-6\">\n      {/* Background glow */}\n      <div className=\"absolute inset-0 overflow-hidden pointer-events-none\">\n        <div className=\"absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-[radial-gradient(ellipse_at_top,rgba(94,106,210,0.15)_0%,transparent_70%)]\" />\n        <div className=\"absolute top-32 left-1/4 w-64 h-64 bg-[radial-gradient(circle,rgba(94,106,210,0.08)_0%,transparent_70%)] blur-3xl\" />\n        <div className=\"absolute top-48 right-1/4 w-48 h-48 bg-[radial-gradient(circle,rgba(255,128,31,0.06)_0%,transparent_70%)] blur-3xl\" />\n      </div>\n\n      {/* Grid pattern */}\n      <div className=\"absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:48px_48px] pointer-events-none\" />\n\n      <div className=\"relative max-w-4xl mx-auto text-center\">\n        {/* Announcement pill */}\n        <div className=\"inline-flex items-center gap-2 mb-8\">\n          <span className=\"flex items-center gap-1.5 rounded-full border border-[rgba(94,106,210,0.3)] bg-[rgba(94,106,210,0.08)] px-3 py-1 text-xs text-[#828fff]\">\n            <Sparkles className=\"size-3\" />\n            Powered by Claude AI\n            <ArrowRight className=\"size-3\" />\n          </span>\n        </div>\n\n        {/* Headline */}\n        <h1 className=\"text-5xl sm:text-6xl md:text-7xl font-semibold leading-[1.05] tracking-[-2px] text-[#f7f8f8] mb-6\">\n          Cold emails that{\" \"}\n          <span className=\"gradient-text-accent\">actually</span>\n          <br />\n          get replies\n        </h1>\n\n        <p className=\"text-lg text-[#8a8f98] max-w-2xl mx-auto mb-10 leading-relaxed\">\n          ColdHook uses AI to write hyper-personalized cold emails in seconds. Feed it a prospect&#39;s LinkedIn, website, or news \u2014 get an email that feels hand-crafted.\n        </p>\n\n        {/* CTAs */}\n        <div className=\"flex flex-col sm:flex-row items-center justify-center gap-3 mb-16\">\n          <Button size=\"lg\" className=\"h-12 px-8 text-base font-medium\" asChild>\n            <Link href={isSignedIn ? \"/dashboard\" : \"/sign-up\"}>\n              Start for free\n              <ArrowRight className=\"size-4\" />\n            </Link>\n          </Button>\n          <Button variant=\"outline\" size=\"lg\" className=\"h-12 px-8 text-base\" asChild>\n            <Link href=\"#demo\">\n              Watch demo\n            </Link>\n          </Button>\n        </div>\n\n        {/* Beta badge */}\n        <div className=\"flex items-center justify-center\">\n          <span className=\"flex items-center gap-1.5 rounded-full border border-[rgba(39,166,68,0.3)] bg-[rgba(39,166,68,0.08)] px-3 py-1 text-xs text-[#27a644]\">\n            <Zap className=\"size-3\" />\n            Now in beta \u2014 free early access\n          </span>\n        </div>\n\n        {/* App Preview */}\n        <div className=\"mt-16 relative\">\n          <div className=\"absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,rgba(94,106,210,0.15)_0%,transparent_60%)] pointer-events-none\" />\n          <AppPreview />\n        </div>\n      </div>\n    </section>\n  )\n}\n\nfunction AppPreview() {\n  return (\n    <div className=\"relative mx-auto max-w-3xl rounded-2xl border border-[#23252a] bg-[#0f1011] overflow-hidden shadow-[0_30px_60px_rgba(3,3,39,0.4),0_18px_36px_rgba(0,0,0,0.35),0_0_0_1px_rgba(94,106,210,0.1)]\">\n      {/* Window chrome */}\n      <div className=\"flex items-center gap-2 border-b border-[#23252a] px-4 py-3\">\n        <div className=\"flex gap-1.5\">\n          <div className=\"size-3 rounded-full bg-[#ef4444] opacity-70\" />\n          <div className=\"size-3 rounded-full bg-[#f59e0b] opacity-70\" />\n          <div className=\"size-3 rounded-full bg-[#27a644] opacity-70\" />\n        </div>\n        <div className=\"flex-1 flex justify-center\">\n          <div className=\"flex items-center gap-1.5 rounded-md border border-[#23252a] bg-[#141516] px-3 py-1 text-xs text-[#62666d]\">\n            <Zap className=\"size-3 text-[#5e6ad2]\" />\n            app.coldhook.io/compose\n          </div>\n        </div>\n      </div>\n\n      {/* App content */}\n      <div className=\"grid grid-cols-2 divide-x divide-[#23252a]\">\n        {/* Left: Input */}\n        <div className=\"p-4 space-y-3\">\n          <div className=\"flex items-center gap-2 mb-3\">\n            <div className=\"size-6 rounded-md bg-[rgba(94,106,210,0.15)] border border-[rgba(94,106,210,0.2)] flex items-center justify-center\">\n              <Zap className=\"size-3 text-[#5e6ad2]\" />\n            </div>\n            <span className=\"text-xs font-medium text-[#8a8f98]\">Prospect Intel</span>\n          </div>\n          <div className=\"rounded-md border border-[#23252a] bg-[#141516] p-3\">\n            <p className=\"text-xs text-[#62666d] mb-2\">LinkedIn URL</p>\n            <p className=\"text-xs text-[#5e6ad2]\">linkedin.com/in/sarah-chen-vp</p>\n          </div>\n          <div className=\"rounded-md border border-[#23252a] bg-[#141516] p-3\">\n            <p className=\"text-xs text-[#62666d] mb-2\">Recent trigger</p>\n            <p className=\"text-xs text-[#d0d6e0] leading-relaxed\">Sarah just promoted to VP Sales at Acme Corp after leading a 40% ARR growth...</p>\n          </div>\n          <div className=\"rounded-md border border-[#23252a] bg-[rgba(94,106,210,0.05)] p-3\">\n            <div className=\"flex items-center gap-2 mb-2\">\n              <Sparkles className=\"size-3 text-[#5e6ad2]\" />\n              <span className=\"text-xs text-[#5e6ad2] font-medium\">Personalization score</span>\n            </div>\n            <div className=\"flex items-center gap-2\">\n              <div className=\"flex-1 h-1.5 rounded-full bg-[#23252a]\">\n                <div className=\"h-1.5 w-[87%] rounded-full bg-[#5e6ad2]\" />\n              </div>\n              <span className=\"text-xs text-[#828fff] font-medium\">87%</span>\n            </div>\n          </div>\n        </div>\n\n        {/* Right: Generated email */}\n        <div className=\"p-4 space-y-3\">\n          <div className=\"flex items-center gap-2 mb-3\">\n            <div className=\"size-6 rounded-md bg-[rgba(255,128,31,0.12)] border border-[rgba(255,128,31,0.2)] flex items-center justify-center\">\n              <Mail className=\"size-3 text-[#ff801f]\" />\n            </div>\n            <span className=\"text-xs font-medium text-[#8a8f98]\">Generated Email</span>\n            <Badge variant=\"success\" className=\"ml-auto text-[9px] py-0 h-4\">Ready</Badge>\n          </div>\n          <div className=\"space-y-2\">\n            <div className=\"rounded-md bg-[#141516] border border-[#23252a] p-2\">\n              <p className=\"text-[10px] text-[#62666d]\">Subject</p>\n              <p className=\"text-xs text-[#d0d6e0] mt-0.5\">Congrats on the VP promotion, Sarah \ud83c\udf89</p>\n            </div>\n            <div className=\"text-[11px] leading-relaxed text-[#8a8f98] space-y-2\">\n              <p>Hi Sarah,</p>\n              <p>Just saw the announcement about your promotion to VP of Sales at Acme \u2014 congrats on the 40% ARR milestone that got you there. That&#39;s the kind of growth that turns heads.</p>\n              <p>I help VP-level sales leaders at Series B-D companies shorten ramp time for new AEs by 30% using AI-coached role plays. Given you&#39;re likely rebuilding the team post-promotion...</p>\n              <p className=\"text-[#5e6ad2]\">Would 15 mins be worth it?</p>\n            </div>\n          </div>\n        </div>\n      </div>\n    </div>\n  )\n}\n</current_hero_tsx>\n\n<task>\nRewrite src/components/landing/hero.tsx with the following Framer Motion animations added. Produce the complete updated file \u2014 do not produce diffs or partial snippets.\n\nIMPORTANT: framer-motion v12 uses named exports. Import like this:\n  import { motion, useScroll, useTransform, useMotionValue, animate } from \"framer-motion\"\nDo NOT use default imports.\n</task>\n\n<animations_to_implement>\n\n1. BACKGROUND \u2014 \"Signal Pulse\" orbs\nThe three existing static gradient blobs should become animated motion.div elements. Each orb should:\n  - Drift slowly in a floating loop (translateX + translateY, different amplitudes and durations per orb, looping infinitely with ease: \"easeInOut\" and repeatType: \"mirror\")\n  - Breathe (scale 1 \u2192 1.15 \u2192 1, opacity subtle variation, looping)\n  - The central top orb (largest one) should also periodically emit a \"ping\" \u2014 a concentric ring that expands from scale 0.8 to 2.5 and fades out, repeating every 3.5 seconds. Implement the ping as an absolutely-positioned motion.div sibling with the same radial gradient, animating scale and opacity.\n  - Keep the existing Tailwind classes for the gradient colors and blur. Use inline style for the animation target properties so Framer can take over.\n  - The orbs should evoke the feeling of a signal being sent outward \u2014 matching the product's \"send cold emails, get replies\" ethos.\n\n2. HERO CONTENT \u2014 Staggered entrance\nWrap the content container (the div.relative.max-w-4xl) in a motion.div with variants that stagger children:\n  container variant: { hidden: {}, visible: { transition: { staggerChildren: 0.12, delayChildren: 0.1 } } }\n  item variant: { hidden: { opacity: 0, y: 24 }, visible: { opacity: 1, y: 0, transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] } } }\n\nApply the item variant to these elements (each becomes a motion.div or motion.h1 etc.):\n  - The announcement pill wrapper\n  - The h1 headline\n  - The p subheadline\n  - The CTA button group\n  - The beta badge\n  - The app preview wrapper\n\n3. APP PREVIEW \u2014 Floating bob + perspective tilt\nAfter its entrance animation completes, the AppPreview wrapper (the mt-16 div) should:\n  - Gently bob up and down: y oscillates between 0 and -8px in a slow loop (duration: 4s, ease: \"easeInOut\", repeat: Infinity, repeatType: \"mirror\")\n  - On hover: subtle rotateX(2deg) tilt using whileHover with perspective set via style={{ perspective: 1200 }}\n\n4. HEADLINE ACCENT WORD \u2014 Shimmer on entry\nThe <span className=\"gradient-text-accent\">actually</span> should, after the headline animates in, do a single brightness pulse: animate filter brightness from 1 \u2192 1.6 \u2192 1 over 0.6s with a 0.9s delay from when it appears. Use motion.span.\n\n</animations_to_implement>\n\n<hard_constraints>\n- Do NOT change any text content, className strings (except adding motion. prefix to elements), href values, or Clerk logic.\n- Do NOT change the Tailwind class for the outer <section>.\n- All animation values must use only transform and opacity \u2014 no layout-affecting properties.\n- The AppPreview component content (the mock UI inside) stays completely untouched.\n- The file must remain \"use client\" and all existing imports must stay.\n- Code must be TypeScript-valid with no type errors.\n- Do not add any new npm packages.\n</hard_constraints>\n\n<output_format>\nOutput ONLY the complete updated src/components/landing/hero.tsx file. Start with the \"use client\" directive. No explanation before or after the code block \u2014 just the file.\n</output_format>";
+  const VARIABLES  = [];  // [{name, description}]
+
+  const promptPane = document.getElementById('promptPane');
+  const copyBtn    = document.getElementById('copyBtn');
+  const copyLabel  = document.getElementById('copyLabel');
+  const resetBtn   = document.getElementById('resetBtn');
+
+  function escapeHtml(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // Collect current values from textareas keyed by variable name.
+  function getValues() {
+    const out = {};
+    for (const v of VARIABLES) {
+      const el = document.getElementById('var-' + v.name);
+      out[v.name] = el ? el.value : '';
+    }
+    return out;
+  }
+
+  // Substitute {{VAR}} in raw prompt. Returns plain string with values inserted.
+  function substitute(raw, values) {
+    return raw.replace(/\{\{\s*([A-Za-z0-9_]+)\s*\}\}/g, function(match, name) {
+      if (Object.prototype.hasOwnProperty.call(values, name) && values[name].trim() !== '') {
+        return values[name];
+      }
+      return match;  // leave unfilled
+    });
+  }
+
+  // Build HTML for the prompt pane: highlight unfilled and filled placeholders.
+  function renderPaneHtml(raw, values) {
+    // We do escaping in chunks so we can wrap the placeholder spans without
+    // accidentally escaping our own tag delimiters.
+    let html = '';
+    let lastIdx = 0;
+    const re = /\{\{\s*([A-Za-z0-9_]+)\s*\}\}/g;
+    let m;
+    while ((m = re.exec(raw)) !== null) {
+      const before = raw.slice(lastIdx, m.index);
+      html += escapeHtml(before);
+      const name = m[1];
+      const value = values[name];
+      if (value && value.trim() !== '') {
+        html += '<span class="filled">' + escapeHtml(value) + '</span>';
+      } else {
+        html += '<span class="placeholder">{{' + escapeHtml(name) + '}}</span>';
+      }
+      lastIdx = m.index + m[0].length;
+    }
+    html += escapeHtml(raw.slice(lastIdx));
+    return html;
+  }
+
+  function update() {
+    const values = getValues();
+    promptPane.innerHTML = renderPaneHtml(RAW_PROMPT, values);
+  }
+
+  // Wire up textarea inputs
+  for (const v of VARIABLES) {
+    const el = document.getElementById('var-' + v.name);
+    if (el) el.addEventListener('input', update);
+  }
+
+  // Copy button — copies the SUBSTITUTED prompt
+  copyBtn.addEventListener('click', async function() {
+    const text = substitute(RAW_PROMPT, getValues());
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select(); document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      copyBtn.classList.add('copied');
+      copyLabel.textContent = 'Copied!';
+      setTimeout(function() {
+        copyBtn.classList.remove('copied');
+        copyLabel.textContent = 'Copy prompt';
+      }, 1600);
+    } catch (e) {
+      copyLabel.textContent = 'Copy failed';
+      setTimeout(function() { copyLabel.textContent = 'Copy prompt'; }, 1600);
+    }
+  });
+
+  // Reset button
+  if (resetBtn) {
+    resetBtn.addEventListener('click', function() {
+      for (const v of VARIABLES) {
+        const el = document.getElementById('var-' + v.name);
+        if (el) el.value = '';
+      }
+      update();
+    });
+  }
+
+  update();  // initial render
+})();
+</script>
+</body>
+</html>

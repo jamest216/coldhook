@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Sidebar — Real Email Stats from Database</title>
+<style>
+  :root {
+    --bg-0: #0b0d12;
+    --bg-1: #11141b;
+    --bg-2: #161a23;
+    --border: rgba(255,255,255,0.08);
+    --border-strong: rgba(255,255,255,0.14);
+    --text: #e7eaf0;
+    --text-muted: #9aa3b2;
+    --text-faint: #6b7383;
+    --accent: #e8a87c;
+    --accent-2: #f3c4a3;
+    --accent-soft: rgba(232,168,124,0.18);
+    --code-bg: #0e1119;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 30px rgba(0,0,0,0.35);
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background:
+      radial-gradient(900px 600px at 12% -10%, rgba(232,168,124,0.08), transparent 60%),
+      radial-gradient(800px 600px at 100% 10%, rgba(124,168,232,0.06), transparent 60%),
+      var(--bg-0);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.55;
+    min-height: 100vh;
+  }
+  .wrap {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 56px 28px 80px;
+  }
+  header.top {
+    margin-bottom: 28px;
+  }
+  .eyebrow {
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 10px;
+  }
+  h1 {
+    font-size: 30px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin: 0 0 10px;
+  }
+  .summary {
+    color: var(--text-muted);
+    font-size: 16px;
+    margin: 0;
+    max-width: 64ch;
+  }
+
+  .chips {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    margin-top: 18px;
+  }
+  .chip {
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--accent-2);
+    background: rgba(232,168,124,0.08);
+    border: 1px solid rgba(232,168,124,0.22);
+    padding: 4px 10px;
+    border-radius: 999px;
+  }
+
+  .card {
+    background: var(--bg-1);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    margin-top: 24px;
+    overflow: hidden;
+  }
+  .card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-2);
+    gap: 10px;
+  }
+  .card-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    letter-spacing: 0.02em;
+  }
+  .card-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn {
+    appearance: none;
+    border: 1px solid var(--border-strong);
+    background: linear-gradient(180deg, #20242e 0%, #181c25 100%);
+    color: var(--text);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 7px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.06s ease, border-color 0.15s ease, background 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn:hover { border-color: rgba(232,168,124,0.55); }
+  .btn:active { transform: translateY(1px); }
+  .btn.ghost {
+    background: transparent;
+    border-color: var(--border);
+    color: var(--text-muted);
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+  .btn.ghost:hover { color: var(--text); border-color: var(--border-strong); }
+  .btn.copied {
+    border-color: rgba(124, 224, 162, 0.55);
+    color: #b5f0c8;
+  }
+  .btn svg {
+    width: 14px; height: 14px;
+    stroke: currentColor; fill: none;
+    stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;
+  }
+
+  /* Variable inputs */
+  .vars-body {
+    padding: 8px 0 4px;
+  }
+  .var-field {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+  }
+  .var-field:last-child { border-bottom: 0; }
+  .var-field-head {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .var-name-tag {
+    font-family: ui-monospace, "SF Mono", "JetBrains Mono", monospace;
+    color: var(--accent-2);
+    background: rgba(232,168,124,0.10);
+    border: 1px solid rgba(232,168,124,0.22);
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  .var-desc {
+    color: var(--text-muted);
+    font-size: 13px;
+    flex: 1 1 auto;
+    min-width: 200px;
+  }
+  textarea.var-input {
+    width: 100%;
+    background: var(--code-bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-family: ui-monospace, "SF Mono", "JetBrains Mono", monospace;
+    font-size: 13px;
+    line-height: 1.55;
+    resize: vertical;
+    min-height: 38px;
+    transition: border-color 0.15s ease;
+  }
+  textarea.var-input:focus {
+    outline: none;
+    border-color: rgba(232,168,124,0.55);
+  }
+  textarea.var-input::placeholder {
+    color: var(--text-faint);
+    opacity: 0.7;
+  }
+
+  pre.prompt {
+    margin: 0;
+    padding: 22px;
+    background: var(--code-bg);
+    color: var(--text);
+    font-family: ui-monospace, "SF Mono", "JetBrains Mono", "Menlo", monospace;
+    font-size: 13.5px;
+    line-height: 1.62;
+    white-space: pre-wrap;
+    word-break: normal;
+    overflow-wrap: anywhere;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+  /* Highlighted unfilled placeholder */
+  pre.prompt .placeholder {
+    background: var(--accent-soft);
+    color: var(--accent-2);
+    border: 1px solid rgba(232,168,124,0.32);
+    border-radius: 4px;
+    padding: 0 4px;
+    font-weight: 500;
+  }
+  /* Filled-in value, subtle highlight */
+  pre.prompt .filled {
+    background: rgba(124, 224, 162, 0.10);
+    border-radius: 3px;
+    padding: 0 2px;
+  }
+
+  details.rationale {
+    margin-top: 28px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg-1);
+    padding: 0;
+    overflow: hidden;
+  }
+  details.rationale > summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 14px 18px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    user-select: none;
+  }
+  details.rationale > summary::-webkit-details-marker { display: none; }
+  details.rationale > summary::before {
+    content: "";
+    width: 7px; height: 7px;
+    border-right: 1.6px solid var(--text-muted);
+    border-bottom: 1.6px solid var(--text-muted);
+    transform: rotate(-45deg);
+    transition: transform 0.15s ease;
+    display: inline-block;
+  }
+  details.rationale[open] > summary::before {
+    transform: rotate(45deg);
+  }
+  .rationale-body {
+    padding: 4px 22px 22px;
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 1.7;
+    border-top: 1px solid var(--border);
+  }
+  .rationale-body p { margin: 14px 0; }
+  .rationale-body code {
+    background: var(--code-bg);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 12.5px;
+    color: var(--accent-2);
+  }
+
+  footer.foot {
+    margin-top: 36px;
+    color: var(--text-faint);
+    font-size: 12px;
+    text-align: center;
+  }
+
+  @media (max-width: 600px) {
+    .wrap { padding: 32px 16px 56px; }
+    h1 { font-size: 24px; }
+    .card-head { padding: 12px; }
+    pre.prompt { padding: 16px; font-size: 13px; }
+    .var-field { padding: 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="eyebrow">Claude Prompt</div>
+    <h1>Sidebar — Real Email Stats from Database</h1>
+    <p class="summary">Creates a /api/stats endpoint and updates the sidebar to fetch and display the user&#x27;s real email count instead of hardcoded numbers.</p>
+    <div class="chips"><span class="chip">Role</span><span class="chip">XML tags</span><span class="chip">Exact file context</span><span class="chip">Output format contract</span><span class="chip">Scoped surgical changes</span></div>
+  </header>
+
+  
+
+  <section class="card" aria-label="Prompt">
+    <div class="card-head">
+      <span class="card-title">Prompt</span>
+      <div class="card-actions">
+        
+        <button class="btn" id="copyBtn" type="button" aria-label="Copy prompt to clipboard">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="9" y="9" width="11" height="11" rx="2"/>
+            <path d="M5 15V6a2 2 0 0 1 2-2h9"/>
+          </svg>
+          <span id="copyLabel">Copy prompt</span>
+        </button>
+      </div>
+    </div>
+    <pre class="prompt" id="promptPane"></pre>
+  </section>
+
+  <details class="rationale"><summary>Why this structure</summary><div class="rationale-body"><p>The layout is a client component so server queries can&#x27;t run there — a GET API route is the clean solution. The sidebar fetches on mount with a simple useEffect, no extra libraries needed. The &#x27;—&#x27; loading state prevents a flash of wrong numbers. Reply Rate and Meetings Booked stay hardcoded explicitly — silently leaving them as fake data without commenting it would be confusing.</p></div></details>
+
+  <footer class="foot">Generated 2026-05-06 14:46 by the prompt-builder skill.</footer>
+</div>
+
+<script>
+(function() {
+  // ---- Data injected from Python ----
+  const RAW_PROMPT = "You are a senior Next.js/TypeScript engineer updating ColdHook. Two files need to change: a new API route and the existing sidebar component.\n\n<context>\nStack: Next.js 16 App Router, TypeScript, Drizzle ORM, Clerk v5.\nThe app layout is a client component so server-side DB queries cannot be done there directly. The solution is a GET API route that the sidebar fetches on mount.\nDatabase: `db` from '@/lib/db', `emails` table from '@/lib/db/schema'.\nClerk server-side in API routes: `import { auth } from '@clerk/nextjs/server'` then `const { userId } = await auth()`.\nDrizzle imports needed: `import { eq, count, gte, and } from 'drizzle-orm'`\nOnly the `emails` table exists \u2014 Reply Rate and Meetings Booked have no real data yet and should stay hardcoded.\n</context>\n\n<current_sidebar path=\"src/components/layout/app-sidebar.tsx\">\n[The sidebar is a \"use client\" component. The relevant section is the Quick Stats block near the bottom of the nav:]\n\n{/* Quick Stats */}\n<div className=\"mt-auto\">\n  <p className=\"px-3 mb-1.5 text-[10px] font-medium uppercase tracking-widest text-[#62666d]\">\n    This Month\n  </p>\n  <div className=\"mx-1 rounded-lg border border-[#23252a] bg-[#141516] p-3 space-y-2\">\n    <StatRow label=\"Emails Sent\" value=\"1,247\" trend=\"+12%\" />\n    <StatRow label=\"Reply Rate\" value=\"34.2%\" trend=\"+5.1%\" />\n    <StatRow label=\"Meetings Booked\" value=\"28\" trend=\"+8\" />\n  </div>\n</div>\n\n[The StatRow component at the bottom of the file:]\nfunction StatRow({ label, value, trend }: { label: string; value: string; trend: string }) {\n  return (\n    <div className=\"flex items-center justify-between\">\n      <span className=\"text-xs text-[#62666d]\">{label}</span>\n      <div className=\"flex items-center gap-1.5\">\n        <span className=\"text-xs font-medium text-[#d0d6e0]\">{value}</span>\n        <span className=\"text-[10px] text-[#27a644]\">{trend}</span>\n      </div>\n    </div>\n  )\n}\n</current_sidebar>\n\n<task>\n\n1. CREATE new file: src/app/api/stats/route.ts\n   - GET handler only\n   - Get userId from `await auth()` \u2014 if null, return `{ emailsTotal: 0, emailsThisMonth: 0 }`\n   - Define thisMonthStart: `new Date(new Date().getFullYear(), new Date().getMonth(), 1)`\n   - Run two parallel queries with Promise.all:\n     a. Total emails: `db.select({ count: count() }).from(emails).where(eq(emails.userId, userId))`\n     b. This month: `db.select({ count: count() }).from(emails).where(and(eq(emails.userId, userId), gte(emails.createdAt, thisMonthStart)))`\n   - Return `Response.json({ emailsTotal: totalRows[0]?.count ?? 0, emailsThisMonth: monthRows[0]?.count ?? 0 })`\n   - Wrap in try/catch, return `{ emailsTotal: 0, emailsThisMonth: 0 }` on error\n\n2. UPDATE src/components/layout/app-sidebar.tsx \u2014 surgical changes only:\n\n   a. Add `useEffect, useState` to the React import at the top (or add as a new import if React isn't currently imported explicitly).\n\n   b. Inside the AppSidebar function, add state and a fetch effect after the existing hooks:\n   ```\n   const [emailStats, setEmailStats] = useState<{ emailsTotal: number; emailsThisMonth: number } | null>(null)\n\n   useEffect(() => {\n     fetch('/api/stats')\n       .then(r => r.json())\n       .then(data => setEmailStats(data))\n       .catch(() => {})\n   }, [])\n   ```\n\n   c. In the Quick Stats block, replace the three StatRow components with:\n   - \"Emails Sent\": value = `emailStats ? emailStats.emailsTotal.toLocaleString() : '\u2014'`, trend = `emailStats && emailStats.emailsThisMonth > 0 ? \\`+${emailStats.emailsThisMonth} mo\\` : '\u2014'`\n   - \"Reply Rate\": keep hardcoded value=\"34.2%\" trend=\"+5.1%\"\n   - \"Meetings Booked\": keep hardcoded value=\"28\" trend=\"+8\"\n\n   The '\u2014' fallback shows while loading or when the user has zero emails.\n</task>\n\n<output_format>\nReturn two clearly separated files with a header comment before each:\n// \u2500\u2500 FILE: src/app/api/stats/route.ts \u2500\u2500\n// \u2500\u2500 FILE: src/components/layout/app-sidebar.tsx \u2500\u2500\n\nFull file content for each. No diffs, no commentary. Both must compile without TypeScript errors. For the sidebar, return the complete file \u2014 preserve every line that isn't being changed.\n</output_format>";
+  const VARIABLES  = [];  // [{name, description}]
+
+  const promptPane = document.getElementById('promptPane');
+  const copyBtn    = document.getElementById('copyBtn');
+  const copyLabel  = document.getElementById('copyLabel');
+  const resetBtn   = document.getElementById('resetBtn');
+
+  function escapeHtml(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // Collect current values from textareas keyed by variable name.
+  function getValues() {
+    const out = {};
+    for (const v of VARIABLES) {
+      const el = document.getElementById('var-' + v.name);
+      out[v.name] = el ? el.value : '';
+    }
+    return out;
+  }
+
+  // Substitute {{VAR}} in raw prompt. Returns plain string with values inserted.
+  function substitute(raw, values) {
+    return raw.replace(/\{\{\s*([A-Za-z0-9_]+)\s*\}\}/g, function(match, name) {
+      if (Object.prototype.hasOwnProperty.call(values, name) && values[name].trim() !== '') {
+        return values[name];
+      }
+      return match;  // leave unfilled
+    });
+  }
+
+  // Build HTML for the prompt pane: highlight unfilled and filled placeholders.
+  function renderPaneHtml(raw, values) {
+    // We do escaping in chunks so we can wrap the placeholder spans without
+    // accidentally escaping our own tag delimiters.
+    let html = '';
+    let lastIdx = 0;
+    const re = /\{\{\s*([A-Za-z0-9_]+)\s*\}\}/g;
+    let m;
+    while ((m = re.exec(raw)) !== null) {
+      const before = raw.slice(lastIdx, m.index);
+      html += escapeHtml(before);
+      const name = m[1];
+      const value = values[name];
+      if (value && value.trim() !== '') {
+        html += '<span class="filled">' + escapeHtml(value) + '</span>';
+      } else {
+        html += '<span class="placeholder">{{' + escapeHtml(name) + '}}</span>';
+      }
+      lastIdx = m.index + m[0].length;
+    }
+    html += escapeHtml(raw.slice(lastIdx));
+    return html;
+  }
+
+  function update() {
+    const values = getValues();
+    promptPane.innerHTML = renderPaneHtml(RAW_PROMPT, values);
+  }
+
+  // Wire up textarea inputs
+  for (const v of VARIABLES) {
+    const el = document.getElementById('var-' + v.name);
+    if (el) el.addEventListener('input', update);
+  }
+
+  // Copy button — copies the SUBSTITUTED prompt
+  copyBtn.addEventListener('click', async function() {
+    const text = substitute(RAW_PROMPT, getValues());
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select(); document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      copyBtn.classList.add('copied');
+      copyLabel.textContent = 'Copied!';
+      setTimeout(function() {
+        copyBtn.classList.remove('copied');
+        copyLabel.textContent = 'Copy prompt';
+      }, 1600);
+    } catch (e) {
+      copyLabel.textContent = 'Copy failed';
+      setTimeout(function() { copyLabel.textContent = 'Copy prompt'; }, 1600);
+    }
+  });
+
+  // Reset button
+  if (resetBtn) {
+    resetBtn.addEventListener('click', function() {
+      for (const v of VARIABLES) {
+        const el = document.getElementById('var-' + v.name);
+        if (el) el.value = '';
+      }
+      update();
+    });
+  }
+
+  update();  // initial render
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ColdHook — Industry & Seniority Calibration</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #010102; color: #f7f8f8; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding: 32px 24px; min-height: 100vh; }
+  h1 { font-size: 20px; font-weight: 700; color: #f7f8f8; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #8a8f98; margin-bottom: 12px; }
+  .context-note { font-size: 12px; color: #62666d; margin-bottom: 32px; padding: 12px 16px; border: 1px solid #23252a; border-radius: 8px; background: #0f1011; line-height: 1.8; }
+  .context-note strong { color: #8a8f98; }
+  .context-note code { font-family: "SF Mono", "Fira Code", monospace; font-size: 11px; color: #828fff; background: rgba(94,106,210,0.1); padding: 1px 5px; border-radius: 3px; }
+  .order-note { font-size: 12px; color: #62666d; margin-bottom: 24px; padding: 10px 14px; border: 1px solid #23252a; border-radius: 8px; background: #0f1011; }
+  .order-note strong { color: #8a8f98; }
+
+  .prompt-card { background: #0f1011; border: 1px solid #23252a; border-radius: 12px; margin-bottom: 24px; overflow: hidden; }
+  .card-header { padding: 16px 20px; border-bottom: 1px solid #23252a; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .card-meta { display: flex; align-items: center; gap: 10px; }
+  .num { width: 24px; height: 24px; border-radius: 6px; background: rgba(94,106,210,0.15); border: 1px solid rgba(94,106,210,0.25); color: #828fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .card-title { font-size: 14px; font-weight: 600; color: #f7f8f8; }
+  .card-sub { font-size: 12px; color: #8a8f98; margin-top: 2px; }
+  .model-badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+  .model-claude { background: rgba(255,128,31,0.12); border: 1px solid rgba(255,128,31,0.25); color: #ff801f; }
+
+  .card-body { padding: 16px 20px; }
+  .why { font-size: 12px; color: #8a8f98; line-height: 1.6; margin-bottom: 14px; }
+
+  .change-list { margin-bottom: 16px; }
+  .change-item { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 6px; font-size: 12px; color: #8a8f98; line-height: 1.5; }
+  .change-dot { width: 5px; height: 5px; border-radius: 50%; background: #5e6ad2; flex-shrink: 0; margin-top: 5px; }
+  .change-item strong { color: #d0d6e0; }
+
+  pre { background: #0a0a0b; border: 1px solid #23252a; border-radius: 8px; padding: 16px; font-size: 12px; line-height: 1.65; color: #d0d6e0; white-space: pre-wrap; word-break: break-word; font-family: "SF Mono", "Fira Code", monospace; max-height: 640px; overflow-y: auto; }
+
+  .copy-btn { margin-top: 12px; width: 100%; padding: 9px 0; border-radius: 8px; border: 1px solid #34343a; background: #141516; color: #d0d6e0; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+  .copy-btn:hover { background: #1e1f22; border-color: #5e6ad2; color: #828fff; }
+  .copy-btn.copied { background: rgba(39,166,68,0.1); border-color: rgba(39,166,68,0.3); color: #27a644; }
+</style>
+</head>
+<body>
+
+<h1>ColdHook — Industry & Seniority Calibration</h1>
+<p class="subtitle">2 prompts · Run in order</p>
+
+<p class="context-note">
+  <strong>What this adds:</strong> The generation pipeline currently produces the same tone and abstraction level regardless of whether the prospect is a CEO at a bank or a VP at a devtools startup. The research shows this is a major quality gap — C-suite needs strategic framing (board narrative, competitive position, 18-month outlook), VPs need operational framing (scaling pain, hiring, systems), and industry determines formality (tech/SaaS: informal; fintech/healthcare/legal: formal, careful with claims).<br><br>
+  <strong>Prompt 1 (route.ts):</strong> Adds <code>classifySeniority()</code> and <code>classifyIndustry()</code> functions. Updates <code>generateInsight()</code> to factor in both. Updates <code>buildDraftPrompt()</code> with seniority-aware abstraction levels and industry-aware tone calibration. Also fixes a silent mismatch: compose sends <code>bold</code> / <code>curious</code> tone and <code>calendar</code> / <code>question</code> CTA values that the route wasn't mapping — those now have proper handlers.<br><br>
+  <strong>Prompt 2 (compose/page.tsx):</strong> Adds an Industry dropdown to the Email Settings card. Adds <code>industry</code> state. Sends <code>industry</code> in both the generate and generate-sequence fetch bodies.
+</p>
+<p class="order-note"><strong>Order matters:</strong> Run Prompt 1 (route) first, then Prompt 2 (compose UI).</p>
+
+<!-- PROMPT 1 -->
+<div class="prompt-card">
+  <div class="card-header">
+    <div class="card-meta">
+      <div class="num">1</div>
+      <div>
+        <div class="card-title">Route Update — Industry & Seniority</div>
+        <div class="card-sub">src/app/api/generate/route.ts — targeted additions + fixes</div>
+      </div>
+    </div>
+    <span class="model-badge model-claude">Claude (terminal)</span>
+  </div>
+  <div class="card-body">
+    <div class="change-list">
+      <div class="change-item"><div class="change-dot"></div><div><strong>Add:</strong> classifySeniority() — detects C-suite / VP / director / manager from title string</div></div>
+      <div class="change-item"><div class="change-dot"></div><div><strong>Add:</strong> classifyIndustry() — maps industry string from request body to one of 6 verticals</div></div>
+      <div class="change-item"><div class="change-dot"></div><div><strong>Update:</strong> generateInsight() — receives seniority + industry and adjusts reasoning focus accordingly</div></div>
+      <div class="change-item"><div class="change-dot"></div><div><strong>Update:</strong> buildDraftPrompt() — seniority-aware abstraction level + industry-aware tone rules + fixed tone/CTA maps</div></div>
+      <div class="change-item"><div class="change-dot"></div><div><strong>Update:</strong> POST handler — reads optional industry from request body, passes to classifier and both stage functions</div></div>
+    </div>
+    <pre id="p1">You are working on ColdHook, a Next.js 16 App Router TypeScript project.
+
+File to edit: src/app/api/generate/route.ts
+
+This is a targeted update to the existing route — do NOT rewrite the whole file. Read carefully and make only the changes described. All existing structure (imports, validation, subject/body parsing, scoring, DB insert, response shape) stays exactly as-is.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 1 — Add new type definitions after the existing TriggerType
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add these two new types directly after the TriggerType definition:
+
+  type SeniorityLevel = "c_suite" | "vp" | "director" | "manager_ic"
+
+  type IndustryVertical = "tech_saas" | "fintech_finance" | "healthcare" | "legal" | "manufacturing" | "agency"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 2 — Add classifySeniority() after classifyTrigger()
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  function classifySeniority(title: string): SeniorityLevel {
+    const t = title.toLowerCase()
+    if (/\b(ceo|cro|cto|cmo|cfo|coo|cpo|chief|founder|co-founder|president|owner)\b/.test(t)) return "c_suite"
+    if (/\b(vp|vice president|head of|svp|evp|senior vp|group vp)\b/.test(t)) return "vp"
+    if (/\b(director|sr\. director|senior director|principal)\b/.test(t)) return "director"
+    return "manager_ic"
+  }
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 3 — Add classifyIndustry() after classifySeniority()
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  function classifyIndustry(industry: string): IndustryVertical {
+    const i = industry.toLowerCase()
+    if (i.includes("finance") || i.includes("fintech") || i.includes("banking") || i.includes("investment")) return "fintech_finance"
+    if (i.includes("health") || i.includes("medical") || i.includes("pharma") || i.includes("clinical")) return "healthcare"
+    if (i.includes("legal") || i.includes("law") || i.includes("compliance")) return "legal"
+    if (i.includes("manufactur") || i.includes("industrial") || i.includes("logistics") || i.includes("supply chain")) return "manufacturing"
+    if (i.includes("agency") || i.includes("creative") || i.includes("marketing agency") || i.includes("design studio")) return "agency"
+    return "tech_saas"
+  }
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 4 — Update generateInsight() signature and prompt
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find the existing generateInsight() function. Update its parameter type to add seniority and industryVertical, and update the prompt body to use them. Replace the entire function with this:
+
+  async function generateInsight(fields: {
+    firstName: string
+    title: string
+    company: string
+    trigger: string
+    triggerType: TriggerType
+    seniority: SeniorityLevel
+    industryVertical: IndustryVertical
+  }): Promise<string> {
+    const triggerContext: Record<TriggerType, string> = {
+      promotion: `Focus on: what specific operational and political challenges come with this exact role transition. What does this person now have to prove, build, or fix that they didn't before? What mandate do they likely have?`,
+      funding: `Focus on: what the round size and stage actually mean in operational pressure — hiring timelines, board expectations, burn rate, GTM acceleration. What is the person in this seat now accountable for that they weren't before the round closed?`,
+      content: `Focus on: the specific argument or perspective they expressed — what does holding that view imply about how they see their biggest problem right now? What would a peer say in response?`,
+      job_change: `Focus on: the gap between where they came from and where they've landed. What expectations does their previous company set that won't match reality at the new company? What audit are they already running?`,
+      other: `Focus on: what this trigger event implies is changing or under pressure in their world right now. What problem does it surface that probably wasn't urgent 3 months ago?`,
+    }
+
+    const seniorityFocus: Record<SeniorityLevel, string> = {
+      c_suite: `This is a ${fields.title}. Frame the implication at the STRATEGIC level: board narrative, competitive position, company valuation, next 18-month horizon. Do not mention team processes or operational workflows. Think: what does their board care about? What does this trigger mean for how they'll be judged in 12 months?`,
+      vp: `This is a VP-level leader. Frame the implication at the OPERATIONAL level: scaling their function, hiring and ramp, systems breaking under growth, quota and coverage. They own a function and have to scale it — the insight should speak to that pressure, not to C-level strategy or individual contributor tactics.`,
+      director: `This is a Director. Frame the implication at the PRACTICAL level: hitting their team's number, solving a specific process problem, surviving the next quarter. They are operational and execution-focused. Think: what does this trigger make harder or more urgent for their team to deliver?`,
+      manager_ic: `This is a Manager or individual contributor. Frame the implication at the TACTICAL level: their day-to-day workflow, a specific skill or tool problem, something that makes their job harder or easier. Be specific and concrete.`,
+    }
+
+    const industryContext: Record<IndustryVertical, string> = {
+      tech_saas: `Tech/SaaS context. Use product-led and GTM vocabulary (pipeline, ARR, churn, ramp, PLG, outbound). Assume familiarity with modern sales and engineering concepts.`,
+      fintech_finance: `Fintech/Finance context. Use precise financial vocabulary. Implications may relate to compliance, regulatory pressure, risk management, or capital efficiency. Be exact with figures.`,
+      healthcare: `Healthcare context. Implications may relate to patient outcomes, compliance (HIPAA/FDA), reimbursement, clinical workflows, or staffing. Be careful with claims — avoid overpromising on outcomes.`,
+      legal: `Legal context. Implications may relate to case load, compliance risk, client retention, billing efficiency, or regulatory changes. Be precise and measured in language.`,
+      manufacturing: `Manufacturing/Industrial context. Use plain, direct vocabulary. Implications relate to throughput, downtime, supply chain, labor, or operational efficiency. Avoid SaaS jargon entirely.`,
+      agency: `Agency/Creative context. Implications relate to client retention, project margin, new business pipeline, or team capacity. Personality and specificity are valued.`,
+    }
+
+    const { text } = await generateText({
+      model: anthropic("claude-haiku-4-5-20251001"),
+      maxOutputTokens: 200,
+      prompt: `You are a senior B2B sales strategist reasoning about a prospect trigger event. Your job is NOT to write an email. Your job is to identify the single most non-obvious, second-order implication of this trigger for this specific person's job.
+
+PROSPECT:
+- Name: ${fields.firstName}
+- Title: ${fields.title || "unknown"}
+- Company: ${fields.company}
+- Trigger: ${fields.trigger}
+- Trigger type: ${fields.triggerType}
+
+SENIORITY FOCUS:
+${seniorityFocus[fields.seniority]}
+
+INDUSTRY CONTEXT:
+${industryContext[fields.industryVertical]}
+
+TRIGGER REASONING:
+${triggerContext[fields.triggerType]}
+
+Output format — write exactly 2–3 sentences:
+1. The non-obvious implication (what changes for them now that most people wouldn't think to mention)
+2. Why this implication is specifically relevant to their title/role at their seniority level
+
+Do NOT write a cold email. Do NOT include a subject line. Do NOT include pleasantries. Output only the 2–3 sentence insight.`,
+    })
+
+    return text.trim()
+  }
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 5 — Update buildDraftPrompt() with seniority + industry + fix tone/CTA maps
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find the existing buildDraftPrompt() function. Replace the toneInstructions and ctaExamples records and add new seniority/industry instruction blocks. Also add a seniorityAbstraction record. Here are the exact replacements to make inside buildDraftPrompt():
+
+REPLACE the toneInstructions record with:
+
+  const toneInstructions: Record<string, string> = {
+    conversational: "Casual, direct peer-to-peer. Fragments are fine. Lowercase subject line. No formal closings. Write like a smart colleague's Slack message.",
+    professional: "Clear and confident. Full sentences preferred. Respectful but never stiff. One short paragraph max per thought.",
+    formal: "Complete sentences only. No fragments. Measured pace. No contractions. This is a regulated industry — match their register.",
+    bold: "Confident and direct. Short, punchy sentences. No hedging. The value prop is stated with conviction, not apology.",
+    curious: "Lead with genuine curiosity about their situation. Ask or imply a question in the opening. Frame as peer-to-peer intellectual interest, not a pitch.",
+  }
+
+REPLACE the ctaExamples record with:
+
+  const ctaExamples: Record<string, string> = {
+    soft: `Use an interest-based CTA — asks the prospect to confirm or deny relevance, costs them nothing. Examples: "Worth a look?", "Is this on your radar right now?", "Is [specific problem] something ${fields.company} is dealing with?" One CTA only. End with a low-pressure out.`,
+    value: `Use a value-offer CTA — the prospect gets something, which makes them reply to receive it. Examples: "Want me to send the playbook we ran for [similar company]?", "Should I send the 3-page breakdown?" One CTA only. End with a low-pressure out.`,
+    question: `Use a single direct question that makes the prospect think about their situation. The question should surface a tension they haven't resolved. Examples: "Is your outbound motion scaling with the team, or is research the bottleneck?" One question. No multiple asks.`,
+    calendar: `Soft open-meeting request — no calendar links in the body. Example: "Worth 15 minutes next week?" Keep it brief. No Calendly URLs. One ask only. End with a low-pressure out.`,
+  }
+
+ADD this new seniorityAbstraction record after the ctaExamples record:
+
+  const seniorityAbstraction: Record<SeniorityLevel, string> = {
+    c_suite: `SENIORITY — C-SUITE: This is a ${fields.title}. Write at the highest level of abstraction. Lead with strategic framing: board narrative, competitive position, valuation, the next 18-month horizon. Do NOT mention team workflows, individual rep productivity, or operational specifics. Use peer social proof referencing other CEOs/CROs/CTOs. Never list features. One strategic outcome only.`,
+    vp: `SENIORITY — VP: This is a VP-level leader who owns a function and has to scale it. Lead with operational framing: hiring and ramp pressure, quota and coverage, systems that break under growth. Strategic enough to feel relevant, operational enough to feel specific. Avoid C-level abstraction (board decks) and IC-level detail (individual workflows).`,
+    director: `SENIORITY — DIRECTOR: This is a Director focused on delivering the team's number. Lead with practical framing: a specific process problem, a team execution challenge, something that makes the next quarter easier. Outcome-oriented. More specific than VP-level. Less abstract than C-suite.`,
+    manager_ic: `SENIORITY — MANAGER/IC: This person cares about their day-to-day. Be specific and tactical. How does this save time, reduce friction, or solve a concrete workflow problem? Technical detail is fine. Peer-to-peer tone.`,
+  }
+
+ADD this industryToneRules record after seniorityAbstraction:
+
+  const industryToneRules: Record<IndustryVertical, string> = {
+    tech_saas: "Tech/SaaS: Maximum informality is allowed and often preferred. Fragments fine. Lowercase subject. Conversational register. GTM vocabulary expected.",
+    fintech_finance: "Fintech/Finance: Precise language. Slightly more formal than tech defaults. Full sentences preferred. Specific with numbers. No buzzwords.",
+    healthcare: "Healthcare: Formal register. Full sentences. Be careful with outcome claims — avoid overpromising. Reference compliance and workflow context. No humor.",
+    legal: "Legal: Most formal register. Complete sentences. No contractions in extreme formal cases. Full titles. Precise and measured. No jargon, no SaaS terms.",
+    manufacturing: "Manufacturing/Industrial: Plain-spoken and direct. No SaaS vocabulary. Use: system, tool, process, throughput, downtime. No 'leverage', 'synergy', 'platform'.",
+    agency: "Agency/Creative: Informal, personality rewarded. Specific is better than generic. These buyers spot templates immediately. Voice and distinctiveness matter.",
+  }
+
+Then update the return template string inside buildDraftPrompt() to include the two new instruction blocks. Find the section that begins "━━━━ TONE:" and replace it and the following "━━━━ HARD CRAFT RULES" section with:
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${seniorityAbstraction[fields.seniority]}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+INDUSTRY TONE RULES:
+${industryToneRules[fields.industryVertical]}
+
+BASE TONE SETTING: ${toneInstructions[fields.tone] || toneInstructions.conversational}
+(If industry rules conflict with base tone, industry rules win — a legal prospect always gets formal even if the user selected conversational.)
+
+(Keep all other sections of the return template exactly as they are — absolute prohibitions, colleague test, subject line rules, output format. Only replace the TONE section with the above three blocks.)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 6 — Update the fields type in buildDraftPrompt()
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The fields parameter type for buildDraftPrompt() currently includes: firstName, lastName, title, company, trigger, triggerType, insight, valueProp, tone, length, ctaStyle.
+
+Add two new fields:
+  seniority: SeniorityLevel
+  industryVertical: IndustryVertical
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STEP 7 — Update the POST handler
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+In the POST handler, after the fields object is constructed, add:
+
+  // Read optional industry from request body; default to "tech_saas"
+  const industryRaw = (body.industry || "tech_saas").toLowerCase()
+
+Then in the pipeline block (after classifyTrigger), add two new classifications:
+
+  const triggerType = classifyTrigger(fields.trigger)
+  const seniority = classifySeniority(fields.title)
+  const industryVertical = classifyIndustry(industryRaw)
+
+Update the generateInsight() call to pass the new fields:
+
+  const insight = await generateInsight({
+    firstName: fields.firstName,
+    title: fields.title,
+    company: fields.company,
+    trigger: fields.trigger,
+    triggerType,
+    seniority,
+    industryVertical,
+  })
+
+Update the buildDraftPrompt() call to pass the new fields:
+
+  prompt: buildDraftPrompt({ ...fields, triggerType, insight, seniority, industryVertical }),
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VERIFICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+After all changes:
+1. Run: npx tsc --noEmit and fix any TypeScript errors
+2. Confirm response JSON shape is unchanged
+3. Confirm DB insert is unchanged
+4. Confirm the new toneInstructions handles: conversational, professional, formal, bold, curious
+5. Confirm the new ctaExamples handles: soft, value, question, calendar
+6. Confirm classifyIndustry("") returns "tech_saas" (the safe default)</pre>
+    <button class="copy-btn" id="btn1" onclick="copyPrompt('p1', 'btn1', 'Copy Prompt 1')">Copy Prompt 1</button>
+  </div>
+</div>
+
+<!-- PROMPT 2 -->
+<div class="prompt-card">
+  <div class="card-header">
+    <div class="card-meta">
+      <div class="num">2</div>
+      <div>
+        <div class="card-title">Compose UI — Add Industry Dropdown</div>
+        <div class="card-sub">src/app/(app)/compose/page.tsx — targeted additions only</div>
+      </div>
+    </div>
+    <span class="model-badge model-claude">Claude (terminal)</span>
+  </div>
+  <div class="card-body">
+    <div class="change-list">
+      <div class="change-item"><div class="change-dot"></div><div><strong>Add:</strong> industry state (default "tech_saas")</div></div>
+      <div class="change-item"><div class="change-dot"></div><div><strong>Add:</strong> Industry Select dropdown in the Email Settings card, below CTA Style</div></div>
+      <div class="change-item"><div class="change-dot"></div><div><strong>Update:</strong> handleGenerate fetch body — add industry field</div></div>
+      <div class="change-item"><div class="change-dot"></div><div><strong>Update:</strong> handleGenerateSequence fetch body — add industry field</div></div>
+    </div>
+    <pre id="p2">You are working on ColdHook, a Next.js 16 App Router TypeScript project.
+
+File to edit: src/app/(app)/compose/page.tsx
+
+This is a targeted addition — do NOT rewrite the file. Make only the 4 changes described. Everything else stays exactly as-is.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 1 — Add industry state
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find the block of useState declarations at the top of the component. After the ctaStyle state, add:
+
+  const [industry, setIndustry] = useState("tech_saas")
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 2 — Add Industry Select to Email Settings card
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find the Email Settings Card. It currently has three items: Tone (grid col 1), Length (grid col 2), and CTA Style (full width below).
+
+After the existing CTA Style div, add a new Industry div:
+
+  <div className="space-y-1.5">
+    <label className="text-xs text-[#8a8f98]">Industry</label>
+    <Select value={industry} onValueChange={setIndustry}>
+      <SelectTrigger>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="tech_saas">Tech / SaaS</SelectItem>
+        <SelectItem value="fintech_finance">Fintech / Finance</SelectItem>
+        <SelectItem value="healthcare">Healthcare</SelectItem>
+        <SelectItem value="legal">Legal</SelectItem>
+        <SelectItem value="manufacturing">Manufacturing / Industrial</SelectItem>
+        <SelectItem value="agency">Agency / Creative</SelectItem>
+      </SelectContent>
+    </Select>
+  </div>
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 3 — Add industry to handleGenerate fetch body
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find the fetch call inside handleGenerate. The body JSON currently includes: linkedinUrl, firstName, lastName, title, company, trigger, valueProp, tone, length, ctaStyle.
+
+Add industry to this object:
+  body: JSON.stringify({
+    linkedinUrl,
+    firstName,
+    lastName,
+    title,
+    company,
+    trigger,
+    valueProp,
+    tone,
+    length,
+    ctaStyle,
+    industry,
+  })
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 4 — Add industry to handleGenerateSequence fetch body
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find the fetch call inside handleGenerateSequence. The body JSON currently includes: firstName, lastName, title, company, trigger, valueProp, tone, ctaStyle, initialEmail, initialSubject.
+
+Add industry to this object:
+  body: JSON.stringify({
+    firstName, lastName, title, company, trigger, valueProp, tone, ctaStyle,
+    industry,
+    initialEmail: generatedEmail,
+    initialSubject: generatedSubject,
+  })
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VERIFICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+After changes:
+1. Run: npx tsc --noEmit and fix any TypeScript errors
+2. Confirm industry defaults to "tech_saas" (no breaking change for existing users)
+3. Confirm the Industry select renders below CTA Style in the Email Settings card
+4. Do NOT change any other part of the file</pre>
+    <button class="copy-btn" id="btn2" onclick="copyPrompt('p2', 'btn2', 'Copy Prompt 2')">Copy Prompt 2</button>
+  </div>
+</div>
+
+<script>
+function copyPrompt(preId, btnId, label) {
+  const el = document.getElementById(preId)
+  navigator.clipboard.writeText(el.innerText).then(() => {
+    const btn = document.getElementById(btnId)
+    btn.textContent = "✓ Copied!"
+    btn.classList.add("copied")
+    setTimeout(() => {
+      btn.textContent = label
+      btn.classList.remove("copied")
+    }, 2000)
+  })
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ColdHook — ROI Calculator Prompt</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #010102; color: #f7f8f8; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding: 32px 24px; min-height: 100vh; }
+  h1 { font-size: 20px; font-weight: 700; color: #f7f8f8; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #8a8f98; margin-bottom: 12px; }
+  .context-note { font-size: 12px; color: #62666d; margin-bottom: 32px; padding: 12px 16px; border: 1px solid #23252a; border-radius: 8px; background: #0f1011; line-height: 1.6; }
+  .context-note strong { color: #8a8f98; }
+
+  .prompt-card { background: #0f1011; border: 1px solid #23252a; border-radius: 12px; overflow: hidden; }
+  .card-header { padding: 16px 20px; border-bottom: 1px solid #23252a; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .card-meta { display: flex; align-items: center; gap: 10px; }
+  .num { width: 24px; height: 24px; border-radius: 6px; background: rgba(94,106,210,0.15); border: 1px solid rgba(94,106,210,0.25); color: #828fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .card-title { font-size: 14px; font-weight: 600; color: #f7f8f8; }
+  .card-sub { font-size: 12px; color: #8a8f98; margin-top: 2px; }
+  .model-badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+  .model-deepseek { background: rgba(94,106,210,0.12); border: 1px solid rgba(94,106,210,0.25); color: #828fff; }
+
+  .card-body { padding: 16px 20px; }
+  .why { font-size: 12px; color: #8a8f98; line-height: 1.6; margin-bottom: 14px; }
+
+  pre { background: #0a0a0b; border: 1px solid #23252a; border-radius: 8px; padding: 16px; font-size: 12px; line-height: 1.65; color: #d0d6e0; white-space: pre-wrap; word-break: break-word; font-family: "SF Mono", "Fira Code", monospace; max-height: 560px; overflow-y: auto; }
+
+  .copy-btn { margin-top: 12px; width: 100%; padding: 9px 0; border-radius: 8px; border: 1px solid #34343a; background: #141516; color: #d0d6e0; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+  .copy-btn:hover { background: #1e1f22; border-color: #5e6ad2; color: #828fff; }
+  .copy-btn.copied { background: rgba(39,166,68,0.1); border-color: rgba(39,166,68,0.3); color: #27a644; }
+</style>
+</head>
+<body>
+
+<h1>ColdHook — ROI Calculator Prompt</h1>
+<p class="subtitle">1 prompt · New component + landing page wire-up</p>
+<p class="context-note">
+  <strong>What this builds:</strong> A self-contained interactive ROI calculator section on the landing page. Three slider inputs (emails/week, current reply rate, avg deal size), live-updating output showing pipeline added per month and time saved. Drops between Features and Testimonials.<br><br>
+  <strong>Two deliverables:</strong> DeepSeek creates the calculator component, then wires it into the landing page. Both in one prompt.
+</p>
+
+<div class="prompt-card">
+  <div class="card-header">
+    <div class="card-meta">
+      <div class="num">1</div>
+      <div>
+        <div class="card-title">ROI Calculator — New Component + Landing Page</div>
+        <div class="card-sub">src/components/landing/calculator.tsx + src/app/page.tsx</div>
+      </div>
+    </div>
+    <span class="model-badge model-deepseek">DeepSeek</span>
+  </div>
+  <div class="card-body">
+    <p class="why">Greenfield component with no existing code to preserve. Pure frontend logic + styling — ideal for DeepSeek.</p>
+    <pre id="p1">You are working on ColdHook, a Next.js 16 App Router TypeScript project. Stack: Next.js 16, TypeScript, Tailwind CSS v4, React hooks.
+
+IMPORTANT — Design system. The entire app uses these CSS variables defined in globals.css. Use them exactly, never hardcode hex values:
+  --color-canvas: #010102       (page background)
+  --color-surface-1: #0f1011    (cards)
+  --color-surface-2: #141516    (elevated inputs)
+  --color-accent: #5e6ad2       (primary brand, CTAs)
+  --color-email: #ff801f        (orange accent)
+  --color-ink: #f7f8f8          (primary text)
+  --color-ink-subtle: #8a8f98   (secondary text)
+  --color-hairline: #23252a     (borders)
+  --color-success: #27a644      (positive)
+
+Use Tailwind utility classes for layout/spacing. For colors, use inline style={{ color: "var(--color-accent)" }} or bg-[var(--color-accent)] syntax.
+
+Shadow convention (use these exactly):
+  Card:     box-shadow: 0 4px 6px rgba(50,50,93,0.11), 0 1px 3px rgba(0,0,0,0.08)
+  Elevated: box-shadow: 0 13px 27px rgba(50,50,93,0.25), 0 8px 16px rgba(0,0,0,0.1)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DELIVERABLE 1 — Create src/components/landing/calculator.tsx
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Build a "use client" React component called ROICalculator. It is a landing page section with an interactive ROI calculator.
+
+SECTION LAYOUT:
+- Full-width section with id="calculator", py-20 px-6, border-t border-[var(--color-hairline)]
+- Max width: max-w-5xl mx-auto
+- Section label pill at top (same style as Pricing section): "ROI Calculator" with a TrendingUp icon, accent color, pill border
+- Headline: "See what ColdHook means for your pipeline" — large, tracking-tight, white
+- Subheadline: "Adjust the sliders to see the difference better reply rates make." — muted color
+
+CALCULATOR LAYOUT — two columns (grid-cols-1 md:grid-cols-2 gap-8):
+
+LEFT COLUMN — Inputs:
+Three slider inputs, each with a label showing the current value live as the slider moves.
+
+Input 1: "Emails per week"
+  - Range: 10 to 500, step 10, default 100
+  - Show current value in accent color next to label
+
+Input 2: "Your current reply rate"
+  - Range: 1 to 15 (percent), step 0.5, default 2
+  - Show as X.X% next to label
+  - Add a small note below: "Industry average is ~2%"
+
+Input 3: "Average deal size"
+  - Range: $1,000 to $100,000, step 1000, default 15000
+  - Show as $XX,XXX formatted with commas next to label
+
+Slider styling: full width, accent color thumb and track fill. Use CSS to style the range input:
+  accent-color: #5e6ad2 (via inline style or Tailwind)
+
+RIGHT COLUMN — Output:
+A dark card (surface-1 background, hairline border, elevated shadow) showing 3 output metrics that update live as sliders change.
+
+CALCULATIONS (compute these in the component):
+  coldhookReplyRate = 0.34  (ColdHook's 34% benchmark)
+  emailsPerMonth = emailsPerWeek * 4.33
+  currentReplies = emailsPerMonth * (currentReplyRate / 100)
+  coldhookReplies = emailsPerMonth * coldhookReplyRate
+  extraReplies = coldhookReplies - currentReplies
+  closeRate = 0.20  (assume 20% of replies become meetings, 20% of meetings close)
+  meetingRate = 0.20
+  extraDeals = extraReplies * meetingRate * closeRate
+  extraPipeline = extraDeals * dealSize
+  timeSavedHours = emailsPerMonth * (18 / 60)  (18 min saved per email vs manual research)
+
+OUTPUT METRICS — display these 3 in the card:
+
+Metric 1 (large, prominent): "Extra pipeline/month"
+  - Value: extraPipeline formatted as $X,XXX,XXX
+  - Color: accent (#5e6ad2)
+  - This is the hero number — make it large (text-4xl font-bold)
+
+Metric 2: "Additional replies/month"
+  - Value: Math.round(extraReplies) formatted as "+XXX replies"
+  - Color: success (#27a644)
+
+Metric 3: "Research time saved"
+  - Value: Math.round(timeSavedHours) + " hrs/month"
+  - Color: email/orange (#ff801f)
+
+Below the 3 metrics, add a subtle footnote:
+  "Based on ColdHook's 34% avg reply rate vs 2% industry average. Assumes 20% meeting rate, 20% close rate."
+  Style: text-[10px], muted color
+
+Below the footnote, add a CTA button:
+  "Start for free — see for yourself"
+  Link to /sign-up
+  Full width, accent background, white text, rounded-lg, py-3
+
+ANIMATION: When any slider value changes, animate the numbers counting up/down smoothly. Use a simple useEffect with a short interval (30ms steps) to interpolate the displayed value toward the target value. This makes the output feel live and satisfying.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DELIVERABLE 2 — Edit src/app/page.tsx
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The current landing page file is:
+  import { Navbar } from "@/components/landing/navbar"
+  import { Hero } from "@/components/landing/hero"
+  import { Features } from "@/components/landing/features"
+  import { Testimonials } from "@/components/landing/testimonials"
+  import { Pricing } from "@/components/landing/pricing"
+  import { Footer } from "@/components/landing/footer"
+
+  export default function LandingPage() {
+    return (
+      &lt;div className="min-h-screen bg-[#010102]"&gt;
+        &lt;Navbar /&gt;
+        &lt;main&gt;
+          &lt;Hero /&gt;
+          &lt;Features /&gt;
+          &lt;Testimonials /&gt;
+          &lt;Pricing /&gt;
+        &lt;/main&gt;
+        &lt;Footer /&gt;
+      &lt;/div&gt;
+    )
+  }
+
+Add the ROICalculator import and drop it between Features and Testimonials:
+  import { ROICalculator } from "@/components/landing/calculator"
+
+  ...
+  &lt;Features /&gt;
+  &lt;ROICalculator /&gt;
+  &lt;Testimonials /&gt;
+  ...
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+After creating both files, run: npx tsc --noEmit
+Fix any TypeScript errors before finishing.</pre>
+    <button class="copy-btn" id="btn1" onclick="copyPrompt('p1', 'btn1', 'Copy Prompt')">Copy Prompt</button>
+  </div>
+</div>
+
+<script>
+function copyPrompt(preId, btnId, label) {
+  const el = document.getElementById(preId)
+  navigator.clipboard.writeText(el.innerText).then(() => {
+    const btn = document.getElementById(btnId)
+    btn.textContent = "✓ Copied!"
+    btn.classList.add("copied")
+    setTimeout(() => {
+      btn.textContent = label
+      btn.classList.remove("copied")
+    }, 2000)
+  })
+}
+</script>
+</body>
+</html>

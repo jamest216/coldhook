@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ColdHook — Paths Gradient + Section Bleed</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #010102; color: #f7f8f8; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding: 32px 24px; min-height: 100vh; }
+  h1 { font-size: 20px; font-weight: 700; color: #f7f8f8; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #8a8f98; margin-bottom: 12px; }
+  .context-note { font-size: 12px; color: #62666d; margin-bottom: 32px; padding: 12px 16px; border: 1px solid #23252a; border-radius: 8px; background: #0f1011; line-height: 1.9; }
+  .context-note strong { color: #8a8f98; }
+  .context-note code { font-family: "SF Mono", "Fira Code", monospace; font-size: 11px; color: #828fff; background: rgba(94,106,210,0.1); padding: 1px 5px; border-radius: 3px; }
+  .prompt-card { background: #0f1011; border: 1px solid #23252a; border-radius: 12px; overflow: hidden; margin-bottom: 24px; }
+  .card-header { padding: 16px 20px; border-bottom: 1px solid #23252a; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .card-meta { display: flex; align-items: center; gap: 10px; }
+  .num { width: 24px; height: 24px; border-radius: 6px; background: rgba(94,106,210,0.15); border: 1px solid rgba(94,106,210,0.25); color: #828fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .card-title { font-size: 14px; font-weight: 600; color: #f7f8f8; }
+  .card-sub { font-size: 12px; color: #8a8f98; margin-top: 2px; }
+  .model-badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; flex-shrink: 0; background: rgba(255,128,31,0.12); border: 1px solid rgba(255,128,31,0.25); color: #ff801f; }
+  .card-body { padding: 16px 20px; }
+  .why { font-size: 12px; color: #8a8f98; line-height: 1.6; margin-bottom: 14px; }
+  pre { background: #0a0a0b; border: 1px solid #23252a; border-radius: 8px; padding: 16px; font-size: 12px; line-height: 1.65; color: #d0d6e0; white-space: pre-wrap; word-break: break-word; font-family: "SF Mono", "Fira Code", monospace; max-height: 820px; overflow-y: auto; }
+  .copy-btn { margin-top: 12px; width: 100%; padding: 9px 0; border-radius: 8px; border: 1px solid #34343a; background: #141516; color: #d0d6e0; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+  .copy-btn:hover { background: #1e1f22; border-color: #5e6ad2; color: #828fff; }
+  .copy-btn.copied { background: rgba(39,166,68,0.1); border-color: rgba(39,166,68,0.3); color: #27a644; }
+</style>
+</head>
+<body>
+
+<h1>ColdHook — Paths: Gradient Stroke + Section Bleed</h1>
+<p class="subtitle">3 prompts · background-paths.tsx · hero.tsx · app/page.tsx</p>
+
+<p class="context-note">
+  <strong>What this does:</strong><br><br>
+  The animated path strokes currently feel disconnected from the hero background because they are pure white on a dark-to-indigo radial gradient — two different color temperatures fighting each other.<br><br>
+  Fix 1 — <strong>Gradient stroke:</strong> Add an SVG <code>linearGradient</code> that goes from white at the upper-left origin (matching the dark top of the hero) to a soft periwinkle mid-point, dissolving into <code>#3b1fa8</code> (the exact purple at the hero gradient edge) at the lower-right. The paths now look like they are <em>part of</em> the background glow rather than floating over it.<br><br>
+  Fix 2 — <strong>Section bleed:</strong> The paths currently live inside the hero's <code>overflow-hidden</code> section and are clipped at the hero boundary, creating a hard visual cut. Move them up to <code>app/page.tsx</code> as an absolute layer behind <code>&lt;Hero&gt;</code>, <code>&lt;TickerBar&gt;</code>, and the upper half of <code>&lt;Features&gt;</code>. The diagonal sweep continues naturally through the section boundary and dissolves about halfway down the features grid.<br><br>
+  <strong>Run in order:</strong> background-paths.tsx first, then hero.tsx, then app/page.tsx.
+</p>
+
+<!-- PROMPT 1 -->
+<div class="prompt-card">
+  <div class="card-header">
+    <div class="card-meta">
+      <div class="num">1</div>
+      <div>
+        <div class="card-title">Gradient stroke + preserveAspectRatio fix</div>
+        <div class="card-sub">src/components/ui/background-paths.tsx</div>
+      </div>
+    </div>
+    <span class="model-badge">Claude (terminal)</span>
+  </div>
+  <div class="card-body">
+    <p class="why">Read the full file before making changes. This prompt also includes the perf fixes (opacity-only animation, willChange, stagger, useReducedMotion) — if those were already applied, keep them; if not, apply them here too.</p>
+    <pre id="p1">You are working on ColdHook, a Next.js 16 App Router TypeScript project.
+
+File to edit: src/components/ui/background-paths.tsx
+
+Read the full file before making any changes.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CONTEXT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The hero background is:
+  radial-gradient(125% 125% at 50% 10%, #000 40%, #3b1fa8 100%)
+
+Black at the centre, deep indigo-purple (#3b1fa8) at the lower edges. The paths
+are currently stroke="white" which reads as a cold, disconnected layer. We want
+them to feel like they emerge from the dark and dissolve into the purple glow —
+matching the background's own color story.
+
+The path coordinates span roughly (−380, −189) at the upper-left origin to
+(870, 875) at the lower-right endpoint (accounting for both position=1 and
+position=−1 instances). A userSpaceOnUse gradient across this diagonal exactly
+mirrors the background gradient direction.
+
+Also: with preserveAspectRatio="xMidYMid slice" the paths are scaled to fill the
+container width, and the bottom endpoints (y=875 in SVG space) are clipped far
+above the actual container bottom when the container is tall. Changing to
+preserveAspectRatio="none" makes the paths stretch to fill the entire container
+in both axes — correct behaviour for the section-bleed layout added in prompt 3.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 1 — Add useReducedMotion import (if not already present)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Ensure the framer-motion import includes useReducedMotion:
+
+  import { motion, useReducedMotion } from "framer-motion"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 2 — Replace the entire FloatingPaths function with the following
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Replace the entire FloatingPaths function (from the export function line through
+its closing brace) with:
+
+export function FloatingPaths({ position }: { position: number }) {
+  const prefersReduced = useReducedMotion()
+
+  const paths = Array.from({ length: 36 }, (_, i) => ({
+    id: i,
+    d: `M-${380 - i * 5 * position} -${189 + i * 6}C-${
+      380 - i * 5 * position
+    } -${189 + i * 6} -${312 - i * 5 * position} ${216 - i * 6} ${
+      152 - i * 5 * position
+    } ${343 - i * 6}C${616 - i * 5 * position} ${470 - i * 6} ${
+      684 - i * 5 * position
+    } ${875 - i * 6} ${684 - i * 5 * position} ${875 - i * 6}`,
+    width: 0.5 + i * 0.03,
+    opacity: 0.06 + i * 0.012,
+  }))
+
+  return (
+    <div className="absolute inset-0 pointer-events-none">
+      <svg
+        className="w-full h-full"
+        viewBox="0 0 696 875"
+        fill="none"
+        preserveAspectRatio="none"
+      >
+        <defs>
+          {/*
+            Diagonal gradient from upper-left (white, matching hero dark top)
+            through periwinkle mid-range to the hero's deep indigo-purple at
+            the lower-right endpoint — the gradient mirrors the background.
+          */}
+          <linearGradient
+            id={`strokeGrad-${position}`}
+            x1="-380" y1="-189"
+            x2="870"  y2="875"
+            gradientUnits="userSpaceOnUse"
+          >
+            <stop offset="0%"   stopColor="#ffffff" stopOpacity="0.9" />
+            <stop offset="45%"  stopColor="#a5b4fc" stopOpacity="0.65" />
+            <stop offset="100%" stopColor="#3b1fa8" stopOpacity="0.2" />
+          </linearGradient>
+        </defs>
+
+        {paths.map((path) => (
+          <motion.path
+            key={path.id}
+            d={path.d}
+            stroke={`url(#strokeGrad-${position})`}
+            strokeWidth={path.width}
+            strokeOpacity={path.opacity}
+            fill="none"
+            style={{ willChange: "opacity" }}
+            initial={{ opacity: 0 }}
+            animate={
+              prefersReduced
+                ? { opacity: path.opacity }
+                : { opacity: [path.opacity * 0.4, path.opacity, path.opacity * 0.4] }
+            }
+            transition={
+              prefersReduced
+                ? { duration: 0 }
+                : {
+                    duration: 6 + (path.id * 7919) % 8,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                    delay: (path.id * 0.18) % 4,
+                  }
+            }
+          />
+        ))}
+      </svg>
+    </div>
+  )
+}
+
+Key changes from original:
+- viewBox changed from "0 0 696 316" to "0 0 696 875" — shows full path extent
+- preserveAspectRatio changed from "xMidYMid slice" to "none" — fills container
+- stroke changed from "white" to url(#strokeGrad-{position}) — gradient per instance
+- gradient id includes position to avoid collision between two mounted instances
+- strokeOpacity moved into the paths array as a variable (0.06 to ~0.49)
+- pathLength and pathOffset removed — opacity-only animation (GPU-compositable)
+- willChange: "opacity" promotes each path to compositor layer
+- stagger delay spreads animation starts
+- useReducedMotion disables all motion for accessibility
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VERIFICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Run: npx tsc --noEmit — fix all errors
+2. Confirm viewBox is "0 0 696 875"
+3. Confirm preserveAspectRatio is "none"
+4. Confirm linearGradient id includes position to avoid duplication
+5. Confirm pathLength and pathOffset do not appear anywhere in the file
+6. Confirm animate contains only opacity
+7. No other files modified</pre>
+    <button class="copy-btn" id="btn1" onclick="copyPrompt('p1', 'btn1')">Copy Prompt</button>
+  </div>
+</div>
+
+<!-- PROMPT 2 -->
+<div class="prompt-card">
+  <div class="card-header">
+    <div class="card-meta">
+      <div class="num">2</div>
+      <div>
+        <div class="card-title">Remove FloatingPaths from hero</div>
+        <div class="card-sub">src/components/landing/hero.tsx</div>
+      </div>
+    </div>
+    <span class="model-badge">Claude (terminal)</span>
+  </div>
+  <div class="card-body">
+    <p class="why">Read the full file first. Remove only the FloatingPaths import and the two component instances. Touch nothing else.</p>
+    <pre id="p2">You are working on ColdHook, a Next.js 16 App Router TypeScript project.
+
+File to edit: src/components/landing/hero.tsx
+
+Read the full file before making any changes.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 1 — Remove FloatingPaths import
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Remove this import line entirely:
+
+  import { FloatingPaths } from "@/components/ui/background-paths"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 2 — Remove the FloatingPaths wrapper div and both instances
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find and remove this entire block from inside the hero section JSX:
+
+  {/* Animated path lines */}
+  <div className="absolute inset-0 z-0">
+    <FloatingPaths position={1} />
+    <FloatingPaths position={-1} />
+  </div>
+
+Do not touch the grain overlay, grid pattern, or any other element.
+Do not remove overflow-hidden from the section — the grain and grid overlays
+still need it.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VERIFICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Run: npx tsc --noEmit — fix all errors
+2. Confirm FloatingPaths does not appear anywhere in this file
+3. Confirm the section still has overflow-hidden
+4. Confirm grain overlay and grid pattern are untouched</pre>
+    <button class="copy-btn" id="btn2" onclick="copyPrompt('p2', 'btn2')">Copy Prompt</button>
+  </div>
+</div>
+
+<!-- PROMPT 3 -->
+<div class="prompt-card">
+  <div class="card-header">
+    <div class="card-meta">
+      <div class="num">3</div>
+      <div>
+        <div class="card-title">Mount FloatingPaths as page-level layer spanning hero → mid-features</div>
+        <div class="card-sub">src/app/page.tsx</div>
+      </div>
+    </div>
+    <span class="model-badge">Claude (terminal)</span>
+  </div>
+  <div class="card-body">
+    <p class="why">Read the full file first. Add the paths as an absolute background layer inside main. Touch nothing else.</p>
+    <pre id="p3">You are working on ColdHook, a Next.js 16 App Router TypeScript project.
+
+File to edit: src/app/page.tsx
+
+Read the full file before making any changes.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CONTEXT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The paths previously lived inside the hero and were clipped at the hero boundary.
+Now they need to start at the very top of the page and bleed diagonally through
+the hero, through TickerBar, and finish roughly halfway down the Features section.
+
+The container height calc(90vh + 360px) approximates:
+  hero (min-h: 90vh) + ticker (~50px) + upper half of features (~310px)
+
+The paths layer is positioned absolute inside a relative main, starting at top:0,
+with overflow-hidden to clip cleanly at the halfway-through-features point.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 1 — Add FloatingPaths import
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Add this import at the top of the file alongside the other component imports:
+
+  import { FloatingPaths } from "@/components/ui/background-paths"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHANGE 2 — Make <main> relative and insert the paths layer
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Find the current <main> tag:
+
+  <main>
+
+Change it to:
+
+  <main className="relative">
+
+Then add the following as the FIRST child inside <main>, before <Hero />:
+
+  {/* Background paths — bleed diagonally from hero top through mid-features */}
+  <div
+    className="absolute inset-x-0 top-0 overflow-hidden pointer-events-none"
+    style={{ height: "calc(90vh + 360px)", zIndex: 0 }}
+  >
+    {/* Positioned anchor so FloatingPaths' absolute inset-0 fills this container */}
+    <div className="relative w-full h-full">
+      <FloatingPaths position={1} />
+      <FloatingPaths position={-1} />
+    </div>
+  </div>
+
+All existing children (Hero, TickerBar, Features, etc.) remain unchanged and
+after this insertion. The paths sit at z-index 0; all section content is naturally
+above it in stacking order.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VERIFICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Run: npx tsc --noEmit — fix all errors
+2. Confirm FloatingPaths is imported
+3. Confirm <main> has className="relative"
+4. Confirm the paths container is the first child of <main>
+5. Confirm the container has overflow-hidden and height: calc(90vh + 360px)
+6. Confirm all existing section components (Hero, TickerBar, Features, etc.) are untouched
+7. No other files modified</pre>
+    <button class="copy-btn" id="btn3" onclick="copyPrompt('p3', 'btn3')">Copy Prompt</button>
+  </div>
+</div>
+
+<script>
+function copyPrompt(preId, btnId) {
+  const el = document.getElementById(preId)
+  navigator.clipboard.writeText(el.innerText).then(() => {
+    const btn = document.getElementById(btnId)
+    btn.textContent = "✓ Copied!"
+    btn.classList.add("copied")
+    setTimeout(() => { btn.textContent = "Copy Prompt"; btn.classList.remove("copied") }, 2000)
+  })
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Features Section — Premium Interactions &amp; Animation</title>
+<style>
+  :root {
+    --bg-0: #0b0d12;
+    --bg-1: #11141b;
+    --bg-2: #161a23;
+    --border: rgba(255,255,255,0.08);
+    --border-strong: rgba(255,255,255,0.14);
+    --text: #e7eaf0;
+    --text-muted: #9aa3b2;
+    --text-faint: #6b7383;
+    --accent: #e8a87c;
+    --accent-2: #f3c4a3;
+    --accent-soft: rgba(232,168,124,0.18);
+    --code-bg: #0e1119;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 30px rgba(0,0,0,0.35);
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background:
+      radial-gradient(900px 600px at 12% -10%, rgba(232,168,124,0.08), transparent 60%),
+      radial-gradient(800px 600px at 100% 10%, rgba(124,168,232,0.06), transparent 60%),
+      var(--bg-0);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.55;
+    min-height: 100vh;
+  }
+  .wrap {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 56px 28px 80px;
+  }
+  header.top {
+    margin-bottom: 28px;
+  }
+  .eyebrow {
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 10px;
+  }
+  h1 {
+    font-size: 30px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin: 0 0 10px;
+  }
+  .summary {
+    color: var(--text-muted);
+    font-size: 16px;
+    margin: 0;
+    max-width: 64ch;
+  }
+
+  .chips {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    margin-top: 18px;
+  }
+  .chip {
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--accent-2);
+    background: rgba(232,168,124,0.08);
+    border: 1px solid rgba(232,168,124,0.22);
+    padding: 4px 10px;
+    border-radius: 999px;
+  }
+
+  .card {
+    background: var(--bg-1);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    margin-top: 24px;
+    overflow: hidden;
+  }
+  .card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-2);
+    gap: 10px;
+  }
+  .card-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    letter-spacing: 0.02em;
+  }
+  .card-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn {
+    appearance: none;
+    border: 1px solid var(--border-strong);
+    background: linear-gradient(180deg, #20242e 0%, #181c25 100%);
+    color: var(--text);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 7px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.06s ease, border-color 0.15s ease, background 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn:hover { border-color: rgba(232,168,124,0.55); }
+  .btn:active { transform: translateY(1px); }
+  .btn.ghost {
+    background: transparent;
+    border-color: var(--border);
+    color: var(--text-muted);
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+  .btn.ghost:hover { color: var(--text); border-color: var(--border-strong); }
+  .btn.copied {
+    border-color: rgba(124, 224, 162, 0.55);
+    color: #b5f0c8;
+  }
+  .btn svg {
+    width: 14px; height: 14px;
+    stroke: currentColor; fill: none;
+    stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;
+  }
+
+  /* Variable inputs */
+  .vars-body {
+    padding: 8px 0 4px;
+  }
+  .var-field {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+  }
+  .var-field:last-child { border-bottom: 0; }
+  .var-field-head {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .var-name-tag {
+    font-family: ui-monospace, "SF Mono", "JetBrains Mono", monospace;
+    color: var(--accent-2);
+    background: rgba(232,168,124,0.10);
+    border: 1px solid rgba(232,168,124,0.22);
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  .var-desc {
+    color: var(--text-muted);
+    font-size: 13px;
+    flex: 1 1 auto;
+    min-width: 200px;
+  }
+  textarea.var-input {
+    width: 100%;
+    background: var(--code-bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-family: ui-monospace, "SF Mono", "JetBrains Mono", monospace;
+    font-size: 13px;
+    line-height: 1.55;
+    resize: vertical;
+    min-height: 38px;
+    transition: border-color 0.15s ease;
+  }
+  textarea.var-input:focus {
+    outline: none;
+    border-color: rgba(232,168,124,0.55);
+  }
+  textarea.var-input::placeholder {
+    color: var(--text-faint);
+    opacity: 0.7;
+  }
+
+  pre.prompt {
+    margin: 0;
+    padding: 22px;
+    background: var(--code-bg);
+    color: var(--text);
+    font-family: ui-monospace, "SF Mono", "JetBrains Mono", "Menlo", monospace;
+    font-size: 13.5px;
+    line-height: 1.62;
+    white-space: pre-wrap;
+    word-break: normal;
+    overflow-wrap: anywhere;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+  /* Highlighted unfilled placeholder */
+  pre.prompt .placeholder {
+    background: var(--accent-soft);
+    color: var(--accent-2);
+    border: 1px solid rgba(232,168,124,0.32);
+    border-radius: 4px;
+    padding: 0 4px;
+    font-weight: 500;
+  }
+  /* Filled-in value, subtle highlight */
+  pre.prompt .filled {
+    background: rgba(124, 224, 162, 0.10);
+    border-radius: 3px;
+    padding: 0 2px;
+  }
+
+  details.rationale {
+    margin-top: 28px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg-1);
+    padding: 0;
+    overflow: hidden;
+  }
+  details.rationale > summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 14px 18px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    user-select: none;
+  }
+  details.rationale > summary::-webkit-details-marker { display: none; }
+  details.rationale > summary::before {
+    content: "";
+    width: 7px; height: 7px;
+    border-right: 1.6px solid var(--text-muted);
+    border-bottom: 1.6px solid var(--text-muted);
+    transform: rotate(-45deg);
+    transition: transform 0.15s ease;
+    display: inline-block;
+  }
+  details.rationale[open] > summary::before {
+    transform: rotate(45deg);
+  }
+  .rationale-body {
+    padding: 4px 22px 22px;
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 1.7;
+    border-top: 1px solid var(--border);
+  }
+  .rationale-body p { margin: 14px 0; }
+  .rationale-body code {
+    background: var(--code-bg);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 12.5px;
+    color: var(--accent-2);
+  }
+
+  footer.foot {
+    margin-top: 36px;
+    color: var(--text-faint);
+    font-size: 12px;
+    text-align: center;
+  }
+
+  @media (max-width: 600px) {
+    .wrap { padding: 32px 16px 56px; }
+    h1 { font-size: 24px; }
+    .card-head { padding: 12px; }
+    pre.prompt { padding: 16px; font-size: 13px; }
+    .var-field { padding: 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="eyebrow">Claude Prompt</div>
+    <h1>Features Section — Premium Interactions &amp; Animation</h1>
+    <p class="summary">Enhance src/components/landing/features.tsx with scroll-triggered bar growth, blinking live indicators, count-up numbers, card depth/hover lift, winner shimmer, and interactive email tabs. No new dependencies — framer-motion only.</p>
+    <div class="chips"><span class="chip">useInView scroll-gate</span><span class="chip">motion.div width spring</span><span class="chip">Infinite pulse loop</span><span class="chip">Count-up hook</span><span class="chip">CSS shimmer keyframe</span><span class="chip">whileHover lift</span><span class="chip">Interactive tab state</span></div>
+  </header>
+
+  
+
+  <section class="card" aria-label="Prompt">
+    <div class="card-head">
+      <span class="card-title">Prompt</span>
+      <div class="card-actions">
+        
+        <button class="btn" id="copyBtn" type="button" aria-label="Copy prompt to clipboard">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="9" y="9" width="11" height="11" rx="2"/>
+            <path d="M5 15V6a2 2 0 0 1 2-2h9"/>
+          </svg>
+          <span id="copyLabel">Copy prompt</span>
+        </button>
+      </div>
+    </div>
+    <pre class="prompt" id="promptPane"></pre>
+  </section>
+
+  <details class="rationale"><summary>Why this structure</summary><div class="rationale-body"><p>Each animation technique is chosen for a specific purpose. useInView gates all animations so they only fire when the section is visible — this prevents the common mistake of animations playing off-screen. Bar width is animated via motion.div (not CSS transition) so framer-motion controls the spring physics and we can stagger each bar independently. The blinking dot uses an infinite scale+opacity loop rather than CSS because it stays in sync with React render cycles. The count-up hook uses requestAnimationFrame for smooth 60fps counting with no layout thrash. Card shadows are layered (ambient + directional + top-edge highlight) to simulate physical depth without 3D transforms.</p></div></details>
+
+  <footer class="foot">Generated 2026-05-09 15:20 by the prompt-builder skill.</footer>
+</div>
+
+<script>
+(function() {
+  // ---- Data injected from Python ----
+  const RAW_PROMPT = "You are working on ColdHook, a Next.js 16 App Router TypeScript project.\n\nFile to enhance: src/components/landing/features.tsx\n\nDo NOT change any visual layout, copy, colors, or structure. Only add motion and interactivity on top of what already exists. All animations must be gated by useInView so they only trigger when the section scrolls into view.\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\nNEW IMPORTS NEEDED\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\nAdd to existing framer-motion import:\n  import { motion, useInView, useAnimation } from \"framer-motion\"\n\nAdd React hooks:\n  import { useRef, useEffect, useState } from \"react\"\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n1. COUNT-UP HOOK\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\nAdd this hook near the top of the file, before any components:\n\nfunction useCountUp(target: number, duration = 1000, inView = false) {\n  const [count, setCount] = useState(0)\n  useEffect(() => {\n    if (!inView) return\n    let start: number | null = null\n    const step = (timestamp: number) => {\n      if (!start) start = timestamp\n      const progress = Math.min((timestamp - start) / duration, 1)\n      setCount(Math.floor(progress * target))\n      if (progress < 1) requestAnimationFrame(step)\n    }\n    requestAnimationFrame(step)\n  }, [inView, target, duration])\n  return count\n}\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n2. ANIMATED BAR COMPONENT\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\nReplace the existing Bar component with this version that animates width from 0 to target when inView:\n\nfunction Bar({ pct, color, delay = 0, inView = false }: { pct: number; color: string; delay?: number; inView?: boolean }) {\n  return (\n    <div className=\"flex-1 h-1.5 rounded-full overflow-hidden\" style={{ backgroundColor: C.dim }}>\n      <motion.div\n        className=\"h-full rounded-full\"\n        style={{ backgroundColor: color }}\n        initial={{ width: \"0%\" }}\n        animate={{ width: inView ? `${pct}%` : \"0%\" }}\n        transition={{ duration: 0.8, delay, ease: [0.25, 0.46, 0.45, 0.94] }}\n      />\n    </div>\n  )\n}\n\nAlso create a ThickBar for the tier breakdown (h-2.5):\n\nfunction ThickBar({ pct, color, delay = 0, inView = false }: { pct: number; color: string; delay?: number; inView?: boolean }) {\n  return (\n    <div className=\"flex-1 h-2.5 rounded overflow-hidden\" style={{ backgroundColor: C.dim }}>\n      <motion.div\n        className=\"h-full rounded\"\n        style={{ backgroundColor: color }}\n        initial={{ width: \"0%\" }}\n        animate={{ width: inView ? `${pct}%` : \"0%\" }}\n        transition={{ duration: 0.9, delay, ease: [0.25, 0.46, 0.45, 0.94] }}\n      />\n    </div>\n  )\n}\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n3. BLINKING LIVE INDICATOR\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\nCreate a LiveDot component for the green P-0042 indicator:\n\nfunction LiveDot({ color }: { color: string }) {\n  return (\n    <span className=\"relative flex items-center justify-center w-2.5 h-2.5\">\n      <motion.span\n        className=\"absolute inline-flex rounded-full\"\n        style={{ backgroundColor: color, width: \"100%\", height: \"100%\" }}\n        animate={{ scale: [1, 1.8, 1], opacity: [0.8, 0, 0.8] }}\n        transition={{ duration: 2, repeat: Infinity, ease: \"easeInOut\" }}\n      />\n      <span className=\"relative inline-flex rounded-full w-2 h-2\" style={{ backgroundColor: color }} />\n    </span>\n  )\n}\n\nReplace the static green dot in ProspectCard:\n  // Before: <span className=\"w-2 h-2 rounded-full\" style={{ backgroundColor: C.green }} />\n  // After:  <LiveDot color={C.green} />\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n4. CARD DEPTH & HOVER LIFT\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\nFor all three top-level card wrappers (ProspectCard, EmailCard, and both sub-cards inside SequenceCard), replace static <motion.div> or <div> with:\n\n<motion.div\n  variants={fadeInUp}\n  className=\"rounded-xl p-4 border\"\n  style={{\n    backgroundColor: C.card,\n    borderColor: C.border,\n    background: `linear-gradient(145deg, #141516 0%, ${C.card} 100%)`,\n    boxShadow: \"0 1px 0 rgba(255,255,255,0.04) inset, 0 4px 24px rgba(0,0,0,0.5), 0 1px 4px rgba(0,0,0,0.4)\",\n  }}\n  whileHover={{\n    y: -3,\n    boxShadow: \"0 1px 0 rgba(255,255,255,0.06) inset, 0 12px 40px rgba(0,0,0,0.6), 0 2px 8px rgba(0,0,0,0.5)\",\n    borderColor: \"#34343a\",\n    transition: { duration: 0.2 },\n  }}\n>\n\nNote: The SequenceCard wrapper div (space-y-3) stays as-is. Apply whileHover only to the inner sub-cards.\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n5. PROSPECT CARD \u2014 scroll-gated animations\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\nAdd a ref and useInView to ProspectCard:\n\nfunction ProspectCard() {\n  const ref = useRef<HTMLDivElement>(null)\n  const inView = useInView(ref, { once: true, margin: \"-80px\" })\n  const score = useCountUp(94, 900, inView)\n\n  // ... rest of component, pass ref to the outer motion.div:\n  // <motion.div ref={ref} variants={fadeInUp} ...>\n\n  // Replace static \"94 / 100\" with: `${score} / 100`\n  // Replace static \"3\" and \"14d ago\" \u2014 keep static (only score animates)\n\n  // Pass inView + staggered delay to each Bar:\n  // LinkedIn Activity: <Bar pct={90} color={C.accent}  delay={0.1} inView={inView} />\n  // News Mentions:     <Bar pct={55} color={C.purple}  delay={0.2} inView={inView} />\n  // Job Changes:       <Bar pct={35} color={C.orange}  delay={0.3} inView={inView} />\n}\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n6. EMAIL CARD \u2014 interactive tabs + animated badge\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\nMake the 7d / 30d / All tabs interactive. Add state:\n  const [activeTab, setActiveTab] = useState<\"7d\" | \"30d\" | \"All\">(\"30d\")\n\nDefine tab-specific subject lines:\n  const tabSubjects = {\n    \"7d\":  \"Scaling pipeline at TechScale \u2014 quick thought\",\n    \"30d\": \"Congrats on the Series B, Alex \u2014 scaling pipeline at TechScale?\",\n    \"All\": \"Hey Alex \u2014 saw your SDR hiring spree\",\n  }\n\nRender the tab buttons with onClick={()=>setActiveTab(t)} and active styling based on activeTab.\n\nAnimate subject line change with AnimatePresence:\n  import { AnimatePresence } from \"framer-motion\"\n\n  <AnimatePresence mode=\"wait\">\n    <motion.p\n      key={activeTab}\n      initial={{ opacity: 0, y: 4 }}\n      animate={{ opacity: 1, y: 0 }}\n      exit={{ opacity: 0, y: -4 }}\n      transition={{ duration: 0.18 }}\n      className=\"text-xs font-semibold mb-2\"\n      style={{ color: C.textPrimary }}\n    >\n      {tabSubjects[activeTab]}\n    </motion.p>\n  </AnimatePresence>\n\nAdd a gentle pulse to the \"Highly Personalized\" badge:\n  <motion.span\n    animate={{ opacity: [1, 0.65, 1] }}\n    transition={{ duration: 2.5, repeat: Infinity, ease: \"easeInOut\" }}\n    className=\"text-[11px] font-medium\"\n    style={{ color: C.accentBright }}\n  >\n    Highly Personalized\n  </motion.span>\n\nAdd winner badge shimmer via inline style + CSS animation.\nAdd a <style> tag (or use a global className) for the shimmer keyframe:\n\n  const shimmerStyle: React.CSSProperties = {\n    background: `linear-gradient(90deg, ${C.accent}10 0%, ${C.accentBright}40 50%, ${C.accent}10 100%)`,\n    backgroundSize: \"200% 100%\",\n    animation: \"shimmer 2.2s infinite\",\n  }\n\nAdd the keyframe inside a <style jsx global> block (or inline <style>):\n  @keyframes shimmer {\n    0%   { background-position: 200% 0; }\n    100% { background-position: -200% 0; }\n  }\n\nApply shimmerStyle to the winner variant row (variant A) instead of the plain backgroundColor.\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n7. SEQUENCE CARD \u2014 scroll-gated bars + count-up\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\nAdd ref and inView to SequenceCard:\n  const ref = useRef<HTMLDivElement>(null)\n  const inView = useInView(ref, { once: true, margin: \"-80px\" })\n\n  // Count-up for each reply rate:\n  const r1 = useCountUp(34, 800, inView)\n  const r2 = useCountUp(18, 800, inView)\n  const r3 = useCountUp(22, 800, inView)\n\n  // Replace static 34%, 18%, 22% with: `${r1}%`, `${r2}%`, `${r3}%`\n\n  // Pass inView to step bars:\n  // Step 1 \u00b7 Cold Intro:  <Bar pct={34*2.5} color={C.accent}  delay={0.1} inView={inView} />\n  // Step 2 \u00b7 Follow-up:   <Bar pct={18*2.5} color={C.accent}  delay={0.2} inView={inView} />\n  // Step 3 \u00b7 Break-up:    <Bar pct={22*2.5} color={C.accent}  delay={0.3} inView={inView} />\n\n  // Count-up for tier counts:\n  const t1 = useCountUp(8, 900, inView)\n  const t2 = useCountUp(3, 900, inView)\n  const t3 = useCountUp(1, 900, inView)\n\n  // Replace static 8, 3, 1 with: t1, t2, t3\n\n  // Pass inView to ThickBars:\n  // Enterprise: <ThickBar pct={75} color={C.accent}  delay={0.15} inView={inView} />\n  // Pro:        <ThickBar pct={45} color={C.purple}  delay={0.25} inView={inView} />\n  // Startup:    <ThickBar pct={20} color={C.orange}  delay={0.35} inView={inView} />\n\n  // Attach ref to the outer wrapper div: <motion.div ref={ref} ...>\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n8. SPAM SCORE \u2014 animated fill\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\nIn EmailCard, add a ref and inView for the spam score:\n  const spamRef = useRef<HTMLDivElement>(null)\n  const spamInView = useInView(spamRef, { once: true })\n  const spamCount = useCountUp(12, 700, spamInView)\n\nAttach ref={spamRef} to the spam score footer pill div.\nReplace static \"12 / 100\" with: `${spamCount} / 100`\n\nAnimate the pill border drawing in:\n  Wrap the pill in a motion.div with:\n    initial={{ opacity: 0, scaleX: 0.85 }}\n    animate={spamInView ? { opacity: 1, scaleX: 1 } : {}}\n    transition={{ duration: 0.5, delay: 0.3, ease: \"backOut\" }}\n    style={{ transformOrigin: \"left\" }}\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\nVERIFICATION\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\n1. Run: npx tsc --noEmit \u2014 fix all TypeScript errors\n2. Confirm no layout, copy, or color changed \u2014 only motion added\n3. Confirm bars start at width 0 on first paint and grow when scrolled into view\n4. Confirm LiveDot shows a pulsing ring around the green indicator\n5. Confirm all three email tabs are clickable and animate the subject line\n6. Confirm winner badge row has shimmer, not plain background\n7. Confirm score and reply rate numbers count up from 0\n8. Confirm all useInView calls use once: true (animations don't replay on scroll-up)\n9. No other files modified";
+  const VARIABLES  = [];  // [{name, description}]
+
+  const promptPane = document.getElementById('promptPane');
+  const copyBtn    = document.getElementById('copyBtn');
+  const copyLabel  = document.getElementById('copyLabel');
+  const resetBtn   = document.getElementById('resetBtn');
+
+  function escapeHtml(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // Collect current values from textareas keyed by variable name.
+  function getValues() {
+    const out = {};
+    for (const v of VARIABLES) {
+      const el = document.getElementById('var-' + v.name);
+      out[v.name] = el ? el.value : '';
+    }
+    return out;
+  }
+
+  // Substitute {{VAR}} in raw prompt. Returns plain string with values inserted.
+  function substitute(raw, values) {
+    return raw.replace(/\{\{\s*([A-Za-z0-9_]+)\s*\}\}/g, function(match, name) {
+      if (Object.prototype.hasOwnProperty.call(values, name) && values[name].trim() !== '') {
+        return values[name];
+      }
+      return match;  // leave unfilled
+    });
+  }
+
+  // Build HTML for the prompt pane: highlight unfilled and filled placeholders.
+  function renderPaneHtml(raw, values) {
+    // We do escaping in chunks so we can wrap the placeholder spans without
+    // accidentally escaping our own tag delimiters.
+    let html = '';
+    let lastIdx = 0;
+    const re = /\{\{\s*([A-Za-z0-9_]+)\s*\}\}/g;
+    let m;
+    while ((m = re.exec(raw)) !== null) {
+      const before = raw.slice(lastIdx, m.index);
+      html += escapeHtml(before);
+      const name = m[1];
+      const value = values[name];
+      if (value && value.trim() !== '') {
+        html += '<span class="filled">' + escapeHtml(value) + '</span>';
+      } else {
+        html += '<span class="placeholder">{{' + escapeHtml(name) + '}}</span>';
+      }
+      lastIdx = m.index + m[0].length;
+    }
+    html += escapeHtml(raw.slice(lastIdx));
+    return html;
+  }
+
+  function update() {
+    const values = getValues();
+    promptPane.innerHTML = renderPaneHtml(RAW_PROMPT, values);
+  }
+
+  // Wire up textarea inputs
+  for (const v of VARIABLES) {
+    const el = document.getElementById('var-' + v.name);
+    if (el) el.addEventListener('input', update);
+  }
+
+  // Copy button — copies the SUBSTITUTED prompt
+  copyBtn.addEventListener('click', async function() {
+    const text = substitute(RAW_PROMPT, getValues());
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select(); document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      copyBtn.classList.add('copied');
+      copyLabel.textContent = 'Copied!';
+      setTimeout(function() {
+        copyBtn.classList.remove('copied');
+        copyLabel.textContent = 'Copy prompt';
+      }, 1600);
+    } catch (e) {
+      copyLabel.textContent = 'Copy failed';
+      setTimeout(function() { copyLabel.textContent = 'Copy prompt'; }, 1600);
+    }
+  });
+
+  // Reset button
+  if (resetBtn) {
+    resetBtn.addEventListener('click', function() {
+      for (const v of VARIABLES) {
+        const el = document.getElementById('var-' + v.name);
+        if (el) el.value = '';
+      }
+      update();
+    });
+  }
+
+  update();  // initial render
+})();
+</script>
+</body>
+</html>

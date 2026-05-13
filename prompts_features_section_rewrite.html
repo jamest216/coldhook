@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Features Section — Plain-style live UI rewrite</title>
+<style>
+  :root {
+    --bg-0: #0b0d12;
+    --bg-1: #11141b;
+    --bg-2: #161a23;
+    --border: rgba(255,255,255,0.08);
+    --border-strong: rgba(255,255,255,0.14);
+    --text: #e7eaf0;
+    --text-muted: #9aa3b2;
+    --text-faint: #6b7383;
+    --accent: #e8a87c;
+    --accent-2: #f3c4a3;
+    --accent-soft: rgba(232,168,124,0.18);
+    --code-bg: #0e1119;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 30px rgba(0,0,0,0.35);
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background:
+      radial-gradient(900px 600px at 12% -10%, rgba(232,168,124,0.08), transparent 60%),
+      radial-gradient(800px 600px at 100% 10%, rgba(124,168,232,0.06), transparent 60%),
+      var(--bg-0);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.55;
+    min-height: 100vh;
+  }
+  .wrap {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 56px 28px 80px;
+  }
+  header.top {
+    margin-bottom: 28px;
+  }
+  .eyebrow {
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 10px;
+  }
+  h1 {
+    font-size: 30px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin: 0 0 10px;
+  }
+  .summary {
+    color: var(--text-muted);
+    font-size: 16px;
+    margin: 0;
+    max-width: 64ch;
+  }
+
+  .chips {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    margin-top: 18px;
+  }
+  .chip {
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--accent-2);
+    background: rgba(232,168,124,0.08);
+    border: 1px solid rgba(232,168,124,0.22);
+    padding: 4px 10px;
+    border-radius: 999px;
+  }
+
+  .card {
+    background: var(--bg-1);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    margin-top: 24px;
+    overflow: hidden;
+  }
+  .card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-2);
+    gap: 10px;
+  }
+  .card-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    letter-spacing: 0.02em;
+  }
+  .card-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn {
+    appearance: none;
+    border: 1px solid var(--border-strong);
+    background: linear-gradient(180deg, #20242e 0%, #181c25 100%);
+    color: var(--text);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 7px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.06s ease, border-color 0.15s ease, background 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn:hover { border-color: rgba(232,168,124,0.55); }
+  .btn:active { transform: translateY(1px); }
+  .btn.ghost {
+    background: transparent;
+    border-color: var(--border);
+    color: var(--text-muted);
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+  .btn.ghost:hover { color: var(--text); border-color: var(--border-strong); }
+  .btn.copied {
+    border-color: rgba(124, 224, 162, 0.55);
+    color: #b5f0c8;
+  }
+  .btn svg {
+    width: 14px; height: 14px;
+    stroke: currentColor; fill: none;
+    stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;
+  }
+
+  /* Variable inputs */
+  .vars-body {
+    padding: 8px 0 4px;
+  }
+  .var-field {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+  }
+  .var-field:last-child { border-bottom: 0; }
+  .var-field-head {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .var-name-tag {
+    font-family: ui-monospace, "SF Mono", "JetBrains Mono", monospace;
+    color: var(--accent-2);
+    background: rgba(232,168,124,0.10);
+    border: 1px solid rgba(232,168,124,0.22);
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  .var-desc {
+    color: var(--text-muted);
+    font-size: 13px;
+    flex: 1 1 auto;
+    min-width: 200px;
+  }
+  textarea.var-input {
+    width: 100%;
+    background: var(--code-bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-family: ui-monospace, "SF Mono", "JetBrains Mono", monospace;
+    font-size: 13px;
+    line-height: 1.55;
+    resize: vertical;
+    min-height: 38px;
+    transition: border-color 0.15s ease;
+  }
+  textarea.var-input:focus {
+    outline: none;
+    border-color: rgba(232,168,124,0.55);
+  }
+  textarea.var-input::placeholder {
+    color: var(--text-faint);
+    opacity: 0.7;
+  }
+
+  pre.prompt {
+    margin: 0;
+    padding: 22px;
+    background: var(--code-bg);
+    color: var(--text);
+    font-family: ui-monospace, "SF Mono", "JetBrains Mono", "Menlo", monospace;
+    font-size: 13.5px;
+    line-height: 1.62;
+    white-space: pre-wrap;
+    word-break: normal;
+    overflow-wrap: anywhere;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+  /* Highlighted unfilled placeholder */
+  pre.prompt .placeholder {
+    background: var(--accent-soft);
+    color: var(--accent-2);
+    border: 1px solid rgba(232,168,124,0.32);
+    border-radius: 4px;
+    padding: 0 4px;
+    font-weight: 500;
+  }
+  /* Filled-in value, subtle highlight */
+  pre.prompt .filled {
+    background: rgba(124, 224, 162, 0.10);
+    border-radius: 3px;
+    padding: 0 2px;
+  }
+
+  details.rationale {
+    margin-top: 28px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg-1);
+    padding: 0;
+    overflow: hidden;
+  }
+  details.rationale > summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 14px 18px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    user-select: none;
+  }
+  details.rationale > summary::-webkit-details-marker { display: none; }
+  details.rationale > summary::before {
+    content: "";
+    width: 7px; height: 7px;
+    border-right: 1.6px solid var(--text-muted);
+    border-bottom: 1.6px solid var(--text-muted);
+    transform: rotate(-45deg);
+    transition: transform 0.15s ease;
+    display: inline-block;
+  }
+  details.rationale[open] > summary::before {
+    transform: rotate(45deg);
+  }
+  .rationale-body {
+    padding: 4px 22px 22px;
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 1.7;
+    border-top: 1px solid var(--border);
+  }
+  .rationale-body p { margin: 14px 0; }
+  .rationale-body code {
+    background: var(--code-bg);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 12.5px;
+    color: var(--accent-2);
+  }
+
+  footer.foot {
+    margin-top: 36px;
+    color: var(--text-faint);
+    font-size: 12px;
+    text-align: center;
+  }
+
+  @media (max-width: 600px) {
+    .wrap { padding: 32px 16px 56px; }
+    h1 { font-size: 24px; }
+    .card-head { padding: 12px; }
+    pre.prompt { padding: 16px; font-size: 13px; }
+    .var-field { padding: 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="eyebrow">Claude Prompt</div>
+    <h1>Features Section — Plain-style live UI rewrite</h1>
+    <p class="summary">Full rewrite of src/components/landing/features.tsx. Replaces the static icon grid with a 3-column live-product-UI showcase (prospect card, generated email card, sequence analytics card) + updated feature blurbs beneath.</p>
+    <div class="chips"><span class="chip">Full file replacement</span><span class="chip">Framer Motion scroll animations</span><span class="chip">ColdHook design tokens</span><span class="chip">No external dependencies</span></div>
+  </header>
+
+  
+
+  <section class="card" aria-label="Prompt">
+    <div class="card-head">
+      <span class="card-title">Prompt</span>
+      <div class="card-actions">
+        
+        <button class="btn" id="copyBtn" type="button" aria-label="Copy prompt to clipboard">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="9" y="9" width="11" height="11" rx="2"/>
+            <path d="M5 15V6a2 2 0 0 1 2-2h9"/>
+          </svg>
+          <span id="copyLabel">Copy prompt</span>
+        </button>
+      </div>
+    </div>
+    <pre class="prompt" id="promptPane"></pre>
+  </section>
+
+  <details class="rationale"><summary>Why this structure</summary><div class="rationale-body"><p>The current features section uses a static 6-card icon grid — it describes the product but doesn&#x27;t show it. Inspired by Plain&#x27;s marketing page, the new layout uses three columns of actual product UI (prospect intelligence, generated email, sequence analytics) to demonstrate the workflow live. All color values come from ColdHook&#x27;s existing design tokens. <code>framer-motion</code> is already in the project so the animation primitives are a zero-dependency add. No shadcn components are used — the cards are built from divs + Tailwind + inline styles, matching the existing pattern in the codebase.</p></div></details>
+
+  <footer class="foot">Generated 2026-05-09 15:06 by the prompt-builder skill.</footer>
+</div>
+
+<script>
+(function() {
+  // ---- Data injected from Python ----
+  const RAW_PROMPT = "You are working on ColdHook, a Next.js 16 App Router TypeScript project.\n\nFile to rewrite: src/components/landing/features.tsx\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\nWHAT WE ARE DOING\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\nReplace the current static 6-card icon grid with a Plain-inspired 3-column\nlive product UI showcase. The visual output must be:\n\n  Column 1 \u2014 ProspectCard   : Prospect intelligence view\n  Column 2 \u2014 EmailCard      : Generated email with A/B variants + spam score\n  Column 3 \u2014 SequenceCard   : Sequence step reply-rate analytics\n\nBelow the cards: 3 short feature description blurbs (same grid width).\n\nThe section header (Features pill, headline, subheadline) is unchanged.\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\nDESIGN TOKENS\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\nDefine this const at the top of the file and use it throughout:\n\nconst C = {\n  bg:           \"#010102\",\n  card:         \"#0f1011\",\n  border:       \"#23252a\",\n  dim:          \"#1a1b1f\",\n  accent:       \"#5e6ad2\",\n  accentBright: \"#828fff\",\n  purple:       \"#a78bfa\",\n  orange:       \"#ff801f\",\n  green:        \"#27a644\",\n  linkedIn:     \"#0a66c2\",\n  textPrimary:  \"#f7f8f8\",\n  textSec:      \"#8a8f98\",\n  textMuted:    \"#62666d\",\n} as const\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\nANIMATION PRIMITIVES\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\nimport { motion } from \"framer-motion\"   // already in project\n\nconst fadeInUp = {\n  hidden:  { opacity: 0, y: 24 },\n  visible: { opacity: 1, y: 0, transition: { duration: 0.45 } },\n}\nconst stagger = {\n  hidden:  { opacity: 0 },\n  visible: { opacity: 1, transition: { staggerChildren: 0.12 } },\n}\n\nWrap each top-level grid (header, cards, blurbs) in:\n  initial=\"hidden\" whileInView=\"visible\" viewport={{ once: true }} variants={stagger}\n\nWrap each card component root element in:\n  <motion.div variants={fadeInUp} ...>\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\nSHARED PRIMITIVES\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\nfunction Tag({ label, color }: { label: string; color: string }) {\n  return (\n    <span\n      className=\"inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium\"\n      style={{ backgroundColor: `${color}20`, color }}\n    >\n      <span className=\"w-1.5 h-1.5 rounded-full\" style={{ backgroundColor: color }} />\n      {label}\n    </span>\n  )\n}\n\nfunction Bar({ pct, color }: { pct: number; color: string }) {\n  return (\n    <div className=\"flex-1 h-1.5 rounded-full overflow-hidden\" style={{ backgroundColor: C.dim }}>\n      <div className=\"h-full rounded-full\" style={{ width: `${pct}%`, backgroundColor: color }} />\n    </div>\n  )\n}\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\nCARD 1 \u2014 ProspectCard\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\nTop bar: green dot + \"P-0042\" label (left) \u00b7 MoreHorizontal icon (right)\nName: \"Alex Rivera\"  |  Subtitle: \"VP of Sales \u00b7 TechScale Inc.\"\n\nBuying signal tags (row):\n  Tag \"Series B \u00b7 $24M\"  color={C.accent}\n  Tag \"3 SDR hires\"      color={C.green}\n  Tag \"Pipeline post\"    color={C.orange}\n\nMetadata rows (label / value, text-[11px]):\n  Personalization score  \u2192  94 / 100\n  Emails generated       \u2192  3\n  Signal detected        \u2192  14d ago\n\nEnriched from (row of tags):\n  Tag \"LinkedIn\"   color={C.linkedIn}\n  Tag \"Crunchbase\" color={C.orange}\n  Tag \"News\"       color={C.purple}\n  \"+ 2 more\" muted text\n\nSignal strength (label + Bar + right label):\n  LinkedIn Activity  pct=90  color={C.accent}\n  News Mentions      pct=55  color={C.purple}\n  Job Changes        pct=35  color={C.orange}\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\nCARD 2 \u2014 EmailCard  (center / hero)\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\nHeader row: \"Generated Email\" title (left) \u00b7 \"7d\" / \"30d\" (active, bg C.border) / \"All\" tabs (right)\n\nPersonalization block (inner rounded panel, bg C.bg):\n  Row: \u2728 emoji + \"Highly Personalized\" in C.accentBright + ChevronUp icon\n  Label \"Subject\" muted\n  Subject line bold: \"Congrats on the Series B, Alex \u2014 scaling pipeline at TechScale?\"\n  Body preview (text-[11px] C.textSec):\n    \"Your recent raise and the 3 new SDR hires tell me you're about to push\n     pipeline hard. We help VP Sales teams at Series B companies cut\n     time-to-meeting by 60%...\"\n  Tags row:\n    Tag \"Series B signal\" color={C.accent}\n    Tag \"SDR hires\"       color={C.green}\n\nA/B subject variants section:\n  Label \"Subject variants\" muted\n  Two variant rows (border pill style):\n    A \u2014 \"Congrats on the Series B, Alex\"      winner=true  (border C.accent@50%, bg C.accent@10%, \"Winner\" badge in C.accentBright)\n    B \u2014 \"Scaling your SDR team at TechScale?\" winner=false (border C.border)\n\nSpam score footer (full-width pill, border C.green@30%, bg C.green@8%):\n  Left: Shield icon (C.green) + \"Spam Score\" label\n  Right: \"12 / 100 \u00b7 Safe to send\" in C.green bold\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\nCARD 3 \u2014 SequenceCard  (two stacked sub-cards)\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\nSub-card A \u2014 Step performance:\n  Tab row: \"Reply Rate\" (active, bg C.accent@20%, border C.accent, color C.accentBright)\n           \"Open Rate\" \u00b7 \"Meetings\" (inactive, muted)\n\n  Three step rows (label 28ch wide / Bar / pct% / icon):\n    Step 1 \u00b7 Cold Intro   pct=34  trending=true  \u2192 TrendingUp icon C.green\n    Step 2 \u00b7 Follow-up    pct=18  trending=false \u2192 ArrowUpRight icon muted\n    Step 3 \u00b7 Break-up     pct=22  trending=false \u2192 ArrowUpRight icon muted\n  Bar width = pct * 2.5 (capped visually at ~85% for 34)\n\nSub-card B \u2014 Prospect tier breakdown:\n  \"P-0042\" muted label\n  \"Alex Rivera \u00b7 TechScale Inc.\" small heading\n  Three bar rows (Bar + tier label + count):\n    Enterprise  pct=75  count=8  color={C.accent}\n    Pro         pct=45  count=3  color={C.purple}\n    Startup     pct=20  count=1  color={C.orange}\n  Bars use h-2.5 (slightly thicker than the step bars)\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\nFEATURE BLURBS  (below the card grid)\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\nSame 3-column grid, each blurb is a <motion.p variants={fadeInUp}>:\n\n  1. Bold: \"ColdHook detects the right moment.\"\n     Rest: \"Buying signals like funding rounds, exec hires, and LinkedIn\n     activity surface automatically so your email lands when the prospect\n     is already primed.\"\n\n  2. Bold: \"The AI writes from your perspective.\"\n     Rest: \"Your value prop, tone, and sender identity shape every word.\n     Personalization and spam scores keep every email sharp and safe to send.\"\n\n  3. Bold: \"Know what\u2019s working before you scale.\"\n     Rest: \"Reply rates, A/B winners, and sequence step performance tell\n     you exactly which emails deserve more volume \u2014 and which to retire.\"\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\nSECTION SHELL  (Features export)\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\nexport function Features() {\n  return (\n    <section id=\"features\" className=\"py-20 px-6 border-t border-[#23252a]\">\n      <div className=\"max-w-6xl mx-auto\">\n\n        {/* Header \u2014 unchanged from current */}\n        <motion.div initial=\"hidden\" whileInView=\"visible\" viewport={{ once: true }} variants={stagger} className=\"mb-14\">\n          <motion.div variants={fadeInUp} className=\"inline-flex items-center gap-1.5 rounded-full border border-[rgba(94,106,210,0.3)] bg-[rgba(94,106,210,0.08)] px-3 py-1 text-xs text-[#828fff] mb-4\">\n            <Zap className=\"size-3\" />\n            Features\n          </motion.div>\n          <motion.h2 variants={fadeInUp} className=\"text-4xl font-semibold tracking-tight text-[#f7f8f8] mb-4\">\n            Everything your pipeline needs\n          </motion.h2>\n          <motion.p variants={fadeInUp} className=\"text-[#8a8f98] text-lg max-w-2xl\">\n            From prospect research to send \u2014 ColdHook handles the entire cold outreach workflow so you can focus on closing.\n          </motion.p>\n        </motion.div>\n\n        {/* 3-column live UI cards */}\n        <motion.div initial=\"hidden\" whileInView=\"visible\" viewport={{ once: true }} variants={stagger} className=\"grid grid-cols-1 md:grid-cols-3 gap-4 mb-14\">\n          <ProspectCard />\n          <EmailCard />\n          <SequenceCard />\n        </motion.div>\n\n        {/* Feature blurbs */}\n        <motion.div initial=\"hidden\" whileInView=\"visible\" viewport={{ once: true }} variants={stagger} className=\"grid grid-cols-1 md:grid-cols-3 gap-8\">\n          {DESCRIPTIONS.map(({ title, body }) => (\n            <motion.p key={title} variants={fadeInUp} className=\"text-sm leading-relaxed\" style={{ color: \"#8a8f98\" }}>\n              <span className=\"font-semibold\" style={{ color: \"#f7f8f8\" }}>{title}</span>{\" \"}\n              {body}\n            </motion.p>\n          ))}\n        </motion.div>\n\n      </div>\n    </section>\n  )\n}\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\nIMPORTS  (top of file)\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\n\"use client\"\n\nimport { motion } from \"framer-motion\"\nimport { MoreHorizontal, ArrowUpRight, ChevronUp, Zap, Shield, TrendingUp } from \"lucide-react\"\n\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\nVERIFICATION\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\n\n1. Run: npx tsc --noEmit \u2014 fix all errors before finishing\n2. Confirm no hardcoded hex values outside the C token object\n3. Confirm the export name is still `Features` (used in hero.tsx / page.tsx)\n4. Confirm \"use client\" is at the top (framer-motion requires it)\n5. Confirm no other files were modified";
+  const VARIABLES  = [];  // [{name, description}]
+
+  const promptPane = document.getElementById('promptPane');
+  const copyBtn    = document.getElementById('copyBtn');
+  const copyLabel  = document.getElementById('copyLabel');
+  const resetBtn   = document.getElementById('resetBtn');
+
+  function escapeHtml(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  // Collect current values from textareas keyed by variable name.
+  function getValues() {
+    const out = {};
+    for (const v of VARIABLES) {
+      const el = document.getElementById('var-' + v.name);
+      out[v.name] = el ? el.value : '';
+    }
+    return out;
+  }
+
+  // Substitute {{VAR}} in raw prompt. Returns plain string with values inserted.
+  function substitute(raw, values) {
+    return raw.replace(/\{\{\s*([A-Za-z0-9_]+)\s*\}\}/g, function(match, name) {
+      if (Object.prototype.hasOwnProperty.call(values, name) && values[name].trim() !== '') {
+        return values[name];
+      }
+      return match;  // leave unfilled
+    });
+  }
+
+  // Build HTML for the prompt pane: highlight unfilled and filled placeholders.
+  function renderPaneHtml(raw, values) {
+    // We do escaping in chunks so we can wrap the placeholder spans without
+    // accidentally escaping our own tag delimiters.
+    let html = '';
+    let lastIdx = 0;
+    const re = /\{\{\s*([A-Za-z0-9_]+)\s*\}\}/g;
+    let m;
+    while ((m = re.exec(raw)) !== null) {
+      const before = raw.slice(lastIdx, m.index);
+      html += escapeHtml(before);
+      const name = m[1];
+      const value = values[name];
+      if (value && value.trim() !== '') {
+        html += '<span class="filled">' + escapeHtml(value) + '</span>';
+      } else {
+        html += '<span class="placeholder">{{' + escapeHtml(name) + '}}</span>';
+      }
+      lastIdx = m.index + m[0].length;
+    }
+    html += escapeHtml(raw.slice(lastIdx));
+    return html;
+  }
+
+  function update() {
+    const values = getValues();
+    promptPane.innerHTML = renderPaneHtml(RAW_PROMPT, values);
+  }
+
+  // Wire up textarea inputs
+  for (const v of VARIABLES) {
+    const el = document.getElementById('var-' + v.name);
+    if (el) el.addEventListener('input', update);
+  }
+
+  // Copy button — copies the SUBSTITUTED prompt
+  copyBtn.addEventListener('click', async function() {
+    const text = substitute(RAW_PROMPT, getValues());
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select(); document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      copyBtn.classList.add('copied');
+      copyLabel.textContent = 'Copied!';
+      setTimeout(function() {
+        copyBtn.classList.remove('copied');
+        copyLabel.textContent = 'Copy prompt';
+      }, 1600);
+    } catch (e) {
+      copyLabel.textContent = 'Copy failed';
+      setTimeout(function() { copyLabel.textContent = 'Copy prompt'; }, 1600);
+    }
+  });
+
+  // Reset button
+  if (resetBtn) {
+    resetBtn.addEventListener('click', function() {
+      for (const v of VARIABLES) {
+        const el = document.getElementById('var-' + v.name);
+        if (el) el.value = '';
+      }
+      update();
+    });
+  }
+
+  update();  // initial render
+})();
+</script>
+</body>
+</html>
